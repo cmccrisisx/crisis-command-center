@@ -65,7 +65,7 @@ export default function Dashboard() {
         </div>
 
         {/* Active Crisis Alert */}
-        <Card className="border-crisis-red/30 bg-crisis-red/5">
+        <Card className="border-crisis-red/30 bg-crisis-red/10 dark:bg-red-950/60">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
