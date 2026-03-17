@@ -15,7 +15,7 @@ export function TopBar() {
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Global Risk:</span>
+          <span className="text-xs font-mono text-foreground/70 uppercase tracking-wider">Global Risk:</span>
           <RiskBadge level={mockData.globalRisk} pulse size="sm" />
         </div>
       </div>
@@ -23,11 +23,11 @@ export function TopBar() {
       <div className="flex items-center gap-2">
         <div className="hidden sm:flex items-center gap-4 mr-4 font-mono text-xs tabular-nums">
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Signals</span>
+            <span className="text-foreground/70">Signals</span>
             <span className="text-foreground font-semibold">{mockData.stats.totalSignals.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Alerts</span>
+            <span className="text-foreground/70">Alerts</span>
             <span className="text-crisis-red font-semibold">{mockData.stats.activeAlerts}</span>
           </div>
         </div>
