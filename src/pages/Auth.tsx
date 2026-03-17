@@ -9,12 +9,20 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Shield, LogIn, UserPlus, AlertCircle } from "lucide-react";
 
 export default function Auth() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Redirect authenticated users to dashboard
+  if (user) {
+    navigate("/", { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
