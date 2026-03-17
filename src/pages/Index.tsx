@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/AppLayout";
+import { CrisisAIPanel } from "@/components/CrisisAIPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SentimentBadge } from "@/components/SentimentBadge";
@@ -159,6 +160,9 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* AI Analysis Panel */}
+        <CrisisAIPanel />
 
         {/* Recent Signals */}
         <Card>
