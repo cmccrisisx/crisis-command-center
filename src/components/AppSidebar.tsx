@@ -45,12 +45,11 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-primary shrink-0" />
-          {!collapsed && (
-            <span className="font-mono font-bold text-lg tracking-tight text-foreground">
-              CRISIS<span className="text-primary">X</span>
-            </span>
-          )}
+          <img
+            src={crisisLogo}
+            alt="Crisis-X"
+            className={collapsed ? "h-7 w-auto shrink-0" : "h-9 w-auto shrink-0"}
+          />
         </div>
       </SidebarHeader>
 

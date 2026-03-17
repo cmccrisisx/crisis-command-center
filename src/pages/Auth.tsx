@@ -58,11 +58,8 @@ export default function Auth() {
 
         <Card className="w-full max-w-md border-border bg-card">
           <CardHeader className="text-center pb-2">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Shield className="h-8 w-8 text-primary" />
-              <span className="font-mono font-bold text-2xl tracking-tight text-foreground">
-                CRISIS<span className="text-primary">X</span>
-              </span>
+            <div className="flex items-center justify-center mb-4">
+              <img src={crisisLogo} alt="Crisis-X" className="h-16 w-auto" />
             </div>
             <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
               Crisis Intelligence Platform
