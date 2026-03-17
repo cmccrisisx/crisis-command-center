@@ -1,1 +1,4 @@
 project_id = "bnykreimgsmybqgqphqy"
+
+[functions.crisis-ai]
+verify_jwt = false
