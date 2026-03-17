@@ -23,7 +23,7 @@ export function TopBar() {
       <div className="flex items-center gap-2">
         <div className="hidden sm:flex items-center gap-4 mr-4 font-mono text-xs tabular-nums">
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Signals</span>
+            <span className="text-foreground/70">Signals</span>
             <span className="text-foreground font-semibold">{mockData.stats.totalSignals.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1.5">
