@@ -27,7 +27,7 @@ export function TopBar() {
             <span className="text-foreground font-semibold">{mockData.stats.totalSignals.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground">Alerts</span>
+            <span className="text-foreground/70">Alerts</span>
             <span className="text-crisis-red font-semibold">{mockData.stats.activeAlerts}</span>
           </div>
         </div>
