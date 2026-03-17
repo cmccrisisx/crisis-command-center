@@ -161,6 +161,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* AI Analysis Panel */}
+        <CrisisAIPanel />
+
         {/* Recent Signals */}
         <Card>
           <CardHeader className="pb-2">
