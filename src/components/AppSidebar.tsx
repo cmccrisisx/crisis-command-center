@@ -48,7 +48,7 @@ export function AppSidebar() {
           <img
             src={crisisLogo}
             alt="Crisis-X"
-            className={collapsed ? "h-7 w-auto shrink-0" : "h-9 w-auto shrink-0"}
+            className={collapsed ? "h-8 w-auto shrink-0" : "h-14 w-auto shrink-0"}
           />
         </div>
       </SidebarHeader>

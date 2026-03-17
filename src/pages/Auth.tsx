@@ -59,7 +59,7 @@ export default function Auth() {
         <Card className="w-full max-w-md border-border bg-card">
           <CardHeader className="text-center pb-2">
             <div className="flex items-center justify-center mb-4">
-              <img src={crisisLogo} alt="Crisis-X" className="h-16 w-auto" />
+              <img src={crisisLogo} alt="Crisis-X" className="h-24 w-auto" />
             </div>
             <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
               Crisis Intelligence Platform
