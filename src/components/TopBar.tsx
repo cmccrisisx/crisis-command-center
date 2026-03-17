@@ -15,7 +15,7 @@ export function TopBar() {
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Global Risk:</span>
+          <span className="text-xs font-mono text-foreground/70 uppercase tracking-wider">Global Risk:</span>
           <RiskBadge level={mockData.globalRisk} pulse size="sm" />
         </div>
       </div>
