@@ -5,8 +5,8 @@ import {
   BarChart3,
   FileText,
   Settings,
-  Shield,
 } from "lucide-react";
+import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import {
