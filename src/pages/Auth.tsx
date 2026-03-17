@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Shield, LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { LogIn, UserPlus, AlertCircle } from "lucide-react";
+import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 
 export default function Auth() {
   const { user } = useAuth();
