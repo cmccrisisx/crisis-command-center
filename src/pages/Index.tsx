@@ -76,11 +76,11 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">{mockData.crisis.description}</p>
+            <p className="text-sm text-foreground/80">{mockData.crisis.description}</p>
             <div className="flex items-center gap-4 mt-3 font-mono text-xs tabular-nums">
-              <span className="text-muted-foreground">Detected: <span className="text-foreground">{mockData.crisis.detectedAt.toLocaleTimeString()}</span></span>
-              <span className="text-muted-foreground">Signals: <span className="text-foreground">{formatNumber(mockData.crisis.signalCount)}</span></span>
-              <span className="text-muted-foreground">Type: <span className="text-foreground uppercase">{mockData.crisis.type}</span></span>
+              <span className="text-foreground/70">Detected: <span className="text-foreground">{mockData.crisis.detectedAt.toLocaleTimeString()}</span></span>
+              <span className="text-foreground/70">Signals: <span className="text-foreground">{formatNumber(mockData.crisis.signalCount)}</span></span>
+              <span className="text-foreground/70">Type: <span className="text-foreground uppercase">{mockData.crisis.type}</span></span>
             </div>
           </CardContent>
         </Card>
