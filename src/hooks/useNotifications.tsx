@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface AppNotification {
   id: string;
@@ -20,26 +22,90 @@ interface NotificationsContextType {
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
-let _counter = 0;
-
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
-  const push = useCallback((n: Omit<AppNotification, "id" | "timestamp" | "read">) => {
-    const entry: AppNotification = {
-      ...n,
-      id: `notif-${++_counter}-${Date.now()}`,
-      timestamp: new Date(),
-      read: false,
+  // Load from DB on mount / user change
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (data) {
+        setNotifications(
+          data.map((r: any) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            type: r.type as AppNotification["type"],
+            severity: r.severity as AppNotification["severity"],
+            timestamp: new Date(r.created_at),
+            read: r.read,
+          }))
+        );
+      }
     };
-    setNotifications((prev) => [entry, ...prev].slice(0, 100)); // keep last 100
-  }, []);
 
-  const markAllRead = useCallback(() => {
+    load();
+  }, [user]);
+
+  const push = useCallback(
+    async (n: Omit<AppNotification, "id" | "timestamp" | "read">) => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: user.id,
+          title: n.title,
+          description: n.description,
+          type: n.type,
+          severity: n.severity,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        const entry: AppNotification = {
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          type: data.type as AppNotification["type"],
+          severity: data.severity as AppNotification["severity"],
+          timestamp: new Date(data.created_at),
+          read: data.read,
+        };
+        setNotifications((prev) => [entry, ...prev].slice(0, 100));
+      }
+    },
+    [user]
+  );
+
+  const markAllRead = useCallback(async () => {
+    if (!user) return;
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", user.id)
+      .eq("read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+  }, [user]);
 
-  const clear = useCallback(() => setNotifications([]), []);
+  const clear = useCallback(async () => {
+    if (!user) return;
+    await supabase.from("notifications").delete().eq("user_id", user.id);
+    setNotifications([]);
+  }, [user]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
