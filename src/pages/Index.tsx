@@ -238,29 +238,39 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {mockData.signals.slice(0, 5).map((signal) => (
-              <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
-                <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
-                  {signal.source === "twitter" ? "𝕏" : signal.source === "news" ? "📰" : signal.source === "blog" ? "📝" : "in"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-foreground">{signal.author}</span>
-                    {signal.isInfluencer && (
-                      <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
-                        INFLUENCER
-                      </span>
-                    )}
-                    <SentimentBadge sentiment={signal.sentiment} />
+            {(dbSignals.length > 0 ? dbSignals : mockData.signals.slice(0, 5)).map((signal) => {
+              const isDb = "detected_at" in signal;
+              const source = isDb ? (signal as Signal).source : (signal as any).source;
+              const author = isDb ? (signal as Signal).author : (signal as any).author;
+              const content = isDb ? (signal as Signal).content : (signal as any).content;
+              const sentiment = isDb ? (signal as Signal).sentiment : (signal as any).sentiment;
+              const reach = isDb ? (signal as Signal).reach ?? 0 : (signal as any).reach;
+              const isInfluencer = isDb ? (signal as Signal).is_influencer : (signal as any).isInfluencer;
+              const time = isDb ? new Date((signal as Signal).detected_at).toLocaleTimeString() : (signal as any).timestamp.toLocaleTimeString();
+              return (
+                <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
+                  <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
+                    {source === "twitter" ? "𝕏" : source === "news" ? "📰" : source === "blog" ? "📝" : "in"}
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed truncate">{signal.content}</p>
-                  <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
-                    <span>Reach: {formatNumber(signal.reach)}</span>
-                    <span>{signal.timestamp.toLocaleTimeString()}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-foreground">{author}</span>
+                      {isInfluencer && (
+                        <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
+                          INFLUENCER
+                        </span>
+                      )}
+                      <SentimentBadge sentiment={sentiment} />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed truncate">{content}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
+                      <span>Reach: {formatNumber(reach)}</span>
+                      <span>{time}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
