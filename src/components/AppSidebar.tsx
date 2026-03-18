@@ -7,6 +7,7 @@ import {
   Settings,
   Megaphone,
   Shield,
+  FlaskConical,
 } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 import { NavLink } from "@/components/NavLink";
