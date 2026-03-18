@@ -239,10 +239,10 @@ export default function Speak() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-xs font-mono text-muted-foreground mb-1.5 block">Base Template</label>
-                    <Select value={selectedTemplate.id} onValueChange={(v) => setSelectedTemplate(templates.find(t => t.id === v) || templates[0])}>
-                      <SelectTrigger className="text-xs font-mono bg-card"><SelectValue /></SelectTrigger>
+                    <Select value={selectedTemplate?.id ?? ""} onValueChange={(v) => setSelectedTemplateId(v)}>
+                      <SelectTrigger className="text-xs font-mono bg-card"><SelectValue placeholder="Select template" /></SelectTrigger>
                       <SelectContent>
-                        {templates.map(t => <SelectItem key={t.id} value={t.id} className="text-xs font-mono">{t.title}</SelectItem>)}
+                        {dbTemplates.map(t => <SelectItem key={t.id} value={t.id} className="text-xs font-mono">{t.title}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
