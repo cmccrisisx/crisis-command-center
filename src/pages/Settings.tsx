@@ -46,20 +46,12 @@ interface SettingsState {
   };
 }
 
-const STORAGE_KEY = "crisis-x-settings";
-
-function loadSettings(): SettingsState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return {
-    spikeMultiplier: "3.0",
-    influencerThreshold: "50000",
-    keywords: ["outage", "network down", "telecom", "service disruption", "#NetworkDown"],
-    notifications: { critical: true, influencer: true, sentiment: false, dailySummary: true },
-  };
-}
+const DEFAULT_SETTINGS: SettingsState = {
+  spikeMultiplier: "3.0",
+  influencerThreshold: "50000",
+  keywords: ["outage", "network down", "telecom", "service disruption", "#NetworkDown"],
+  notifications: { critical: true, influencer: true, sentiment: false, dailySummary: true },
+};
 
 interface UserWithRoles {
   user_id: string;
