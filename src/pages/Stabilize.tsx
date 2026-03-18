@@ -214,18 +214,41 @@ export default function Stabilize() {
                 </div>
               )}
               {postCrisis.result && (
-                <div className="p-4 rounded-sm bg-surface-elevated border border-border overflow-auto max-h-[600px]">
+                <div className="p-4 rounded-sm bg-surface-elevated border border-border overflow-auto max-h-[600px]" id="post-crisis-report">
                   <div className="prose prose-sm prose-invert max-w-none text-xs leading-relaxed font-mono [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-foreground [&_h2]:text-xs [&_h2]:font-bold [&_h2]:text-foreground [&_h2]:uppercase [&_h2]:tracking-wider [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-foreground [&_strong]:text-foreground [&_li]:text-muted-foreground [&_p]:text-muted-foreground [&_ul]:space-y-1">
                     <ReactMarkdown>{postCrisis.result}</ReactMarkdown>
                   </div>
                 </div>
               )}
-              {postCrisis.loading && postCrisis.result && (
-                <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-primary/30 text-primary animate-pulse mt-2">
-                  <Loader2 className="h-2.5 w-2.5 mr-1 animate-spin" />
-                  STREAMING
-                </Badge>
-              )}
+              <div className="flex items-center gap-2 mt-2">
+                {postCrisis.loading && postCrisis.result && (
+                  <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-primary/30 text-primary animate-pulse">
+                    <Loader2 className="h-2.5 w-2.5 mr-1 animate-spin" />
+                    STREAMING
+                  </Badge>
+                )}
+                {postCrisis.result && !postCrisis.loading && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-[10px] font-mono h-7"
+                    onClick={() => {
+                      exportToPDF({
+                        title: "Post-Crisis Analysis Report",
+                        subtitle: `${mockData.crisis.title} — Crisis-X`,
+                        sections: [
+                          { title: "AI Analysis", content: postCrisis.result },
+                          { title: "Recovery Metrics (Day 14)", content: `Reputation Score: ${currentRep.reputation}/100\nShare of Voice: ${currentRep.shareOfVoice}%\nSentiment Score: ${currentRep.sentiment}%\nPhase: STABILIZING` },
+                        ],
+                      });
+                      toast.success("Post-crisis report PDF downloaded");
+                    }}
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Export PDF
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
