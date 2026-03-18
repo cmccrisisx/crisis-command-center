@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { CrisisAIPanel } from "@/components/CrisisAIPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SentimentBadge } from "@/components/SentimentBadge";
-import { mockData, formatNumber } from "@/lib/mock-data";
+import { Badge } from "@/components/ui/badge";
+import { mockData, formatNumber, getSourceIcon } from "@/lib/mock-data";
 import {
   AreaChart,
   Area,
@@ -16,6 +18,11 @@ import {
 import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Signal = Tables<"signals">;
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: string; icon: React.ElementType; accent?: string }) {
   return (
