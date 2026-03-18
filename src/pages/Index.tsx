@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { CrisisAIPanel } from "@/components/CrisisAIPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SentimentBadge } from "@/components/SentimentBadge";
-import { mockData, formatNumber } from "@/lib/mock-data";
+import { Badge } from "@/components/ui/badge";
+import { mockData, formatNumber, getSourceIcon } from "@/lib/mock-data";
 import {
   AreaChart,
   Area,
@@ -16,6 +18,11 @@ import {
 import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Signal = Tables<"signals">;
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: string; icon: React.ElementType; accent?: string }) {
   return (
@@ -35,6 +42,62 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Fetch latest signals from DB
+  const { data: dbSignals = [] } = useQuery({
+    queryKey: ["dashboard-signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("signals")
+        .select("*")
+        .order("detected_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data as Signal[];
+    },
+  });
+
+  // Fetch signal stats from DB
+  const { data: signalStats } = useQuery({
+    queryKey: ["dashboard-signal-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("signals")
+        .select("id, sentiment");
+      if (error) throw error;
+      const total = data.length;
+      const negative = data.filter((s) => s.sentiment === "negative").length;
+      const positive = data.filter((s) => s.sentiment === "positive").length;
+      const sentimentScore = total > 0 ? (positive - negative) / total : 0;
+      return { total, sentimentScore };
+    },
+  });
+
+  // Real-time subscription for signals
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-signals-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "signals" },
+        (payload) => {
+          // Update latest signals list
+          queryClient.setQueryData<Signal[]>(["dashboard-signals"], (old) => {
+            const newSignal = payload.new as Signal;
+            const updated = old ? [newSignal, ...old] : [newSignal];
+            return updated.slice(0, 5);
+          });
+          // Invalidate stats to recount
+          queryClient.invalidateQueries({ queryKey: ["dashboard-signal-stats"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   return (
     <AppLayout>
@@ -56,9 +119,9 @@ export default function Dashboard() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          <StatCard label="Total Signals" value={formatNumber(mockData.stats.totalSignals)} icon={Radio} />
+          <StatCard label="Total Signals" value={formatNumber(signalStats?.total ?? mockData.stats.totalSignals)} icon={Radio} />
           <StatCard label="Active Alerts" value={mockData.stats.activeAlerts.toString()} icon={AlertTriangle} accent="text-crisis-red" />
-          <StatCard label="Sentiment" value={(mockData.stats.sentimentScore * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" />
+          <StatCard label="Sentiment" value={((signalStats?.sentimentScore ?? mockData.stats.sentimentScore) * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" />
           <StatCard label="Media Reach" value={formatNumber(mockData.stats.mediaReach)} icon={MessageSquare} />
           <StatCard label="Responses Sent" value={mockData.stats.responsesSent.toString()} icon={MessageSquare} />
           <StatCard label="Avg Response" value={mockData.stats.avgResponseTime} icon={Clock} />
@@ -175,29 +238,39 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {mockData.signals.slice(0, 5).map((signal) => (
-              <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
-                <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
-                  {signal.source === "twitter" ? "𝕏" : signal.source === "news" ? "📰" : signal.source === "blog" ? "📝" : "in"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-foreground">{signal.author}</span>
-                    {signal.isInfluencer && (
-                      <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
-                        INFLUENCER
-                      </span>
-                    )}
-                    <SentimentBadge sentiment={signal.sentiment} />
+            {(dbSignals.length > 0 ? dbSignals : mockData.signals.slice(0, 5)).map((signal) => {
+              const isDb = "detected_at" in signal;
+              const source = isDb ? (signal as Signal).source : (signal as any).source;
+              const author = isDb ? (signal as Signal).author : (signal as any).author;
+              const content = isDb ? (signal as Signal).content : (signal as any).content;
+              const sentiment = isDb ? (signal as Signal).sentiment : (signal as any).sentiment;
+              const reach = isDb ? (signal as Signal).reach ?? 0 : (signal as any).reach;
+              const isInfluencer = isDb ? (signal as Signal).is_influencer : (signal as any).isInfluencer;
+              const time = isDb ? new Date((signal as Signal).detected_at).toLocaleTimeString() : (signal as any).timestamp.toLocaleTimeString();
+              return (
+                <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
+                  <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
+                    {source === "twitter" ? "𝕏" : source === "news" ? "📰" : source === "blog" ? "📝" : "in"}
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed truncate">{signal.content}</p>
-                  <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
-                    <span>Reach: {formatNumber(signal.reach)}</span>
-                    <span>{signal.timestamp.toLocaleTimeString()}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-foreground">{author}</span>
+                      {isInfluencer && (
+                        <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
+                          INFLUENCER
+                        </span>
+                      )}
+                      <SentimentBadge sentiment={sentiment} />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed truncate">{content}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
+                      <span>Reach: {formatNumber(reach)}</span>
+                      <span>{time}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
