@@ -10,7 +10,9 @@ import {
   AlertTriangle, CheckCircle, Shield,
 } from "lucide-react";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
-import { mockData } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { formatNumber } from "@/lib/mock-data";
 import ReactMarkdown from "react-markdown";
 
 const presetResponses = [
@@ -24,14 +26,14 @@ const presetResponses = [
   {
     id: "moderate",
     label: "Moderate — Apology + Actions",
-    content: "We sincerely apologize for the disruption. Our engineering teams have been mobilized and are working to restore service. We are cooperating fully with the FCC investigation and will share a full incident report within 48 hours.",
+    content: "We sincerely apologize for the disruption. Our engineering teams have been mobilized and are working to restore service. We are cooperating fully with the NCC investigation and will share a full incident report within 48 hours.",
     icon: Minus,
     color: "text-crisis-amber border-crisis-amber/30",
   },
   {
     id: "aggressive",
     label: "Proactive — Full Transparency",
-    content: "We take full responsibility for this outage. Here is exactly what happened: [root cause]. We are implementing these immediate fixes: [list]. Every affected customer will receive [compensation]. Our CEO will address the public at [time].",
+    content: "We take full responsibility for this outage. Here is exactly what happened: [root cause]. We are implementing these immediate fixes: [list]. Every affected subscriber will receive [compensation]. Our CEO will address the public at [time].",
     icon: TrendingUp,
     color: "text-crisis-green border-crisis-green/30",
   },
@@ -43,9 +45,24 @@ export default function Scenarios() {
   const [mode, setMode] = useState<"preset" | "custom">("preset");
   const simulator = useCrisisAI();
 
+  const { data: crisis } = useQuery({
+    queryKey: ["scenarios-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("crises").select("*").order("created_at", { ascending: false }).limit(1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const crisisTitle = crisis?.title ?? "Loading...";
+  const crisisDesc = crisis?.description ?? "";
+  const sentimentScore = crisis?.sentiment_score ?? 0;
+  const signalCount = crisis?.signal_count ?? 0;
+  const riskLevel = crisis?.risk_level ?? "medium";
+
   const runSimulation = () => {
     const responseText = mode === "custom" ? customResponse : selectedPreset.content;
-    const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}\n\nCurrent sentiment score: ${mockData.crisis.sentimentScore}\nSignals detected: ${mockData.crisis.signalCount}\nRisk level: ${mockData.globalRisk}`;
+    const crisisContext = `${crisisTitle}: ${crisisDesc}\n\nCurrent sentiment score: ${sentimentScore}\nSignals detected: ${signalCount}\nRisk level: ${riskLevel}`;
 
     simulator.analyzeAdvanced({
       type: "scenario_simulation",
@@ -143,21 +160,21 @@ export default function Scenarios() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="p-2.5 rounded-sm bg-surface-elevated border border-border">
-                  <p className="text-xs font-mono font-semibold text-foreground">{mockData.crisis.title}</p>
-                  <p className="text-xs text-foreground/70 mt-1 leading-relaxed">{mockData.crisis.description}</p>
+                  <p className="text-xs font-mono font-semibold text-foreground">{crisisTitle}</p>
+                  <p className="text-xs text-foreground/70 mt-1 leading-relaxed">{crisisDesc}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
                     <p className="text-xs font-mono text-muted-foreground uppercase">Signals</p>
-                    <p className="text-sm font-mono font-bold tabular-nums">{mockData.stats.totalSignals.toLocaleString()}</p>
+                    <p className="text-sm font-mono font-bold tabular-nums">{formatNumber(signalCount)}</p>
                   </div>
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
                     <p className="text-xs font-mono text-muted-foreground uppercase">Sentiment</p>
-                    <p className="text-sm font-mono font-bold tabular-nums text-crisis-red">{mockData.crisis.sentimentScore}</p>
+                    <p className="text-sm font-mono font-bold tabular-nums text-crisis-red">{sentimentScore}</p>
                   </div>
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
                     <p className="text-xs font-mono text-muted-foreground uppercase">Risk</p>
-                    <p className="text-sm font-mono font-bold tabular-nums text-crisis-red uppercase">{mockData.globalRisk}</p>
+                    <p className="text-sm font-mono font-bold tabular-nums text-crisis-red uppercase">{riskLevel}</p>
                   </div>
                 </div>
               </CardContent>
