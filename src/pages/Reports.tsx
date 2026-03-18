@@ -165,7 +165,7 @@ export default function Reports() {
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)} className="text-xs font-mono text-foreground">
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="text-xs font-mono">
                   Cancel
                 </Button>
                 <Button onClick={createReport} className="text-xs font-mono uppercase tracking-wider">
@@ -200,7 +200,7 @@ export default function Reports() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-xs font-mono whitespace-nowrap text-foreground"
+                      className="h-7 text-xs font-mono whitespace-nowrap"
                       onClick={() => {
                         exportToPDF({
                           title: report.title,

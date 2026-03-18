@@ -77,7 +77,7 @@ export default function Stabilize() {
             <h1 className="text-2xl font-mono font-bold tracking-tight">STABILIZE — Recovery</h1>
             <p className="text-sm text-muted-foreground mt-1">Track reputation recovery & post-crisis analysis</p>
           </div>
-          <Button onClick={generateReport} variant="outline" className="text-xs font-mono uppercase tracking-wider text-foreground" disabled={postCrisis.loading}>
+          <Button onClick={generateReport} variant="outline" className="text-xs font-mono uppercase tracking-wider" disabled={postCrisis.loading}>
             {postCrisis.loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Brain className="h-3.5 w-3.5 mr-1.5" />}
             Generate Post-Crisis Report
           </Button>
@@ -231,7 +231,7 @@ export default function Stabilize() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs font-mono h-7 whitespace-nowrap text-foreground"
+                    className="text-xs font-mono h-7 whitespace-nowrap"
                     onClick={() => {
                       exportToPDF({
                         title: "Post-Crisis Analysis Report",

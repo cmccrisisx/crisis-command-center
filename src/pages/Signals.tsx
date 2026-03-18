@@ -144,7 +144,7 @@ export default function Signals() {
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-xs font-mono relative text-foreground">
+                <Button variant="outline" size="sm" className="h-8 text-xs font-mono relative">
                   <Filter className="h-3 w-3 mr-1.5" />
                   Filters
                   {activeFilterCount > 0 && (
