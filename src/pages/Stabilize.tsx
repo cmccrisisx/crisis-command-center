@@ -61,14 +61,32 @@ export default function Stabilize() {
   const postCrisis = useCrisisAI();
   const currentRep = recoveryData[recoveryData.length - 1];
 
+  const { data: crisis } = useQuery({
+    queryKey: ["stabilize-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("crises").select("*").order("created_at", { ascending: false }).limit(1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: signals = [] } = useQuery({
+    queryKey: ["stabilize-signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const generateReport = () => {
-    const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}`;
-    const signals = mockData.signals.map(s => ({ author: s.author, content: s.content, source: s.source, sentiment: s.sentiment }));
+    const crisisContext = crisis ? `${crisis.title}: ${crisis.description}` : "Crisis data loading...";
+    const signalData = signals.map(s => ({ author: s.author, content: s.content, source: s.source, sentiment: s.sentiment }));
     postCrisis.analyzeAdvanced({
       type: "post_crisis_summary",
-      signals,
+      signals: signalData,
       crisisContext,
-      responseHistory: "Holding statement issued at T+47min. Full apology issued at T+3h. FCC response submitted at T+24h.",
+      responseHistory: "Holding statement issued at T+52min. Full apology issued at T+3h. NCC response submitted at T+24h.",
     });
   };
 
