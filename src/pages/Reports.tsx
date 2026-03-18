@@ -200,7 +200,7 @@ export default function Reports() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 text-xs font-mono whitespace-nowrap"
+                      className="h-7 text-xs font-mono whitespace-nowrap text-foreground"
                       onClick={() => {
                         exportToPDF({
                           title: report.title,
