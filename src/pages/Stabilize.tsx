@@ -87,11 +87,11 @@ export default function Stabilize() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Reputation Score</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Reputation Score</p>
               <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${currentRep.reputation >= 70 ? "text-crisis-green" : currentRep.reputation >= 50 ? "text-crisis-amber" : "text-crisis-red"}`}>
                 {currentRep.reputation}/100
               </p>
-              <p className="text-[10px] font-mono text-crisis-green mt-0.5">↑ Recovering</p>
+              <p className="text-xs font-mono text-crisis-green mt-0.5">↑ Recovering</p>
             </CardContent>
           </Card>
           <Card>
