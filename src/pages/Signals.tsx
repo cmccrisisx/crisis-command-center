@@ -137,14 +137,14 @@ export default function Signals() {
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 placeholder="Filter signals..."
-                className="pl-8 h-8 w-48 text-xs font-mono bg-card"
+                className="pl-8 h-8 w-48 text-xs font-mono bg-secondary text-foreground placeholder:text-muted-foreground"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 text-xs font-mono relative">
+                <Button variant="outline" size="sm" className="h-8 text-xs font-mono relative text-foreground">
                   <Filter className="h-3 w-3 mr-1.5" />
                   Filters
                   {activeFilterCount > 0 && (
