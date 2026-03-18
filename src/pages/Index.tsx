@@ -97,6 +97,8 @@ export default function Dashboard() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+
+  return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
