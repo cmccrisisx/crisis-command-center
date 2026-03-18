@@ -126,7 +126,7 @@ export function CrisisAIPanel() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-auto text-[10px] font-mono h-7"
+                        className="ml-auto text-xs font-mono h-7"
                         onClick={() => {
                           hook.reset();
                           runAnalysis();

@@ -112,7 +112,7 @@ export default function Stabilize() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Recovery Phase</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Recovery Phase</p>
               <p className="text-lg font-mono font-bold mt-1">Day 14</p>
               <Badge variant="outline" className="text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green mt-0.5">STABILIZING</Badge>
             </CardContent>

@@ -144,7 +144,7 @@ export default function Scenarios() {
               <CardContent className="space-y-2">
                 <div className="p-2.5 rounded-sm bg-surface-elevated border border-border">
                   <p className="text-xs font-mono font-semibold text-foreground">{mockData.crisis.title}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{mockData.crisis.description}</p>
+                  <p className="text-xs text-foreground/70 mt-1 leading-relaxed">{mockData.crisis.description}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">

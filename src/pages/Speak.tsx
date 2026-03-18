@@ -331,7 +331,7 @@ export default function Speak() {
                         <span className="text-xs font-mono font-semibold">{ch.label}</span>
                         {selectedChannel === ch.value && <Badge variant="outline" className="text-xs font-mono h-4 px-1.5 text-primary border-primary/30">SELECTED</Badge>}
                       </div>
-                      <p className="text-[10px] text-muted-foreground font-mono">
+                      <p className="text-xs text-foreground/70 font-mono">
                         {ch.value === "twitter" && "Max 280 characters. Concise, empathetic tone."}
                         {ch.value === "linkedin" && "Professional tone. 1-3 paragraphs recommended."}
                         {ch.value === "press" && "Formal press release format. Include quotes and facts."}
