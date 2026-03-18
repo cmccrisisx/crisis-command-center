@@ -3,12 +3,14 @@ import { RiskBadge } from "./RiskBadge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { mockData } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { RiskLevel } from "@/lib/mock-data";
 
 const ROLE_STYLES: Record<string, string> = {
   admin: "bg-crisis-red/15 text-crisis-red border-crisis-red/30",
@@ -35,6 +37,35 @@ export function TopBar() {
   const { profile, roles, signOut } = useAuth();
   const { notifications, unreadCount, markAllRead, clear } = useNotifications();
 
+  const { data: crisis } = useQuery({
+    queryKey: ["topbar-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crises")
+        .select("risk_level, signal_count")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: alertCount = 0 } = useQuery({
+    queryKey: ["topbar-alerts"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("crises")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["detected", "active", "responding"]);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const riskLevel = (crisis?.risk_level ?? "medium") as RiskLevel;
+  const totalSignals = crisis?.signal_count ?? 0;
+
   return (
     <header className="h-12 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm" data-tour="topbar">
       <div className="flex items-center gap-3">
@@ -42,7 +73,7 @@ export function TopBar() {
         <div className="h-5 w-px bg-border" />
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-foreground/70 uppercase tracking-wider">Global Risk:</span>
-          <RiskBadge level={mockData.globalRisk} pulse size="sm" />
+          <RiskBadge level={riskLevel} pulse size="sm" />
         </div>
       </div>
 
@@ -50,11 +81,11 @@ export function TopBar() {
         <div className="hidden sm:flex items-center gap-4 mr-4 font-mono text-xs tabular-nums">
           <div className="flex items-center gap-1.5">
             <span className="text-foreground/70">Signals</span>
-            <span className="text-foreground font-semibold">{mockData.stats.totalSignals.toLocaleString()}</span>
+            <span className="text-foreground font-semibold">{totalSignals.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-foreground/70">Alerts</span>
-            <span className="text-crisis-red font-semibold">{mockData.stats.activeAlerts}</span>
+            <span className="text-crisis-red font-semibold">{alertCount}</span>
           </div>
         </div>
 
@@ -72,7 +103,6 @@ export function TopBar() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-96 p-0" align="end">
-            {/* Header */}
             <div className="px-3 py-2 border-b border-border flex items-center justify-between">
               <p className="text-xs font-mono font-semibold uppercase tracking-wider">
                 Notifications
@@ -94,7 +124,6 @@ export function TopBar() {
               </div>
             </div>
 
-            {/* List */}
             <ScrollArea className="max-h-80">
               {notifications.length === 0 ? (
                 <div className="px-4 py-8 text-center">

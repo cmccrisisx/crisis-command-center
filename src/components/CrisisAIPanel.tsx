@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain, BarChart3, FileText, MessageSquareText, Heart, Shield, Loader2, RotateCcw } from "lucide-react";
 import { useCrisisAI, type AnalysisType } from "@/hooks/useCrisisAI";
-import { mockData } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
 type AnalysisTab = "sentiment" | "narrative" | "response" | "emotional" | "reputation";
@@ -27,23 +28,37 @@ export function CrisisAIPanel() {
   const reputation = useCrisisAI();
 
   const hooks: Record<AnalysisTab, ReturnType<typeof useCrisisAI>> = {
-    sentiment,
-    narrative,
-    response,
-    emotional,
-    reputation,
+    sentiment, narrative, response, emotional, reputation,
   };
+
+  const { data: crisis } = useQuery({
+    queryKey: ["ai-panel-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("crises").select("*").order("created_at", { ascending: false }).limit(1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: dbSignals = [] } = useQuery({
+    queryKey: ["ai-panel-signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const current = hooks[activeTab];
 
-  const signals = mockData.signals.map((s) => ({
+  const signals = dbSignals.map((s) => ({
     author: s.author,
     content: s.content,
     source: s.source,
     sentiment: s.sentiment,
   }));
 
-  const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}`;
+  const crisisContext = crisis ? `${crisis.title}: ${crisis.description}` : "Loading crisis data...";
 
   const runAnalysis = () => {
     current.analyze(activeTab as AnalysisType, signals, crisisContext);
@@ -98,7 +113,7 @@ export function CrisisAIPanel() {
                 {hook.loading && !hook.result && (
                   <div className="flex items-center justify-center py-8 gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-xs font-mono text-muted-foreground">Analyzing {mockData.signals.length} signals...</span>
+                    <span className="text-xs font-mono text-muted-foreground">Analyzing {dbSignals.length} signals...</span>
                   </div>
                 )}
 
