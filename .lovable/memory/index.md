@@ -40,10 +40,14 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 - STABILIZE module (recovery charts, AI post-crisis reports)
 - Emotional + Reputation analysis tabs in CrisisAI panel
 
+## Seeded Data
+- Crisis: "Major Network Outage — Eastern Seaboard" (id: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+- 10 signals seeded (twitter, news, blog, linkedin)
+- 5 narrative clusters seeded
+- Signals page now reads from DB (not mock data)
+
 ## Pending
-- Seed demo data into DB tables
 - Functional approval workflow (status transitions by role)
 - Scenario simulation UI
 - PDF export for reports
 - Role-based UI gating (hide/show features per role)
-- Signal ingestion from DB (currently still mock data on Signals page)

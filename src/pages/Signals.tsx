@@ -1,12 +1,34 @@
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SentimentBadge } from "@/components/SentimentBadge";
-import { mockData, formatNumber, getSourceIcon } from "@/lib/mock-data";
+import { formatNumber, getSourceIcon } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Signal = Tables<"signals">;
 
 export default function Signals() {
+  const { data: signals = [], isLoading } = useQuery({
+    queryKey: ["signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("signals")
+        .select("*")
+        .order("detected_at", { ascending: false });
+      if (error) throw error;
+      return data as Signal[];
+    },
+  });
+
+  const sourceCounts = ["twitter", "news", "blog", "linkedin"].map((source) => ({
+    source,
+    count: signals.filter((s) => s.source === source).length,
+  }));
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -28,18 +50,15 @@ export default function Signals() {
         </div>
 
         <div className="grid grid-cols-4 gap-3">
-          {["twitter", "news", "blog", "linkedin"].map((source) => {
-            const count = mockData.signals.filter(s => s.source === source).length;
-            return (
-              <Card key={source} className="bg-card">
-                <CardContent className="p-3 text-center">
-                  <p className="text-lg mb-0.5">{getSourceIcon(source as any)}</p>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{source}</p>
-                  <p className="text-lg font-mono font-bold tabular-nums">{count}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {sourceCounts.map(({ source, count }) => (
+            <Card key={source} className="bg-card">
+              <CardContent className="p-3 text-center">
+                <p className="text-lg mb-0.5">{getSourceIcon(source as any)}</p>
+                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{source}</p>
+                <p className="text-lg font-mono font-bold tabular-nums">{count}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         <Card>
@@ -47,33 +66,42 @@ export default function Signals() {
             <CardTitle className="text-sm font-mono uppercase tracking-wider">All Signals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {mockData.signals.map((signal) => (
-              <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
-                <div className="shrink-0 w-10 h-10 rounded-sm bg-secondary flex items-center justify-center text-sm font-mono font-bold">
-                  {getSourceIcon(signal.source)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold">{signal.author}</span>
-                    {signal.isInfluencer && (
-                      <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
-                        INFLUENCER
-                      </span>
-                    )}
-                    <SentimentBadge sentiment={signal.sentiment} />
-                    <span className="text-[10px] font-mono text-muted-foreground ml-auto tabular-nums">
-                      {formatNumber(signal.authorFollowers)} followers
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground leading-relaxed">{signal.content}</p>
-                  <div className="flex items-center gap-4 mt-2 text-[10px] font-mono text-muted-foreground tabular-nums">
-                    <span>Reach: {formatNumber(signal.reach)}</span>
-                    <span>Keywords: {signal.keywords.join(", ")}</span>
-                    <span className="ml-auto">{signal.timestamp.toLocaleString()}</span>
-                  </div>
-                </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground font-mono">Loading signals…</span>
               </div>
-            ))}
+            ) : signals.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8 font-mono">No signals detected yet.</p>
+            ) : (
+              signals.map((signal) => (
+                <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
+                  <div className="shrink-0 w-10 h-10 rounded-sm bg-secondary flex items-center justify-center text-sm font-mono font-bold">
+                    {getSourceIcon(signal.source)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-semibold">{signal.author}</span>
+                      {signal.is_influencer && (
+                        <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
+                          INFLUENCER
+                        </span>
+                      )}
+                      <SentimentBadge sentiment={signal.sentiment} />
+                      <span className="text-[10px] font-mono text-muted-foreground ml-auto tabular-nums">
+                        {formatNumber(signal.author_followers ?? 0)} followers
+                      </span>
+                    </div>
+                    <p className="text-sm text-foreground leading-relaxed">{signal.content}</p>
+                    <div className="flex items-center gap-4 mt-2 text-[10px] font-mono text-muted-foreground tabular-nums">
+                      <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
+                      <span>Keywords: {(signal.keywords ?? []).join(", ")}</span>
+                      <span className="ml-auto">{new Date(signal.detected_at).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
