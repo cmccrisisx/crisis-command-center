@@ -209,7 +209,7 @@ export default function SettingsPage() {
     setSaving(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ preferences: settings as unknown as Record<string, unknown> })
+      .update({ preferences: settings as unknown as Record<string, never> })
       .eq("user_id", user.id);
     setSaving(false);
     if (error) {
