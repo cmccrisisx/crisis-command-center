@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ALL_ROLES = ["admin", "pr_manager", "legal_reviewer", "social_manager"] as const;
 type AppRole = (typeof ALL_ROLES)[number];
@@ -42,20 +43,12 @@ interface SettingsState {
   };
 }
 
-const STORAGE_KEY = "crisis-x-settings";
-
-function loadSettings(): SettingsState {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
-  } catch {}
-  return {
-    spikeMultiplier: "3.0",
-    influencerThreshold: "50000",
-    keywords: ["outage", "network down", "telecom", "service disruption", "#NetworkDown"],
-    notifications: { critical: true, influencer: true, sentiment: false, dailySummary: true },
-  };
-}
+const DEFAULT_SETTINGS: SettingsState = {
+  spikeMultiplier: "3.0",
+  influencerThreshold: "50000",
+  keywords: ["outage", "network down", "telecom", "service disruption", "#NetworkDown"],
+  notifications: { critical: true, influencer: true, sentiment: false, dailySummary: true },
+};
 
 interface UserWithRoles {
   user_id: string;
@@ -173,14 +166,57 @@ function RoleManagement() {
 }
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
-  const [settings, setSettings] = useState<SettingsState>(loadSettings);
+  const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [newKeyword, setNewKeyword] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const saveSettings = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    toast.success("Settings saved successfully");
+  // Load preferences from DB
+  const { isLoading: prefsLoading } = useQuery({
+    queryKey: ["user-preferences", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("user_id", user!.id)
+        .single();
+      if (error) throw error;
+      return data?.preferences as unknown as SettingsState | null;
+    },
+    // On success, merge into state
+    meta: { onSuccess: true },
+  });
+
+  // Sync loaded prefs into state
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("preferences")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.preferences && typeof data.preferences === "object") {
+          setSettings({ ...DEFAULT_SETTINGS, ...(data.preferences as unknown as SettingsState) });
+        }
+      });
+  }, [user]);
+
+  const saveSettings = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ preferences: settings as unknown as Record<string, never> })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save settings");
+    } else {
+      toast.success("Settings saved successfully");
+    }
   };
 
   const addKeyword = () => {
@@ -220,8 +256,8 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-mono font-bold tracking-tight">Settings</h1>
             <p className="text-sm text-muted-foreground mt-1">Configure your Crisis X workspace</p>
           </div>
-          <Button onClick={saveSettings} className="font-mono text-xs uppercase tracking-wider">
-            <Save className="h-3.5 w-3.5 mr-1.5" />
+          <Button onClick={saveSettings} className="font-mono text-xs uppercase tracking-wider" disabled={saving}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
             Save Changes
           </Button>
         </div>
