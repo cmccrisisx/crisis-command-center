@@ -15,7 +15,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap, Loader2 } from "lucide-react";
+import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateCrisisDialog } from "@/components/CreateCrisisDialog";
 import { CrisisStatusCard } from "@/components/CrisisStatusCard";
