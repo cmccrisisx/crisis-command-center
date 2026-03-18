@@ -1,10 +1,24 @@
-import { Bell, User, LogOut } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { RiskBadge } from "./RiskBadge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { mockData } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+
+const ROLE_STYLES: Record<string, string> = {
+  admin: "bg-crisis-red/15 text-crisis-red border-crisis-red/30",
+  pr_manager: "bg-crisis-blue/15 text-crisis-blue border-crisis-blue/30",
+  legal_reviewer: "bg-crisis-amber/15 text-crisis-amber border-crisis-amber/30",
+  social_manager: "bg-crisis-green/15 text-crisis-green border-crisis-green/30",
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: "ADMIN",
+  pr_manager: "PR MANAGER",
+  legal_reviewer: "LEGAL",
+  social_manager: "SOCIAL",
+};
 
 export function TopBar() {
   const { profile, roles, signOut } = useAuth();
@@ -40,11 +54,17 @@ export function TopBar() {
         <div className="hidden md:flex items-center gap-2 ml-1 pl-2 border-l border-border">
           <div className="text-right">
             <p className="text-[11px] font-medium leading-tight">{profile?.display_name || "Operator"}</p>
-            {roles[0] && (
-              <Badge variant="outline" className="text-[8px] font-mono h-3.5 px-1 mt-0.5">
-                {roles[0].replace("_", " ").toUpperCase()}
-              </Badge>
-            )}
+            <div className="flex items-center gap-1 justify-end mt-0.5">
+              {roles.map((role) => (
+                <Badge
+                  key={role}
+                  variant="outline"
+                  className={`text-[8px] font-mono h-3.5 px-1 ${ROLE_STYLES[role] || ""}`}
+                >
+                  {ROLE_LABELS[role] || role.toUpperCase()}
+                </Badge>
+              ))}
+            </div>
           </div>
           <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
             <LogOut className="h-4 w-4" />
