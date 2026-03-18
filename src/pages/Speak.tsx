@@ -192,8 +192,8 @@ export default function Speak() {
                   <CardContent>
                     <p className="text-xs text-muted-foreground leading-relaxed">{tmpl.content}</p>
                     <div className="flex items-center gap-2 mt-3">
-                      <Badge variant="secondary" className="text-[9px] font-mono">{tmpl.channel}</Badge>
-                      <Button variant="ghost" size="sm" className="ml-auto text-[10px] font-mono h-6" onClick={(e) => { e.stopPropagation(); copyToClipboard(tmpl.content); }}>
+                      <Badge variant="secondary" className="text-xs font-mono">{tmpl.channel}</Badge>
+                      <Button variant="ghost" size="sm" className="ml-auto text-xs font-mono h-6" onClick={(e) => { e.stopPropagation(); copyToClipboard(tmpl.content); }}>
                         {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
