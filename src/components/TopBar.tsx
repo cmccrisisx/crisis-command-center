@@ -36,7 +36,7 @@ export function TopBar() {
   const { notifications, unreadCount, markAllRead, clear } = useNotifications();
 
   return (
-    <header className="h-12 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm">
+    <header className="h-12 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm" data-tour="topbar">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
         <div className="h-5 w-px bg-border" />
