@@ -256,7 +256,7 @@ export default function Stabilize() {
                     onClick={() => {
                       exportToPDF({
                         title: "Post-Crisis Analysis Report",
-                        subtitle: `${mockData.crisis.title} — Crisis-X`,
+                        subtitle: `${crisis?.title ?? "Crisis Report"} — Crisis-X`,
                         sections: [
                           { title: "AI Analysis", content: postCrisis.result },
                           { title: "Recovery Metrics (Day 14)", content: `Reputation Score: ${currentRep.reputation}/100\nShare of Voice: ${currentRep.shareOfVoice}%\nSentiment Score: ${currentRep.sentiment}%\nPhase: STABILIZING` },
