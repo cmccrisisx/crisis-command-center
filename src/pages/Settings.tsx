@@ -199,7 +199,7 @@ export default function SettingsPage() {
       .single()
       .then(({ data }) => {
         if (data?.preferences && typeof data.preferences === "object") {
-          setSettings({ ...DEFAULT_SETTINGS, ...(data.preferences as SettingsState) });
+          setSettings({ ...DEFAULT_SETTINGS, ...(data.preferences as unknown as SettingsState) });
         }
       });
   }, [user]);
