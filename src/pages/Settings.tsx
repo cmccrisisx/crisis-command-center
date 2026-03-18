@@ -183,7 +183,7 @@ export default function SettingsPage() {
         .eq("user_id", user!.id)
         .single();
       if (error) throw error;
-      return data?.preferences as SettingsState | null;
+      return data?.preferences as unknown as SettingsState | null;
     },
     // On success, merge into state
     meta: { onSuccess: true },
