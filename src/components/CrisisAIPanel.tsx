@@ -118,7 +118,7 @@ export function CrisisAIPanel() {
 
                     <div className="flex items-center gap-2">
                       {hook.loading && (
-                        <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-primary/30 text-primary animate-pulse">
+                        <Badge variant="outline" className="text-[10px] font-mono h-4 px-1.5 border-primary/30 text-primary animate-pulse">
                           <Loader2 className="h-2.5 w-2.5 mr-1 animate-spin" />
                           STREAMING
                         </Badge>
