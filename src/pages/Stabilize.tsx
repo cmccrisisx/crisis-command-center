@@ -96,9 +96,9 @@ export default function Stabilize() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Share of Voice</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Share of Voice</p>
               <p className="text-2xl font-mono font-bold tabular-nums mt-1">{currentRep.shareOfVoice}%</p>
-              <p className="text-[10px] font-mono text-crisis-amber mt-0.5">Declining (positive)</p>
+              <p className="text-xs font-mono text-crisis-amber mt-0.5">Declining (positive)</p>
             </CardContent>
           </Card>
           <Card>
