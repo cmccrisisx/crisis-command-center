@@ -176,7 +176,7 @@ export default function WarRoom() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-mono uppercase tracking-wider">Decision Log</CardTitle>
-                <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5">
+                <Badge variant="outline" className="text-xs font-mono h-5 px-1.5">
                   {messages.length} entries
                 </Badge>
               </div>
