@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { CrisisAIPanel } from "@/components/CrisisAIPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
