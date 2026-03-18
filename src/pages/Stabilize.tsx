@@ -276,7 +276,7 @@ export default function Stabilize() {
                   }`}>
                     {item.severity.toUpperCase()}
                   </Badge>
-                  <Badge variant="secondary" className="text-[9px] font-mono h-4 px-1.5">{item.category}</Badge>
+                  <Badge variant="secondary" className="text-xs font-mono h-5 px-1.5">{item.category}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">{item.lesson}</p>
               </div>

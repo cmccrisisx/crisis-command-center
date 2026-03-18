@@ -252,7 +252,7 @@ export default function WarRoom() {
                         <ReactMarkdown>{aiAdvisor.result}</ReactMarkdown>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-[10px] font-mono h-6" onClick={() => { aiAdvisor.reset(); requestAIAdvice(); }}>
+                    <Button variant="ghost" size="sm" className="text-xs font-mono h-6" onClick={() => { aiAdvisor.reset(); requestAIAdvice(); }}>
                       <Brain className="h-2.5 w-2.5 mr-1" />
                       Refresh
                     </Button>

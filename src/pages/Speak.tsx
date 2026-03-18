@@ -329,7 +329,7 @@ export default function Speak() {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm">{ch.icon}</span>
                         <span className="text-xs font-mono font-semibold">{ch.label}</span>
-                        {selectedChannel === ch.value && <Badge variant="outline" className="text-[8px] font-mono h-3.5 px-1 text-primary border-primary/30">SELECTED</Badge>}
+                        {selectedChannel === ch.value && <Badge variant="outline" className="text-xs font-mono h-4 px-1.5 text-primary border-primary/30">SELECTED</Badge>}
                       </div>
                       <p className="text-[10px] text-muted-foreground font-mono">
                         {ch.value === "twitter" && "Max 280 characters. Concise, empathetic tone."}
