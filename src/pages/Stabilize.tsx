@@ -231,7 +231,7 @@ export default function Stabilize() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs font-mono h-7 whitespace-nowrap"
+                    className="text-xs font-mono h-7 whitespace-nowrap text-foreground"
                     onClick={() => {
                       exportToPDF({
                         title: "Post-Crisis Analysis Report",
