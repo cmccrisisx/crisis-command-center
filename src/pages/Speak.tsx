@@ -261,7 +261,7 @@ export default function Speak() {
                         <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => copyToClipboard(drafter.result)}>
                           <Copy className="h-3 w-3 mr-1" /> Copy
                         </Button>
-                        <Button variant="outline" size="sm" className="text-xs font-mono h-7 text-foreground" onClick={() => logResponse(drafter.result, selectedChannel)}>
+                        <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => logResponse(drafter.result, selectedChannel)}>
                           <MessageSquare className="h-3 w-3 mr-1" /> Save as Draft
                         </Button>
                         <Button variant="ghost" size="sm" className="text-xs font-mono h-7 ml-auto" onClick={() => { drafter.reset(); generateDraft(); }}>
