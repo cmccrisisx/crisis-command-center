@@ -258,13 +258,13 @@ export default function Speak() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="text-[10px] font-mono h-7" onClick={() => copyToClipboard(drafter.result)}>
+                        <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => copyToClipboard(drafter.result)}>
                           <Copy className="h-3 w-3 mr-1" /> Copy
                         </Button>
-                        <Button variant="outline" size="sm" className="text-[10px] font-mono h-7" onClick={() => logResponse(drafter.result, selectedChannel)}>
+                        <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => logResponse(drafter.result, selectedChannel)}>
                           <MessageSquare className="h-3 w-3 mr-1" /> Save as Draft
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7 ml-auto" onClick={() => { drafter.reset(); generateDraft(); }}>
+                        <Button variant="ghost" size="sm" className="text-xs font-mono h-7 ml-auto" onClick={() => { drafter.reset(); generateDraft(); }}>
                           <Brain className="h-3 w-3 mr-1" /> Regenerate
                         </Button>
                       </div>

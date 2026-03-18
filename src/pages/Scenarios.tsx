@@ -174,15 +174,15 @@ export default function Scenarios() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
                         <TrendingUp className="h-3 w-3 text-crisis-green" />
-                        <span className="text-[9px] font-mono text-crisis-green">BEST</span>
+                        <span className="text-xs font-mono text-crisis-green">BEST</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Minus className="h-3 w-3 text-crisis-amber" />
-                        <span className="text-[9px] font-mono text-crisis-amber">LIKELY</span>
+                        <span className="text-xs font-mono text-crisis-amber">LIKELY</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <TrendingDown className="h-3 w-3 text-crisis-red" />
-                        <span className="text-[9px] font-mono text-crisis-red">WORST</span>
+                        <span className="text-xs font-mono text-crisis-red">WORST</span>
                       </div>
                     </div>
                   )}
