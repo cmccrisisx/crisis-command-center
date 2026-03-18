@@ -148,7 +148,7 @@ export default function Scenarios() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
-                    <p className="text-[9px] font-mono text-muted-foreground uppercase">Signals</p>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Signals</p>
                     <p className="text-sm font-mono font-bold tabular-nums">{mockData.stats.totalSignals.toLocaleString()}</p>
                   </div>
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
