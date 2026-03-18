@@ -278,12 +278,7 @@ export function DemoWalkthrough() {
             />
           )}
 
-          {/* Click-blocker on overlay area (outside spotlight) */}
-          <div
-            className="absolute inset-0"
-            style={{ zIndex: 100 }}
-            onClick={(e) => e.stopPropagation()}
-          />
+
 
           {/* Step card */}
           <motion.div
