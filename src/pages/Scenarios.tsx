@@ -64,7 +64,7 @@ export default function Scenarios() {
               AI-powered outcome projections for response strategies
             </p>
           </div>
-          <Badge variant="outline" className="text-[9px] font-mono h-5 px-2 border-crisis-purple/30 text-crisis-purple">
+          <Badge variant="outline" className="text-xs font-mono h-5 px-2 border-crisis-purple/30 text-crisis-purple">
             <FlaskConical className="h-3 w-3 mr-1" />
             STRATEGIZE MODULE
           </Badge>
