@@ -41,6 +41,7 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Fetch latest signals from DB
