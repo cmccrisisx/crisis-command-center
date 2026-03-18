@@ -7,6 +7,8 @@ import { Brain, TrendingUp, Shield, BarChart3, FileText, Loader2, Download } fro
 import { mockData, formatNumber } from "@/lib/mock-data";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
 import ReactMarkdown from "react-markdown";
+import { exportToPDF } from "@/lib/pdf-export";
+import { toast } from "sonner";
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
