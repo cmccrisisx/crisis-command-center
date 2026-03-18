@@ -38,6 +38,104 @@ export type Database = {
         }
         Relationships: []
       }
+      crises: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          detected_at: string
+          id: string
+          resolved_at: string | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          sentiment_score: number | null
+          signal_count: number | null
+          status: Database["public"]["Enums"]["crisis_status"]
+          title: string
+          type: Database["public"]["Enums"]["crisis_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          detected_at?: string
+          id?: string
+          resolved_at?: string | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          sentiment_score?: number | null
+          signal_count?: number | null
+          status?: Database["public"]["Enums"]["crisis_status"]
+          title: string
+          type?: Database["public"]["Enums"]["crisis_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          detected_at?: string
+          id?: string
+          resolved_at?: string | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          sentiment_score?: number | null
+          signal_count?: number | null
+          status?: Database["public"]["Enums"]["crisis_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["crisis_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      narratives: {
+        Row: {
+          ai_generated: boolean | null
+          created_at: string
+          crisis_id: string | null
+          id: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          sentiment: Database["public"]["Enums"]["sentiment_type"]
+          signal_count: number | null
+          summary: string
+          title: string
+          top_keywords: string[] | null
+          trending: boolean | null
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          sentiment?: Database["public"]["Enums"]["sentiment_type"]
+          signal_count?: number | null
+          summary?: string
+          title: string
+          top_keywords?: string[] | null
+          trending?: boolean | null
+        }
+        Update: {
+          ai_generated?: boolean | null
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          sentiment?: Database["public"]["Enums"]["sentiment_type"]
+          signal_count?: number | null
+          summary?: string
+          title?: string
+          top_keywords?: string[] | null
+          trending?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narratives_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -68,6 +166,205 @@ export type Database = {
         }
         Relationships: []
       }
+      reputation_snapshots: {
+        Row: {
+          created_at: string
+          crisis_id: string | null
+          id: string
+          media_reach: number | null
+          negative_pct: number | null
+          neutral_pct: number | null
+          positive_pct: number | null
+          reputation_score: number | null
+          sentiment_score: number
+          share_of_voice: number | null
+          signal_volume: number | null
+          snapshot_at: string
+        }
+        Insert: {
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          media_reach?: number | null
+          negative_pct?: number | null
+          neutral_pct?: number | null
+          positive_pct?: number | null
+          reputation_score?: number | null
+          sentiment_score?: number
+          share_of_voice?: number | null
+          signal_volume?: number | null
+          snapshot_at?: string
+        }
+        Update: {
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          media_reach?: number | null
+          negative_pct?: number | null
+          neutral_pct?: number | null
+          positive_pct?: number | null
+          reputation_score?: number | null
+          sentiment_score?: number
+          share_of_voice?: number | null
+          signal_volume?: number | null
+          snapshot_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reputation_snapshots_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      response_log: {
+        Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          approved_at: string | null
+          approved_by: string | null
+          channel: string
+          content: string
+          created_at: string
+          crisis_id: string | null
+          id: string
+          published_at: string | null
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          content: string
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          published_at?: string | null
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          content?: string
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          published_at?: string | null
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "response_log_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "response_log_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "response_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      response_templates: {
+        Row: {
+          channel: string
+          content: string
+          created_at: string
+          created_by: string | null
+          crisis_type: Database["public"]["Enums"]["crisis_type"] | null
+          id: string
+          title: string
+          type: Database["public"]["Enums"]["response_template_type"]
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          crisis_type?: Database["public"]["Enums"]["crisis_type"] | null
+          id?: string
+          title: string
+          type: Database["public"]["Enums"]["response_template_type"]
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          crisis_type?: Database["public"]["Enums"]["crisis_type"] | null
+          id?: string
+          title?: string
+          type?: Database["public"]["Enums"]["response_template_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      signals: {
+        Row: {
+          author: string
+          author_followers: number | null
+          content: string
+          created_at: string
+          crisis_id: string | null
+          detected_at: string
+          id: string
+          is_influencer: boolean | null
+          keywords: string[] | null
+          reach: number | null
+          sentiment: Database["public"]["Enums"]["sentiment_type"]
+          source: Database["public"]["Enums"]["signal_source"]
+        }
+        Insert: {
+          author: string
+          author_followers?: number | null
+          content: string
+          created_at?: string
+          crisis_id?: string | null
+          detected_at?: string
+          id?: string
+          is_influencer?: boolean | null
+          keywords?: string[] | null
+          reach?: number | null
+          sentiment?: Database["public"]["Enums"]["sentiment_type"]
+          source: Database["public"]["Enums"]["signal_source"]
+        }
+        Update: {
+          author?: string
+          author_followers?: number | null
+          content?: string
+          created_at?: string
+          crisis_id?: string | null
+          detected_at?: string
+          id?: string
+          is_influencer?: boolean | null
+          keywords?: string[] | null
+          reach?: number | null
+          sentiment?: Database["public"]["Enums"]["sentiment_type"]
+          source?: Database["public"]["Enums"]["signal_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signals_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -89,6 +386,44 @@ export type Database = {
         }
         Relationships: []
       }
+      war_room_messages: {
+        Row: {
+          created_at: string
+          crisis_id: string | null
+          id: string
+          message: string
+          message_type: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          message: string
+          message_type?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crisis_id?: string | null
+          id?: string
+          message?: string
+          message_type?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_room_messages_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -104,6 +439,24 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "pr_manager" | "legal_reviewer" | "social_manager"
+      approval_status:
+        | "draft"
+        | "pending_legal"
+        | "pending_exec"
+        | "approved"
+        | "rejected"
+        | "published"
+      crisis_status:
+        | "detected"
+        | "active"
+        | "responding"
+        | "recovering"
+        | "resolved"
+      crisis_type: "pr" | "regulatory" | "operational"
+      response_template_type: "holding" | "apology" | "clarification"
+      risk_level: "low" | "medium" | "high" | "critical"
+      sentiment_type: "positive" | "neutral" | "negative"
+      signal_source: "twitter" | "news" | "blog" | "linkedin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -232,6 +585,26 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "pr_manager", "legal_reviewer", "social_manager"],
+      approval_status: [
+        "draft",
+        "pending_legal",
+        "pending_exec",
+        "approved",
+        "rejected",
+        "published",
+      ],
+      crisis_status: [
+        "detected",
+        "active",
+        "responding",
+        "recovering",
+        "resolved",
+      ],
+      crisis_type: ["pr", "regulatory", "operational"],
+      response_template_type: ["holding", "apology", "clarification"],
+      risk_level: ["low", "medium", "high", "critical"],
+      sentiment_type: ["positive", "neutral", "negative"],
+      signal_source: ["twitter", "news", "blog", "linkedin"],
     },
   },
 } as const

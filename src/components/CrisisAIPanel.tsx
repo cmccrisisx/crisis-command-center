@@ -3,17 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, BarChart3, FileText, MessageSquareText, Loader2, RotateCcw } from "lucide-react";
-import { useCrisisAI } from "@/hooks/useCrisisAI";
+import { Brain, BarChart3, FileText, MessageSquareText, Heart, Shield, Loader2, RotateCcw } from "lucide-react";
+import { useCrisisAI, type AnalysisType } from "@/hooks/useCrisisAI";
 import { mockData } from "@/lib/mock-data";
 import ReactMarkdown from "react-markdown";
 
-type AnalysisTab = "sentiment" | "narrative" | "response";
+type AnalysisTab = "sentiment" | "narrative" | "response" | "emotional" | "reputation";
 
 const tabConfig: Record<AnalysisTab, { label: string; icon: React.ElementType; description: string }> = {
   sentiment: { label: "Sentiment", icon: BarChart3, description: "Classify & analyze sentiment across signals" },
   narrative: { label: "Narratives", icon: FileText, description: "Identify dominant narrative clusters" },
   response: { label: "Responses", icon: MessageSquareText, description: "AI-recommended crisis responses" },
+  emotional: { label: "Emotional", icon: Heart, description: "Fear, anger, frustration, hope — emotional classification" },
+  reputation: { label: "Reputation", icon: Shield, description: "Brand perception, trust index, recovery forecast" },
 };
 
 export function CrisisAIPanel() {
@@ -21,11 +23,15 @@ export function CrisisAIPanel() {
   const sentiment = useCrisisAI();
   const narrative = useCrisisAI();
   const response = useCrisisAI();
+  const emotional = useCrisisAI();
+  const reputation = useCrisisAI();
 
   const hooks: Record<AnalysisTab, ReturnType<typeof useCrisisAI>> = {
     sentiment,
     narrative,
     response,
+    emotional,
+    reputation,
   };
 
   const current = hooks[activeTab];
@@ -40,7 +46,7 @@ export function CrisisAIPanel() {
   const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}`;
 
   const runAnalysis = () => {
-    current.analyze(activeTab, signals, crisisContext);
+    current.analyze(activeTab as AnalysisType, signals, crisisContext);
   };
 
   return (
@@ -64,7 +70,7 @@ export function CrisisAIPanel() {
               return (
                 <TabsTrigger key={key} value={key} className="flex-1 text-xs font-mono gap-1.5">
                   <Icon className="h-3 w-3" />
-                  {label}
+                  <span className="hidden sm:inline">{label}</span>
                 </TabsTrigger>
               );
             })}

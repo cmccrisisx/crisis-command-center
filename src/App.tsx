@@ -8,7 +8,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Signals from "./pages/Signals.tsx";
 import WarRoom from "./pages/WarRoom.tsx";
+import Speak from "./pages/Speak.tsx";
 import Analytics from "./pages/Analytics.tsx";
+import Stabilize from "./pages/Stabilize.tsx";
 import Reports from "./pages/Reports.tsx";
 import SettingsPage from "./pages/Settings.tsx";
 import Auth from "./pages/Auth.tsx";
@@ -29,7 +31,9 @@ const App = () => (
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/signals" element={<ProtectedRoute><Signals /></ProtectedRoute>} />
               <Route path="/war-room" element={<ProtectedRoute><WarRoom /></ProtectedRoute>} />
+              <Route path="/speak" element={<ProtectedRoute><Speak /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+              <Route path="/stabilize" element={<ProtectedRoute><Stabilize /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
