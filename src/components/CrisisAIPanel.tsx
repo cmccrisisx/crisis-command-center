@@ -55,7 +55,7 @@ export function CrisisAIPanel() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-mono uppercase tracking-wider">CrisisX AI Analysis</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-wider text-foreground">CrisisX AI Analysis</CardTitle>
             <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-primary/30 text-primary">
               LIVE
             </Badge>
