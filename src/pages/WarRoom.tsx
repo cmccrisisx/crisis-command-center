@@ -198,7 +198,7 @@ export default function WarRoom() {
                   <div key={msg.id} className={`p-3 rounded-sm border ${msg.message_type === "ai" ? "bg-primary/5 border-primary/20" : "bg-surface-elevated border-border"}`}>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-semibold">{msg.display_name || "Unknown"}</span>
-                      <Badge variant="outline" className="text-[9px] font-mono h-4 px-1">{roleLabel(msg.role)}</Badge>
+                      <Badge variant="outline" className="text-xs font-mono h-5 px-1.5">{roleLabel(msg.role)}</Badge>
                       <span className="text-[10px] font-mono text-muted-foreground ml-auto tabular-nums">
                         {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
