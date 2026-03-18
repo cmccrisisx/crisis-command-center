@@ -24,6 +24,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </div>
       <CrisisChat />
+      <NotificationListener />
     </SidebarProvider>
   );
 }
