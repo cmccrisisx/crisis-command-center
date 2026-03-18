@@ -125,13 +125,13 @@ export default function WarRoom() {
         </div>
 
         {/* Crisis Summary */}
-        <Card className="border-crisis-red/20 bg-crisis-red/10 dark:bg-red-950/60">
+        <Card className="border-crisis-red/30 bg-crisis-red/5">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="h-4 w-4 text-crisis-red" />
-              <span className="font-mono font-bold text-sm">{mockData.crisis.title}</span>
+              <span className="font-mono font-bold text-sm text-foreground">{mockData.crisis.title}</span>
             </div>
-            <p className="text-sm text-muted-foreground">{mockData.crisis.description}</p>
+            <p className="text-sm text-foreground/70">{mockData.crisis.description}</p>
           </CardContent>
         </Card>
 
