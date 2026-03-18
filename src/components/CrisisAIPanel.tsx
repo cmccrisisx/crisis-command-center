@@ -55,7 +55,7 @@ export function CrisisAIPanel() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-mono uppercase tracking-wider">CrisisX AI Analysis</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-wider text-foreground">CrisisX AI Analysis</CardTitle>
             <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-primary/30 text-primary">
               LIVE
             </Badge>
@@ -82,7 +82,7 @@ export function CrisisAIPanel() {
 
             return (
               <TabsContent key={key} value={key} className="mt-3">
-                <p className="text-[11px] text-muted-foreground font-mono mb-3">{config.description}</p>
+                <p className="text-xs text-foreground/70 font-mono mb-3">{config.description}</p>
 
                 {!hook.result && !hook.loading && !hook.error && (
                   <Button
@@ -118,7 +118,7 @@ export function CrisisAIPanel() {
 
                     <div className="flex items-center gap-2">
                       {hook.loading && (
-                        <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-primary/30 text-primary animate-pulse">
+                        <Badge variant="outline" className="text-[10px] font-mono h-4 px-1.5 border-primary/30 text-primary animate-pulse">
                           <Loader2 className="h-2.5 w-2.5 mr-1 animate-spin" />
                           STREAMING
                         </Badge>
@@ -126,7 +126,7 @@ export function CrisisAIPanel() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="ml-auto text-[10px] font-mono h-7"
+                        className="ml-auto text-xs font-mono h-7"
                         onClick={() => {
                           hook.reset();
                           runAnalysis();

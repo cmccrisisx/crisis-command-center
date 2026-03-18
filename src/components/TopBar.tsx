@@ -91,7 +91,7 @@ export function TopBar() {
 
         <div className="hidden md:flex items-center gap-2 ml-1 pl-2 border-l border-border">
           <div className="text-right">
-            <p className="text-[11px] font-medium leading-tight">{profile?.display_name || "Operator"}</p>
+            <p className="text-xs font-medium leading-tight">{profile?.display_name || "Operator"}</p>
             <div className="flex items-center gap-1 justify-end mt-0.5">
               {roles.map((role) => (
                 <Badge

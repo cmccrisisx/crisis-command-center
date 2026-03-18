@@ -111,7 +111,7 @@ export default function Analytics() {
                 <div key={inf.name} className="flex items-center gap-3 p-2.5 rounded-sm bg-surface-elevated border border-border">
                   <div className="flex-1 min-w-0">
                     <span className="text-xs font-semibold block truncate">{inf.name}</span>
-                    <div className="flex items-center gap-3 mt-0.5 text-[10px] font-mono text-muted-foreground tabular-nums">
+                    <div className="flex items-center gap-3 mt-0.5 text-xs font-mono text-foreground/70 tabular-nums">
                       <span>Reach: {formatNumber(inf.reach)}</span>
                       <span>Mentions: {inf.mentions}</span>
                     </div>

@@ -87,32 +87,32 @@ export default function Stabilize() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Reputation Score</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Reputation Score</p>
               <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${currentRep.reputation >= 70 ? "text-crisis-green" : currentRep.reputation >= 50 ? "text-crisis-amber" : "text-crisis-red"}`}>
                 {currentRep.reputation}/100
               </p>
-              <p className="text-[10px] font-mono text-crisis-green mt-0.5">↑ Recovering</p>
+              <p className="text-xs font-mono text-crisis-green mt-0.5">↑ Recovering</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Share of Voice</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Share of Voice</p>
               <p className="text-2xl font-mono font-bold tabular-nums mt-1">{currentRep.shareOfVoice}%</p>
-              <p className="text-[10px] font-mono text-crisis-amber mt-0.5">Declining (positive)</p>
+              <p className="text-xs font-mono text-crisis-amber mt-0.5">Declining (positive)</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Sentiment Score</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Sentiment Score</p>
               <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${currentRep.sentiment >= 0 ? "text-crisis-green" : "text-crisis-red"}`}>
                 {currentRep.sentiment}%
               </p>
-              <p className="text-[10px] font-mono text-crisis-green mt-0.5">↑ Improving</p>
+              <p className="text-xs font-mono text-crisis-green mt-0.5">↑ Improving</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Recovery Phase</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Recovery Phase</p>
               <p className="text-lg font-mono font-bold mt-1">Day 14</p>
               <Badge variant="outline" className="text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green mt-0.5">STABILIZING</Badge>
             </CardContent>
