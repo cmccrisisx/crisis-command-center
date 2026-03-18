@@ -2,3 +2,6 @@ project_id = "bnykreimgsmybqgqphqy"
 
 [functions.crisis-ai]
 verify_jwt = false
+
+[functions.crisis-chat]
+verify_jwt = false
