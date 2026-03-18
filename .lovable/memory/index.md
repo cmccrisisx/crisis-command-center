@@ -13,7 +13,7 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 ## Architecture
 - 5 modules: SIGNAL, SENSE, STRATEGIZE, SPEAK, STABILIZE
 - Pages: Dashboard(/), Signals, War Room, Speak(/speak), Analytics, Stabilize(/stabilize), Reports, Settings
-- Mock data engine in src/lib/mock-data.ts (telecom outage scenario)
+- Mock data engine in src/lib/mock-data.ts (Airtel Nigeria outage scenario)
 - Dark mode forced via .dark wrapper in App.tsx
 
 ## Database Tables (Lovable Cloud)
@@ -23,17 +23,18 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 - All tables have RLS for authenticated users
 - Settings preferences persisted to profiles.preferences JSONB column
 
+## Seeded Data — Airtel Nigeria Telecom Outage
+- Crisis: "Major Network Outage — Airtel Nigeria" (id: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
+- 22 signals (12 updated + 10 new): TechCabal, Channels TV, NCC, MTN/Glo competitors, fintech impact
+- 5 narrative clusters: Emergency services, NSE impact, NCC scrutiny, customer churn, mobile banking disruption
+- 12 reputation snapshots with realistic crisis timeline sentiment curve
+- Stakeholders: Subscribers, Investors (NSE), NCC/Regulators, Fintech Partners, Nigerian Media
+
 ## AI
 - CrisisAI panel: sentiment, narrative, response, emotional, reputation, draft_response, post_crisis_summary, scenario_simulation
 - Edge function: supabase/functions/crisis-ai/index.ts (Lovable AI gateway, gemini-3-flash-preview)
 - Conversational AI agent "CX": supabase/functions/crisis-chat/index.ts + src/components/CrisisChat.tsx
 - CX mounted in AppLayout — floating chat bubble on every page
-- Hook: src/hooks/useCrisisChat.ts (streaming SSE)
-
-## Notifications
-- NotificationListener component in AppLayout — realtime toast alerts
-- Subscribes to signals (INSERT) and response_log (UPDATE) via Supabase channels
-- Uses sonner toasts with contextual icons and sentiment indicators
 
 ## Auth & RBAC
 - Roles: admin, pr_manager, legal_reviewer, social_manager
@@ -41,7 +42,3 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 - Default role on signup: pr_manager (via handle_new_user trigger)
 - Role-based nav filtering in sidebar
 - Admin role management UI on Settings page (manage-roles edge function)
-
-## Seeded Data
-- Crisis: "Major Network Outage — Eastern Seaboard" (id: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
-- 10 signals, 5 narrative clusters seeded

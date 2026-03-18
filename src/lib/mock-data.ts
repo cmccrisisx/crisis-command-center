@@ -303,11 +303,11 @@ function generateSentimentTimeline(): SentimentDataPoint[] {
 }
 
 const stakeholderImpacts: StakeholderImpact[] = [
-  { group: "Customers", sentiment: -0.68, change: -45, mentions: 8500 },
-  { group: "Investors", sentiment: -0.55, change: -32, mentions: 1800 },
-  { group: "Regulators", sentiment: -0.42, change: -28, mentions: 2100 },
-  { group: "Employees", sentiment: -0.25, change: -15, mentions: 450 },
-  { group: "Media", sentiment: -0.60, change: -38, mentions: 3200 },
+  { group: "Subscribers", sentiment: -0.72, change: -48, mentions: 9200 },
+  { group: "Investors (NSE)", sentiment: -0.58, change: -35, mentions: 2400 },
+  { group: "NCC / Regulators", sentiment: -0.45, change: -30, mentions: 2800 },
+  { group: "Fintech Partners", sentiment: -0.52, change: -40, mentions: 3600 },
+  { group: "Nigerian Media", sentiment: -0.65, change: -42, mentions: 4200 },
 ];
 
 export const mockData = {
