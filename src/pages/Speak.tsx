@@ -395,7 +395,7 @@ function ApprovalQueue() {
     try {
       const { error } = await supabase.rpc("transition_approval_status", {
         _response_id: responseId,
-        _new_status: newStatus,
+        _new_status: newStatus as "draft" | "pending_legal" | "pending_exec" | "approved" | "rejected" | "published",
         _user_id: user.id,
       });
       if (error) {
