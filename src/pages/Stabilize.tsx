@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Brain, TrendingUp, Shield, BarChart3, FileText, Loader2, Download } from "lucide-react";
-import { mockData, formatNumber } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/mock-data";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
 import ReactMarkdown from "react-markdown";
 import { exportToPDF } from "@/lib/pdf-export";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -58,14 +61,32 @@ export default function Stabilize() {
   const postCrisis = useCrisisAI();
   const currentRep = recoveryData[recoveryData.length - 1];
 
+  const { data: crisis } = useQuery({
+    queryKey: ["stabilize-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("crises").select("*").order("created_at", { ascending: false }).limit(1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: signals = [] } = useQuery({
+    queryKey: ["stabilize-signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const generateReport = () => {
-    const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}`;
-    const signals = mockData.signals.map(s => ({ author: s.author, content: s.content, source: s.source, sentiment: s.sentiment }));
+    const crisisContext = crisis ? `${crisis.title}: ${crisis.description}` : "Crisis data loading...";
+    const signalData = signals.map(s => ({ author: s.author, content: s.content, source: s.source, sentiment: s.sentiment }));
     postCrisis.analyzeAdvanced({
       type: "post_crisis_summary",
-      signals,
+      signals: signalData,
       crisisContext,
-      responseHistory: "Holding statement issued at T+47min. Full apology issued at T+3h. FCC response submitted at T+24h.",
+      responseHistory: "Holding statement issued at T+52min. Full apology issued at T+3h. NCC response submitted at T+24h.",
     });
   };
 
@@ -235,7 +256,7 @@ export default function Stabilize() {
                     onClick={() => {
                       exportToPDF({
                         title: "Post-Crisis Analysis Report",
-                        subtitle: `${mockData.crisis.title} — Crisis-X`,
+                        subtitle: `${crisis?.title ?? "Crisis Report"} — Crisis-X`,
                         sections: [
                           { title: "AI Analysis", content: postCrisis.result },
                           { title: "Recovery Metrics (Day 14)", content: `Reputation Score: ${currentRep.reputation}/100\nShare of Voice: ${currentRep.shareOfVoice}%\nSentiment Score: ${currentRep.sentiment}%\nPhase: STABILIZING` },
