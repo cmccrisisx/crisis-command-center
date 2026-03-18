@@ -82,7 +82,7 @@ export function CrisisAIPanel() {
 
             return (
               <TabsContent key={key} value={key} className="mt-3">
-                <p className="text-[11px] text-muted-foreground font-mono mb-3">{config.description}</p>
+                <p className="text-xs text-foreground/70 font-mono mb-3">{config.description}</p>
 
                 {!hook.result && !hook.loading && !hook.error && (
                   <Button
