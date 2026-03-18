@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SentimentBadge } from "@/components/SentimentBadge";
 import { Badge } from "@/components/ui/badge";
-import { mockData, formatNumber, getSourceIcon } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/mock-data";
 import {
   AreaChart,
   Area,
@@ -21,17 +21,25 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Signal = Tables<"signals">;
+type Crisis = Tables<"crises">;
+type Narrative = Tables<"narratives">;
+type ReputationSnapshot = Tables<"reputation_snapshots">;
 
-function StatCard({ label, value, icon: Icon, accent }: { label: string; value: string; icon: React.ElementType; accent?: string }) {
+function StatCard({ label, value, icon: Icon, accent, loading }: { label: string; value: string; icon: React.ElementType; accent?: string; loading?: boolean }) {
   return (
     <Card className="bg-card border-border">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
-            <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${accent || "text-foreground"}`}>{value}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-16 mt-1" />
+            ) : (
+              <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${accent || "text-foreground"}`}>{value}</p>
+            )}
           </div>
           <Icon className="h-5 w-5 text-muted-foreground" />
         </div>
@@ -59,7 +67,7 @@ export default function Dashboard() {
   });
 
   // Fetch signal stats from DB
-  const { data: signalStats } = useQuery({
+  const { data: signalStats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-signal-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -74,6 +82,71 @@ export default function Dashboard() {
     },
   });
 
+  // Fetch active crisis from DB
+  const { data: activeCrisis, isLoading: crisisLoading } = useQuery({
+    queryKey: ["dashboard-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crises")
+        .select("*")
+        .in("status", ["active", "detected", "responding"])
+        .order("detected_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0] ?? null) as Crisis | null;
+    },
+  });
+
+  // Fetch trending narratives from DB
+  const { data: narratives = [] } = useQuery({
+    queryKey: ["dashboard-narratives"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("narratives")
+        .select("*")
+        .eq("trending", true)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data as Narrative[];
+    },
+  });
+
+  // Fetch reputation snapshots for sentiment timeline
+  const { data: snapshots = [] } = useQuery({
+    queryKey: ["dashboard-snapshots"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reputation_snapshots")
+        .select("*")
+        .order("snapshot_at", { ascending: true })
+        .limit(24);
+      if (error) throw error;
+      return data as ReputationSnapshot[];
+    },
+  });
+
+  // Fetch response count
+  const { data: responseCount = 0, isLoading: responsesLoading } = useQuery({
+    queryKey: ["dashboard-response-count"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("response_log")
+        .select("id");
+      if (error) throw error;
+      return data.length;
+    },
+  });
+
+  // Build sentiment timeline from snapshots
+  const sentimentTimeline = snapshots.map((s) => ({
+    time: new Date(s.snapshot_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    negative: Number(s.negative_pct ?? 0),
+    neutral: Number(s.neutral_pct ?? 0),
+    positive: Number(s.positive_pct ?? 0),
+    volume: s.signal_volume ?? 0,
+  }));
+
   // Real-time subscription for signals
   useEffect(() => {
     const channel = supabase
@@ -82,13 +155,11 @@ export default function Dashboard() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "signals" },
         (payload) => {
-          // Update latest signals list
           queryClient.setQueryData<Signal[]>(["dashboard-signals"], (old) => {
             const newSignal = payload.new as Signal;
             const updated = old ? [newSignal, ...old] : [newSignal];
             return updated.slice(0, 5);
           });
-          // Invalidate stats to recount
           queryClient.invalidateQueries({ queryKey: ["dashboard-signal-stats"] });
         }
       )
@@ -119,62 +190,76 @@ export default function Dashboard() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          <StatCard label="Total Signals" value={formatNumber(signalStats?.total ?? mockData.stats.totalSignals)} icon={Radio} />
-          <StatCard label="Active Alerts" value={mockData.stats.activeAlerts.toString()} icon={AlertTriangle} accent="text-crisis-red" />
-          <StatCard label="Sentiment" value={((signalStats?.sentimentScore ?? mockData.stats.sentimentScore) * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" />
-          <StatCard label="Media Reach" value={formatNumber(mockData.stats.mediaReach)} icon={MessageSquare} />
-          <StatCard label="Responses Sent" value={mockData.stats.responsesSent.toString()} icon={MessageSquare} />
-          <StatCard label="Avg Response" value={mockData.stats.avgResponseTime} icon={Clock} />
+          <StatCard label="Total Signals" value={formatNumber(signalStats?.total ?? 0)} icon={Radio} loading={statsLoading} />
+          <StatCard label="Active Crises" value={activeCrisis ? "1" : "0"} icon={AlertTriangle} accent="text-crisis-red" loading={crisisLoading} />
+          <StatCard label="Sentiment" value={((signalStats?.sentimentScore ?? 0) * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" loading={statsLoading} />
+          <StatCard label="Media Reach" value={formatNumber(snapshots.reduce((sum, s) => sum + (s.media_reach ?? 0), 0))} icon={MessageSquare} />
+          <StatCard label="Responses Sent" value={responseCount.toString()} icon={MessageSquare} loading={responsesLoading} />
+          <StatCard label="Avg Response" value="—" icon={Clock} />
         </div>
 
         {/* Active Crisis Alert */}
-        <Card className="border-crisis-red/30 bg-crisis-red/10 dark:bg-red-950/60">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-crisis-red" />
-                <CardTitle className="text-base font-mono">{mockData.crisis.title}</CardTitle>
+        {activeCrisis ? (
+          <Card className="border-crisis-red/30 bg-crisis-red/10 dark:bg-red-950/60">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-crisis-red" />
+                  <CardTitle className="text-base font-mono">{activeCrisis.title}</CardTitle>
+                </div>
+                <RiskBadge level={activeCrisis.risk_level} pulse />
               </div>
-              <RiskBadge level={mockData.crisis.riskLevel} pulse />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-foreground/80">{mockData.crisis.description}</p>
-            <div className="flex items-center gap-4 mt-3 font-mono text-xs tabular-nums">
-              <span className="text-foreground/70">Detected: <span className="text-foreground">{mockData.crisis.detectedAt.toLocaleTimeString()}</span></span>
-              <span className="text-foreground/70">Signals: <span className="text-foreground">{formatNumber(mockData.crisis.signalCount)}</span></span>
-              <span className="text-foreground/70">Type: <span className="text-foreground uppercase">{mockData.crisis.type}</span></span>
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-foreground/80">{activeCrisis.description}</p>
+              <div className="flex items-center gap-4 mt-3 font-mono text-xs tabular-nums">
+                <span className="text-foreground/70">Detected: <span className="text-foreground">{new Date(activeCrisis.detected_at).toLocaleTimeString()}</span></span>
+                <span className="text-foreground/70">Signals: <span className="text-foreground">{formatNumber(activeCrisis.signal_count ?? 0)}</span></span>
+                <span className="text-foreground/70">Type: <span className="text-foreground uppercase">{activeCrisis.type}</span></span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-crisis-green/30 bg-crisis-green/10 dark:bg-green-950/40">
+            <CardContent className="py-6 text-center">
+              <p className="text-sm font-mono text-crisis-green">No active crises detected</p>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {/* Sentiment Chart */}
           <Card className="xl:col-span-2">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-mono uppercase tracking-wider">Sentiment Timeline — 24h</CardTitle>
+              <CardTitle className="text-sm font-mono uppercase tracking-wider">Sentiment Timeline</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockData.sentimentTimeline}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="time" tick={{ fontSize: 10, fontFamily: "JetBrains Mono" }} stroke="hsl(var(--muted-foreground))" />
-                    <YAxis tick={{ fontSize: 10, fontFamily: "JetBrains Mono" }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "4px",
-                        fontFamily: "JetBrains Mono",
-                        fontSize: "11px",
-                      }}
-                    />
-                    <Area type="monotone" dataKey="negative" stackId="1" stroke="hsl(var(--crisis-red))" fill="hsl(var(--crisis-red) / 0.3)" />
-                    <Area type="monotone" dataKey="neutral" stackId="1" stroke="hsl(var(--crisis-blue))" fill="hsl(var(--crisis-blue) / 0.2)" />
-                    <Area type="monotone" dataKey="positive" stackId="1" stroke="hsl(var(--crisis-green))" fill="hsl(var(--crisis-green) / 0.3)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {sentimentTimeline.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sentimentTimeline}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="time" tick={{ fontSize: 10, fontFamily: "JetBrains Mono" }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 10, fontFamily: "JetBrains Mono" }} stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "4px",
+                          fontFamily: "JetBrains Mono",
+                          fontSize: "11px",
+                        }}
+                      />
+                      <Area type="monotone" dataKey="negative" stackId="1" stroke="hsl(var(--crisis-red))" fill="hsl(var(--crisis-red) / 0.3)" />
+                      <Area type="monotone" dataKey="neutral" stackId="1" stroke="hsl(var(--crisis-blue))" fill="hsl(var(--crisis-blue) / 0.2)" />
+                      <Area type="monotone" dataKey="positive" stackId="1" stroke="hsl(var(--crisis-green))" fill="hsl(var(--crisis-green) / 0.3)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-xs font-mono text-muted-foreground">
+                    No reputation snapshots yet
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -185,17 +270,20 @@ export default function Dashboard() {
               <CardTitle className="text-sm font-mono uppercase tracking-wider">Trending Narratives</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {mockData.narratives.filter(n => n.trending).map((narrative) => (
+              {narratives.length === 0 && (
+                <p className="text-xs text-muted-foreground font-mono text-center py-4">No trending narratives</p>
+              )}
+              {narratives.map((narrative) => (
                 <div key={narrative.id} className="p-3 rounded-sm bg-surface-elevated border border-border">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-foreground">{narrative.title}</span>
-                    <RiskBadge level={narrative.riskLevel} size="sm" />
+                    <RiskBadge level={narrative.risk_level} size="sm" />
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">{narrative.summary}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <SentimentBadge sentiment={narrative.sentiment} />
                     <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
-                      {formatNumber(narrative.signalCount)} signals
+                      {formatNumber(narrative.signal_count ?? 0)} signals
                     </span>
                   </div>
                 </div>
@@ -203,26 +291,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Stakeholder Impact */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-wider">Stakeholder Impact</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {mockData.stakeholders.map((s) => (
-                <div key={s.group} className="p-3 rounded-sm bg-surface-elevated border border-border text-center">
-                  <p className="text-xs font-mono text-muted-foreground mb-1">{s.group}</p>
-                  <p className={`text-xl font-mono font-bold tabular-nums ${s.sentiment < -0.5 ? "text-crisis-red" : s.sentiment < -0.2 ? "text-crisis-amber" : "text-crisis-green"}`}>
-                    {(s.sentiment * 100).toFixed(0)}%
-                  </p>
-                  <p className="text-[10px] font-mono text-crisis-red tabular-nums">{s.change}%</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
         {/* AI Analysis Panel */}
         <CrisisAIPanel />
@@ -238,39 +306,32 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {(dbSignals.length > 0 ? dbSignals : mockData.signals.slice(0, 5)).map((signal) => {
-              const isDb = "detected_at" in signal;
-              const source = isDb ? (signal as Signal).source : (signal as any).source;
-              const author = isDb ? (signal as Signal).author : (signal as any).author;
-              const content = isDb ? (signal as Signal).content : (signal as any).content;
-              const sentiment = isDb ? (signal as Signal).sentiment : (signal as any).sentiment;
-              const reach = isDb ? (signal as Signal).reach ?? 0 : (signal as any).reach;
-              const isInfluencer = isDb ? (signal as Signal).is_influencer : (signal as any).isInfluencer;
-              const time = isDb ? new Date((signal as Signal).detected_at).toLocaleTimeString() : (signal as any).timestamp.toLocaleTimeString();
-              return (
-                <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
-                  <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
-                    {source === "twitter" ? "𝕏" : source === "news" ? "📰" : source === "blog" ? "📝" : "in"}
+            {dbSignals.length === 0 && (
+              <p className="text-xs text-muted-foreground font-mono text-center py-4">No signals detected yet</p>
+            )}
+            {dbSignals.map((signal) => (
+              <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
+                <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
+                  {signal.source === "twitter" ? "𝕏" : signal.source === "news" ? "📰" : signal.source === "blog" ? "📝" : "in"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-semibold text-foreground">{signal.author}</span>
+                    {signal.is_influencer && (
+                      <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
+                        INFLUENCER
+                      </span>
+                    )}
+                    <SentimentBadge sentiment={signal.sentiment} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-foreground">{author}</span>
-                      {isInfluencer && (
-                        <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
-                          INFLUENCER
-                        </span>
-                      )}
-                      <SentimentBadge sentiment={sentiment} />
-                    </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed truncate">{content}</p>
-                    <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
-                      <span>Reach: {formatNumber(reach)}</span>
-                      <span>{time}</span>
-                    </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed truncate">{signal.content}</p>
+                  <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
+                    <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
+                    <span>{new Date(signal.detected_at).toLocaleTimeString()}</span>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>

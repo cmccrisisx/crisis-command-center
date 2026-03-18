@@ -11,7 +11,6 @@ import {
   Megaphone, History, ShieldCheck, Gavel, Globe, ArrowRight, X,
 } from "lucide-react";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
-import { mockData } from "@/lib/mock-data";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,14 +19,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ResponseRow = Tables<"response_log">;
-
-const templates = [
-  { id: "t1", type: "holding" as const, title: "Initial Holding Statement", content: "We are aware of the issue affecting [service/product]. Our team is actively investigating and working to resolve this as quickly as possible. We will provide updates as more information becomes available. We apologize for any inconvenience.", channel: "general" },
-  { id: "t2", type: "holding" as const, title: "Service Disruption Acknowledgment", content: "We are experiencing a service disruption that is affecting some of our customers. Our technical teams have been mobilized and are working around the clock to restore full service. Customer safety remains our top priority.", channel: "twitter" },
-  { id: "t3", type: "apology" as const, title: "Full Apology Statement", content: "We sincerely apologize for the [incident] that has affected our customers. We take full responsibility and are committed to: 1) Resolving the immediate issue, 2) Conducting a thorough investigation, 3) Implementing measures to prevent recurrence. We value your trust and are working to earn it back.", channel: "general" },
-  { id: "t4", type: "clarification" as const, title: "Factual Clarification", content: "We want to address recent reports regarding [topic]. The facts are: [fact 1], [fact 2], [fact 3]. We are committed to transparency and will continue to share verified information as it becomes available.", channel: "press" },
-  { id: "t5", type: "apology" as const, title: "Customer-Facing Apology (Social)", content: "We hear you, and we're sorry. The [issue] is unacceptable and we own that. Here's what we're doing right now: [action]. We'll keep you updated every [timeframe]. Thank you for your patience. 🙏", channel: "twitter" },
-];
+type TemplateRow = Tables<"response_templates">;
 
 const channels = [
   { value: "twitter", label: "Twitter/X", icon: "𝕏" },
