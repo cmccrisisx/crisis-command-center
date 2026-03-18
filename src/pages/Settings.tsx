@@ -15,6 +15,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
+function RelaunchTourButton() {
+  const launchTour = useLaunchTour();
+  return (
+    <Button variant="outline" size="sm" onClick={launchTour} className="font-mono text-xs gap-1.5">
+      <PlayCircle className="h-3.5 w-3.5" />
+      Launch Tour
+    </Button>
+  );
+}
+
 const ALL_ROLES = ["admin", "pr_manager", "legal_reviewer", "social_manager"] as const;
 type AppRole = (typeof ALL_ROLES)[number];
 
