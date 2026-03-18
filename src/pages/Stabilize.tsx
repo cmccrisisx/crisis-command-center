@@ -268,7 +268,7 @@ export default function Stabilize() {
             ].map((item, i) => (
               <div key={i} className="p-3 rounded-sm bg-surface-elevated border border-border">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className={`text-[9px] font-mono h-4 px-1.5 ${
+                  <Badge variant="outline" className={`text-xs font-mono h-5 px-1.5 ${
                     item.severity === "critical" ? "text-crisis-red border-crisis-red/30" :
                     item.severity === "high" ? "text-crisis-amber border-crisis-amber/30" :
                     item.severity === "medium" ? "text-crisis-blue border-crisis-blue/30" :
