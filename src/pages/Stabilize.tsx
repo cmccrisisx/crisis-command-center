@@ -103,11 +103,11 @@ export default function Stabilize() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Sentiment Score</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Sentiment Score</p>
               <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${currentRep.sentiment >= 0 ? "text-crisis-green" : "text-crisis-red"}`}>
                 {currentRep.sentiment}%
               </p>
-              <p className="text-[10px] font-mono text-crisis-green mt-0.5">↑ Improving</p>
+              <p className="text-xs font-mono text-crisis-green mt-0.5">↑ Improving</p>
             </CardContent>
           </Card>
           <Card>
