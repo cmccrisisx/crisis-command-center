@@ -256,8 +256,8 @@ export default function SettingsPage() {
             <h1 className="text-2xl font-mono font-bold tracking-tight">Settings</h1>
             <p className="text-sm text-muted-foreground mt-1">Configure your Crisis X workspace</p>
           </div>
-          <Button onClick={saveSettings} className="font-mono text-xs uppercase tracking-wider">
-            <Save className="h-3.5 w-3.5 mr-1.5" />
+          <Button onClick={saveSettings} className="font-mono text-xs uppercase tracking-wider" disabled={saving}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
             Save Changes
           </Button>
         </div>
