@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/RiskBadge";
 import { SentimentBadge } from "@/components/SentimentBadge";
 import { Badge } from "@/components/ui/badge";
-import { formatNumber } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/crisis-helpers";
 import {
   AreaChart,
   Area,

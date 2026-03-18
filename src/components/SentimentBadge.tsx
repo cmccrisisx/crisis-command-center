@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { SentimentType } from "@/lib/mock-data";
+import type { SentimentType } from "@/lib/crisis-helpers";
 
 interface SentimentBadgeProps {
   sentiment: SentimentType;

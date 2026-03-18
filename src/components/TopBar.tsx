@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { RiskLevel } from "@/lib/mock-data";
+import type { RiskLevel } from "@/lib/crisis-helpers";
 
 const ROLE_STYLES: Record<string, string> = {
   admin: "bg-crisis-red/15 text-crisis-red border-crisis-red/30",

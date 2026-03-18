@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { FileText, Download, Calendar, Plus } from "lucide-react";
 import { exportToPDF } from "@/lib/pdf-export";
-import { formatNumber } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/crisis-helpers";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

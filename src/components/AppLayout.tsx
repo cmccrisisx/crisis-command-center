@@ -8,7 +8,7 @@ import { DemoWalkthrough } from "./DemoWalkthrough";
 import { NotificationsProvider } from "@/hooks/useNotifications";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { RiskLevel } from "@/lib/mock-data";
+import type { RiskLevel } from "@/lib/crisis-helpers";
 
 interface AppLayoutProps {
   children: React.ReactNode;

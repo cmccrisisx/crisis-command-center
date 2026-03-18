@@ -12,7 +12,7 @@ import {
 import { useCrisisAI } from "@/hooks/useCrisisAI";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatNumber } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/crisis-helpers";
 import ReactMarkdown from "react-markdown";
 
 const presetResponses = [
