@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-type AnalysisType = "sentiment" | "narrative" | "response";
+export type AnalysisType = "sentiment" | "narrative" | "response" | "emotional" | "reputation" | "draft_response" | "post_crisis_summary" | "scenario_simulation";
 
 interface Signal {
   author: string;
@@ -9,11 +9,21 @@ interface Signal {
   sentiment?: string;
 }
 
+interface AnalyzeOptions {
+  type: AnalysisType;
+  signals?: Signal[];
+  crisisContext?: string;
+  templateContent?: string;
+  channel?: string;
+  responseHistory?: string;
+}
+
 interface UseCrisisAIReturn {
   result: string;
   loading: boolean;
   error: string | null;
-  analyze: (type: AnalysisType, signals: Signal[], crisisContext?: string) => Promise<void>;
+  analyze: (type: AnalysisType, signals?: Signal[], crisisContext?: string) => Promise<void>;
+  analyzeAdvanced: (options: AnalyzeOptions) => Promise<void>;
   reset: () => void;
 }
 
@@ -29,93 +39,103 @@ export function useCrisisAI(): UseCrisisAIReturn {
     setError(null);
   }, []);
 
-  const analyze = useCallback(
-    async (type: AnalysisType, signals: Signal[], crisisContext?: string) => {
-      setResult("");
-      setError(null);
-      setLoading(true);
+  const streamResponse = useCallback(async (body: Record<string, unknown>) => {
+    setResult("");
+    setError(null);
+    setLoading(true);
 
-      try {
-        const resp = await fetch(CRISIS_AI_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ type, signals, crisisContext }),
-        });
+    try {
+      const resp = await fetch(CRISIS_AI_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
 
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({ error: "Request failed" }));
-          throw new Error(data.error || `Request failed (${resp.status})`);
-        }
-
-        if (!resp.body) throw new Error("No response body");
-
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let accumulated = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          let newlineIdx: number;
-          while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
-            let line = buffer.slice(0, newlineIdx);
-            buffer = buffer.slice(newlineIdx + 1);
-
-            if (line.endsWith("\r")) line = line.slice(0, -1);
-            if (line.startsWith(":") || line.trim() === "") continue;
-            if (!line.startsWith("data: ")) continue;
-
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === "[DONE]") break;
-
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (content) {
-                accumulated += content;
-                setResult(accumulated);
-              }
-            } catch {
-              buffer = line + "\n" + buffer;
-              break;
-            }
-          }
-        }
-
-        // Flush remaining buffer
-        if (buffer.trim()) {
-          for (let raw of buffer.split("\n")) {
-            if (!raw) continue;
-            if (raw.endsWith("\r")) raw = raw.slice(0, -1);
-            if (!raw.startsWith("data: ")) continue;
-            const jsonStr = raw.slice(6).trim();
-            if (jsonStr === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-              if (content) {
-                accumulated += content;
-                setResult(accumulated);
-              }
-            } catch {
-              /* ignore */
-            }
-          }
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Analysis failed");
-      } finally {
-        setLoading(false);
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(data.error || `Request failed (${resp.status})`);
       }
+
+      if (!resp.body) throw new Error("No response body");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              accumulated += content;
+              setResult(accumulated);
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        for (let raw of buffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              accumulated += content;
+              setResult(accumulated);
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Analysis failed");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const analyze = useCallback(
+    async (type: AnalysisType, signals?: Signal[], crisisContext?: string) => {
+      await streamResponse({ type, signals, crisisContext });
     },
-    []
+    [streamResponse]
   );
 
-  return { result, loading, error, analyze, reset };
+  const analyzeAdvanced = useCallback(
+    async (options: AnalyzeOptions) => {
+      await streamResponse(options);
+    },
+    [streamResponse]
+  );
+
+  return { result, loading, error, analyze, analyzeAdvanced, reset };
 }
