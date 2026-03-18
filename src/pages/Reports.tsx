@@ -10,8 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { FileText, Download, Calendar, Plus } from "lucide-react";
 import { exportToPDF } from "@/lib/pdf-export";
-import { mockData } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/mock-data";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Report {
   id: string;
@@ -25,7 +28,7 @@ interface Report {
 const defaultReports: Report[] = [
   {
     id: "rpt-001",
-    title: "Crisis Incident Report — Network Outage",
+    title: "Crisis Incident Report — Airtel Nigeria Network Outage",
     type: "Post-Crisis",
     date: new Date().toLocaleDateString(),
     status: "Draft",
@@ -74,6 +77,97 @@ export default function Reports() {
   const [newType, setNewType] = useState("Post-Crisis");
   const [newSections, setNewSections] = useState<string[]>(["Executive Summary", "Timeline"]);
 
+  // Fetch live crisis data
+  const { data: crisis } = useQuery({
+    queryKey: ["reports-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crises")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch live narratives
+  const { data: narratives = [] } = useQuery({
+    queryKey: ["reports-narratives"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("narratives")
+        .select("*")
+        .order("signal_count", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch live signals for stats
+  const { data: signals = [] } = useQuery({
+    queryKey: ["reports-signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("signals")
+        .select("*")
+        .order("detected_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch latest reputation snapshot
+  const { data: latestSnapshot } = useQuery({
+    queryKey: ["reports-snapshot"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("reputation_snapshots")
+        .select("*")
+        .order("snapshot_at", { ascending: false })
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Build stakeholder data from signals
+  const stakeholderSummary = (() => {
+    const groups: Record<string, { mentions: number; sentimentSum: number }> = {
+      "Subscribers": { mentions: 0, sentimentSum: 0 },
+      "Investors (NSE)": { mentions: 0, sentimentSum: 0 },
+      "NCC / Regulators": { mentions: 0, sentimentSum: 0 },
+      "Nigerian Media": { mentions: 0, sentimentSum: 0 },
+    };
+    signals.forEach((s) => {
+      const val = s.sentiment === "negative" ? -1 : s.sentiment === "positive" ? 1 : 0;
+      const content = (s.content + " " + (s.keywords || []).join(" ")).toLowerCase();
+      if (content.match(/ncc|regulat|senate|compliance/)) {
+        groups["NCC / Regulators"].mentions++;
+        groups["NCC / Regulators"].sentimentSum += val;
+      }
+      if (content.match(/stock|nse|investor|market/)) {
+        groups["Investors (NSE)"].mentions++;
+        groups["Investors (NSE)"].sentimentSum += val;
+      }
+      if (s.source === "news" || s.source === "blog") {
+        groups["Nigerian Media"].mentions++;
+        groups["Nigerian Media"].sentimentSum += val;
+      }
+      if (content.match(/customer|subscriber|user|service/)) {
+        groups["Subscribers"].mentions++;
+        groups["Subscribers"].sentimentSum += val;
+      }
+    });
+    return Object.entries(groups).map(([group, d]) => ({
+      group,
+      sentiment: d.mentions > 0 ? (d.sentimentSum / d.mentions).toFixed(2) : "0",
+      mentions: d.mentions,
+    }));
+  })();
+
   const toggleSection = (section: string) => {
     setNewSections((prev) =>
       prev.includes(section) ? prev.filter((s) => s !== section) : [...prev, section]
@@ -105,6 +199,38 @@ export default function Reports() {
     setNewType("Post-Crisis");
     setNewSections(["Executive Summary", "Timeline"]);
     toast.success("Report created successfully");
+  };
+
+  const handleExportPDF = (report: Report) => {
+    const crisisTitle = crisis?.title ?? "Crisis Report";
+    const crisisDesc = crisis?.description ?? "";
+    const riskLevel = crisis?.risk_level ?? "medium";
+    const sentimentScore = crisis?.sentiment_score ?? 0;
+    const signalCount = crisis?.signal_count ?? signals.length;
+
+    exportToPDF({
+      title: report.title,
+      subtitle: `${report.type} Report — Crisis-X`,
+      date: report.date,
+      sections: [
+        {
+          title: "Crisis Overview",
+          content: `${crisisTitle}\n${crisisDesc}\n\nRisk Level: ${riskLevel.toUpperCase()}\nSentiment Score: ${sentimentScore}\nSignals Detected: ${formatNumber(signalCount)}${latestSnapshot ? `\nReputation Score: ${latestSnapshot.reputation_score}/100\nMedia Reach: ${formatNumber(latestSnapshot.media_reach ?? 0)}` : ""}`,
+        },
+        { title: "Sections Included", content: report.sections.map((s) => `- ${s}`).join("\n") },
+        {
+          title: "Key Narratives",
+          content: narratives.length > 0
+            ? narratives.map((n) => `**${n.title}** (${n.risk_level.toUpperCase()})\n${n.summary}\nSignals: ${n.signal_count ?? 0} | Sentiment: ${n.sentiment}${n.trending ? " | 📈 Trending" : ""}`).join("\n\n")
+            : "No narrative data available.",
+        },
+        {
+          title: "Stakeholder Impact",
+          content: stakeholderSummary.map((s) => `- ${s.group}: Sentiment ${s.sentiment}, Mentions ${s.mentions}`).join("\n"),
+        },
+      ],
+    });
+    toast.success("PDF downloaded");
   };
 
   return (
@@ -201,20 +327,7 @@ export default function Reports() {
                       variant="outline"
                       size="sm"
                       className="h-7 text-xs font-mono whitespace-nowrap"
-                      onClick={() => {
-                        exportToPDF({
-                          title: report.title,
-                          subtitle: `${report.type} Report — Crisis-X`,
-                          date: report.date,
-                          sections: [
-                            { title: "Crisis Overview", content: `${mockData.crisis.title}\n${mockData.crisis.description}\n\nRisk Level: ${mockData.globalRisk.toUpperCase()}\nSentiment Score: ${mockData.crisis.sentimentScore}\nSignals Detected: ${mockData.crisis.signalCount}` },
-                            { title: "Sections Included", content: report.sections.map(s => `- ${s}`).join("\n") },
-                            { title: "Key Narratives", content: mockData.narratives.map(n => `**${n.title}** (${n.riskLevel.toUpperCase()})\n${n.summary}\nSignals: ${n.signalCount} | Sentiment: ${n.sentiment}`).join("\n\n") },
-                            { title: "Stakeholder Impact", content: mockData.stakeholders.map(s => `- ${s.group}: Sentiment ${s.sentiment}, Change ${s.change}%, Mentions ${s.mentions}`).join("\n") },
-                          ],
-                        });
-                        toast.success("PDF downloaded");
-                      }}
+                      onClick={() => handleExportPDF(report)}
                     >
                       <Download className="h-3 w-3 mr-1" />
                       PDF
