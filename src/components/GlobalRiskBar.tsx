@@ -15,6 +15,7 @@ export function GlobalRiskBar({ level }: GlobalRiskBarProps) {
 
   return (
     <div
+      data-tour="risk-bar"
       className={cn(
         "h-1 w-full fixed top-0 left-0 z-50 transition-colors duration-500",
         barClass,
