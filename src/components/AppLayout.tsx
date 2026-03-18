@@ -26,6 +26,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </div>
       <CrisisChat />
       <NotificationListener />
+      <DemoWalkthrough />
     </SidebarProvider>
   );
 }

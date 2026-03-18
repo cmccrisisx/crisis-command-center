@@ -363,13 +363,20 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-sm font-mono uppercase tracking-wider">Demo Mode</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Telecom Outage Simulation</p>
                 <p className="text-xs text-muted-foreground">Run the pre-built crisis scenario with mock data</p>
               </div>
               <Badge className="font-mono text-xs">ACTIVE</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Platform Tour</p>
+                <p className="text-xs text-muted-foreground">Re-launch the guided walkthrough overlay</p>
+              </div>
+              <RelaunchTourButton />
             </div>
           </CardContent>
         </Card>
