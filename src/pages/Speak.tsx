@@ -415,6 +415,24 @@ function ApprovalQueue() {
     },
   });
 
+  // Realtime subscription for approval queue
+  useEffect(() => {
+    const channel = supabase
+      .channel("approval-queue-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "response_log" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["responses"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const transition = async (responseId: string, newStatus: string) => {
     if (!user) return;
     setTransitioning(responseId);
