@@ -3,7 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Brain, TrendingUp, Shield, BarChart3, FileText, Loader2 } from "lucide-react";
+import { Brain, TrendingUp, Shield, BarChart3, FileText, Loader2, Download } from "lucide-react";
 import { mockData, formatNumber } from "@/lib/mock-data";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
 import ReactMarkdown from "react-markdown";
