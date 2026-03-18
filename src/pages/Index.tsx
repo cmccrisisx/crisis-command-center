@@ -180,13 +180,16 @@ export default function Dashboard() {
             <h1 className="text-2xl font-mono font-bold tracking-tight">Command Center</h1>
             <p className="text-sm text-muted-foreground mt-1">Real-time crisis monitoring & response</p>
           </div>
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs uppercase tracking-wider"
-            onClick={() => navigate("/war-room")}
-          >
-            <Zap className="h-3.5 w-3.5 mr-1.5" />
-            Escalate to War Room
-          </Button>
+          <div className="flex items-center gap-2">
+            <CreateCrisisDialog />
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs uppercase tracking-wider"
+              onClick={() => navigate("/war-room")}
+            >
+              <Zap className="h-3.5 w-3.5 mr-1.5" />
+              Escalate to War Room
+            </Button>
+          </div>
         </div>
 
         {/* Stats Row */}
