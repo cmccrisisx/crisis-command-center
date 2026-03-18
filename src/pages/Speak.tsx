@@ -199,11 +199,13 @@ export default function Speak() {
           {/* Templates Tab */}
           <TabsContent value="templates">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {templates.map((tmpl) => (
+              {dbTemplates.length === 0 ? (
+                <Card><CardContent className="py-12 text-center"><p className="text-xs font-mono text-muted-foreground">No templates found. Add templates to the database.</p></CardContent></Card>
+              ) : dbTemplates.map((tmpl) => (
                 <Card
                   key={tmpl.id}
-                  className={`cursor-pointer transition-colors ${selectedTemplate.id === tmpl.id ? "border-primary/50 bg-primary/5" : ""}`}
-                  onClick={() => setSelectedTemplate(tmpl)}
+                  className={`cursor-pointer transition-colors ${selectedTemplate?.id === tmpl.id ? "border-primary/50 bg-primary/5" : ""}`}
+                  onClick={() => setSelectedTemplateId(tmpl.id)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
