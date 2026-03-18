@@ -70,7 +70,25 @@ export default function Reports() {
                     <Badge variant={report.status === "Published" ? "default" : "secondary"} className="text-[10px] font-mono">
                       {report.status}
                     </Badge>
-                    <Button variant="outline" size="sm" className="h-7 text-[10px] font-mono">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] font-mono"
+                      onClick={() => {
+                        exportToPDF({
+                          title: report.title,
+                          subtitle: `${report.type} Report — Crisis-X`,
+                          date: report.date,
+                          sections: [
+                            { title: "Crisis Overview", content: `${mockData.crisis.title}\n${mockData.crisis.description}\n\nRisk Level: ${mockData.globalRisk.toUpperCase()}\nSentiment Score: ${mockData.crisis.sentimentScore}\nSignals Detected: ${mockData.crisis.signalCount}` },
+                            { title: "Sections Included", content: report.sections.map(s => `- ${s}`).join("\n") },
+                            { title: "Key Narratives", content: mockData.narratives.map(n => `**${n.title}** (${n.riskLevel.toUpperCase()})\n${n.summary}\nSignals: ${n.signalCount} | Sentiment: ${n.sentiment}`).join("\n\n") },
+                            { title: "Stakeholder Impact", content: mockData.stakeholders.map(s => `- ${s.group}: Sentiment ${s.sentiment}, Change ${s.change}%, Mentions ${s.mentions}`).join("\n") },
+                          ],
+                        });
+                        toast.success("PDF downloaded");
+                      }}
+                    >
                       <Download className="h-3 w-3 mr-1" />
                       PDF
                     </Button>
