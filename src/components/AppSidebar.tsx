@@ -7,6 +7,7 @@ import {
   Settings,
   Megaphone,
   Shield,
+  FlaskConical,
 } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 import { NavLink } from "@/components/NavLink";
@@ -43,6 +44,7 @@ const mainNav: NavItem[] = [
   { title: "Analytics", url: "/analytics", icon: BarChart3, allowedRoles: ["admin", "pr_manager", "social_manager"] },
   { title: "Stabilize", url: "/stabilize", icon: Shield, allowedRoles: ["admin", "pr_manager", "social_manager"] },
   { title: "Reports", url: "/reports", icon: FileText, allowedRoles: ["admin", "pr_manager", "legal_reviewer"] },
+  { title: "Scenarios", url: "/scenarios", icon: FlaskConical, allowedRoles: ["admin", "pr_manager"] },
 ];
 
 const settingsNav: NavItem[] = [
