@@ -4,11 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Brain, TrendingUp, Shield, BarChart3, FileText, Loader2, Download } from "lucide-react";
-import { mockData, formatNumber } from "@/lib/mock-data";
+import { formatNumber } from "@/lib/mock-data";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
 import ReactMarkdown from "react-markdown";
 import { exportToPDF } from "@/lib/pdf-export";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
