@@ -4,6 +4,7 @@ import { TopBar } from "./TopBar";
 import { GlobalRiskBar } from "./GlobalRiskBar";
 import { CrisisChat } from "./CrisisChat";
 import { NotificationListener } from "./NotificationListener";
+import { DemoWalkthrough } from "./DemoWalkthrough";
 import { mockData } from "@/lib/mock-data";
 
 interface AppLayoutProps {
