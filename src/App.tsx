@@ -14,6 +14,7 @@ import Stabilize from "./pages/Stabilize.tsx";
 import Reports from "./pages/Reports.tsx";
 import SettingsPage from "./pages/Settings.tsx";
 import Auth from "./pages/Auth.tsx";
+import Scenarios from "./pages/Scenarios.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
