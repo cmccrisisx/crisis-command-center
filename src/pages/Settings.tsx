@@ -7,12 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Save, X, Shield, Loader2, Plus, Minus } from "lucide-react";
+import { Save, X, Shield, Loader2, Plus, Minus, PlayCircle } from "lucide-react";
+import { useLaunchTour } from "@/components/DemoWalkthrough";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+
+function RelaunchTourButton() {
+  const launchTour = useLaunchTour();
+  return (
+    <Button variant="outline" size="sm" onClick={launchTour} className="font-mono text-xs gap-1.5">
+      <PlayCircle className="h-3.5 w-3.5" />
+      Launch Tour
+    </Button>
+  );
+}
 
 const ALL_ROLES = ["admin", "pr_manager", "legal_reviewer", "social_manager"] as const;
 type AppRole = (typeof ALL_ROLES)[number];
@@ -362,13 +373,20 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-sm font-mono uppercase tracking-wider">Demo Mode</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Telecom Outage Simulation</p>
                 <p className="text-xs text-muted-foreground">Run the pre-built crisis scenario with mock data</p>
               </div>
               <Badge className="font-mono text-xs">ACTIVE</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Platform Tour</p>
+                <p className="text-xs text-muted-foreground">Re-launch the guided walkthrough overlay</p>
+              </div>
+              <RelaunchTourButton />
             </div>
           </CardContent>
         </Card>
