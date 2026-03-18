@@ -1,11 +1,14 @@
-import { Bell, LogOut } from "lucide-react";
+import { Bell, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import { RiskBadge } from "./RiskBadge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { mockData } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDistanceToNow } from "date-fns";
 
 const ROLE_STYLES: Record<string, string> = {
   admin: "bg-crisis-red/15 text-crisis-red border-crisis-red/30",
@@ -21,23 +24,16 @@ const ROLE_LABELS: Record<string, string> = {
   social_manager: "SOCIAL",
 };
 
-const mockAlerts = [
-  { id: 1, title: "Emergency Services Disruption", risk: "critical" as const, time: "12 min ago" },
-  { id: 2, title: "FCC Investigation Announced", risk: "high" as const, time: "45 min ago" },
-  { id: 3, title: "Stock Price Drop 4.2%", risk: "high" as const, time: "1h ago" },
-  { id: 4, title: "Influencer @TechReporter_Jane engaging", risk: "medium" as const, time: "2h ago" },
-  { id: 5, title: "Customer churn signals rising", risk: "medium" as const, time: "3h ago" },
-];
-
-const riskColors: Record<string, string> = {
-  critical: "text-crisis-red",
-  high: "text-crisis-amber",
-  medium: "text-crisis-blue",
-  low: "text-crisis-green",
+const SEVERITY_DOT: Record<string, string> = {
+  success: "bg-crisis-green",
+  error: "bg-crisis-red",
+  info: "bg-crisis-blue",
+  default: "bg-crisis-amber",
 };
 
 export function TopBar() {
   const { profile, roles, signOut } = useAuth();
+  const { notifications, unreadCount, markAllRead, clear } = useNotifications();
 
   return (
     <header className="h-12 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm">
@@ -66,26 +62,74 @@ export function TopBar() {
           <PopoverTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-4 w-4" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-[9px] font-mono font-bold text-primary-foreground leading-none">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                </span>
+              )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="end">
-            <div className="px-3 py-2 border-b border-border">
-              <p className="text-xs font-mono font-semibold uppercase tracking-wider">Recent Alerts</p>
+          <PopoverContent className="w-96 p-0" align="end">
+            {/* Header */}
+            <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+              <p className="text-xs font-mono font-semibold uppercase tracking-wider">
+                Notifications
+                {unreadCount > 0 && (
+                  <span className="ml-2 text-primary">({unreadCount})</span>
+                )}
+              </p>
+              <div className="flex gap-1">
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={markAllRead} title="Mark all read">
+                    <CheckCheck className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {notifications.length > 0 && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={clear} title="Clear all">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="max-h-72 overflow-y-auto">
-              {mockAlerts.map((alert) => (
-                <div key={alert.id} className="px-3 py-2.5 border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className={`text-xs font-mono font-semibold uppercase ${riskColors[alert.risk]}`}>
-                      {alert.risk}
-                    </span>
-                    <span className="text-xs font-mono text-muted-foreground tabular-nums">{alert.time}</span>
-                  </div>
-                  <p className="text-xs text-foreground">{alert.title}</p>
+
+            {/* List */}
+            <ScrollArea className="max-h-80">
+              {notifications.length === 0 ? (
+                <div className="px-4 py-8 text-center">
+                  <Bell className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
+                  <p className="text-xs text-muted-foreground font-mono">No notifications yet</p>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    Alerts will appear here in real-time
+                  </p>
                 </div>
-              ))}
-            </div>
+              ) : (
+                notifications.map((n) => (
+                  <div
+                    key={n.id}
+                    className={`px-3 py-2.5 border-b border-border last:border-0 transition-colors ${
+                      n.read ? "opacity-60" : "bg-accent/20"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${SEVERITY_DOT[n.severity]}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-0.5">
+                          <span className="text-xs font-semibold text-foreground truncate">{n.title}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
+                            {formatDistanceToNow(n.timestamp, { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                          {n.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </ScrollArea>
           </PopoverContent>
         </Popover>
 

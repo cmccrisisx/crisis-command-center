@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const SOURCE_ICONS: Record<string, string> = {
   twitter: "🐦",
@@ -21,6 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function NotificationListener() {
   const { user } = useAuth();
+  const { push } = useNotifications();
 
   useEffect(() => {
     if (!user) return;
@@ -34,10 +36,11 @@ export function NotificationListener() {
           const signal = payload.new as any;
           const icon = SOURCE_ICONS[signal.source] || "📡";
           const sentiment = signal.sentiment === "negative" ? "🔴" : signal.sentiment === "positive" ? "🟢" : "🟡";
-          toast(`${icon} New Signal Detected`, {
-            description: `${sentiment} ${signal.author}: "${signal.content?.slice(0, 80)}${signal.content?.length > 80 ? "…" : ""}"`,
-            duration: 6000,
-          });
+          const title = `${icon} New Signal Detected`;
+          const description = `${sentiment} ${signal.author}: "${signal.content?.slice(0, 80)}${signal.content?.length > 80 ? "…" : ""}"`;
+
+          toast(title, { description, duration: 6000 });
+          push({ title, description, type: "signal", severity: "default" });
         }
       )
       .subscribe();
@@ -57,22 +60,21 @@ export function NotificationListener() {
           const isGood = newStatus === "approved" || newStatus === "published";
           const isBad = newStatus === "rejected";
 
-          if (isGood) {
-            toast.success(`Response ${label}`, {
-              description: `${response.channel} response status updated`,
-              duration: 5000,
-            });
-          } else if (isBad) {
-            toast.error(`Response ${label}`, {
-              description: `${response.channel} response was rejected`,
-              duration: 5000,
-            });
-          } else {
-            toast.info(`Approval: ${label}`, {
-              description: `${response.channel} response moved to ${label.toLowerCase()}`,
-              duration: 5000,
-            });
-          }
+          const title = isGood
+            ? `Response ${label}`
+            : isBad
+            ? `Response ${label}`
+            : `Approval: ${label}`;
+          const description = isBad
+            ? `${response.channel} response was rejected`
+            : `${response.channel} response status updated`;
+          const severity = isGood ? "success" as const : isBad ? "error" as const : "info" as const;
+
+          if (isGood) toast.success(title, { description, duration: 5000 });
+          else if (isBad) toast.error(title, { description, duration: 5000 });
+          else toast.info(title, { description, duration: 5000 });
+
+          push({ title, description, type: "approval", severity });
         }
       )
       .subscribe();
@@ -81,7 +83,7 @@ export function NotificationListener() {
       supabase.removeChannel(signalChannel);
       supabase.removeChannel(approvalChannel);
     };
-  }, [user]);
+  }, [user, push]);
 
   return null;
 }
