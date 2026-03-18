@@ -50,7 +50,7 @@ export function CrisisAIPanel() {
   };
 
   return (
-    <Card className="border-primary/20 bg-primary/[0.02]">
+    <Card className="border-primary/20 bg-card">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
