@@ -156,7 +156,7 @@ export default function Scenarios() {
                     <p className="text-sm font-mono font-bold tabular-nums text-crisis-red">{mockData.crisis.sentimentScore}</p>
                   </div>
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
-                    <p className="text-[9px] font-mono text-muted-foreground uppercase">Risk</p>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Risk</p>
                     <p className="text-sm font-mono font-bold tabular-nums text-crisis-red uppercase">{mockData.globalRisk}</p>
                   </div>
                 </div>
