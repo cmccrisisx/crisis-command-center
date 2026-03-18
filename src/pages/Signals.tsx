@@ -1,14 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SentimentBadge } from "@/components/SentimentBadge";
 import { formatNumber, getSourceIcon } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, Filter, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Search, Filter, Loader2, Radio } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -18,9 +19,11 @@ const SOURCE_OPTIONS = ["twitter", "news", "blog", "linkedin"] as const;
 const SENTIMENT_OPTIONS = ["positive", "neutral", "negative"] as const;
 
 export default function Signals() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
+  const [realtimeCount, setRealtimeCount] = useState(0);
 
   const { data: signals = [], isLoading } = useQuery({
     queryKey: ["signals"],
@@ -30,9 +33,51 @@ export default function Signals() {
         .select("*")
         .order("detected_at", { ascending: false });
       if (error) throw error;
+      setRealtimeCount(0);
       return data as Signal[];
     },
   });
+
+  // Realtime subscription — new signals appear instantly
+  useEffect(() => {
+    const channel = supabase
+      .channel("signals-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "signals" },
+        (payload) => {
+          queryClient.setQueryData<Signal[]>(["signals"], (old) => {
+            if (!old) return [payload.new as Signal];
+            if (old.some((s) => s.id === (payload.new as Signal).id)) return old;
+            return [payload.new as Signal, ...old];
+          });
+          setRealtimeCount((c) => c + 1);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "signals" },
+        (payload) => {
+          queryClient.setQueryData<Signal[]>(["signals"], (old) =>
+            old?.map((s) => (s.id === (payload.new as Signal).id ? (payload.new as Signal) : s)) ?? []
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "signals" },
+        (payload) => {
+          queryClient.setQueryData<Signal[]>(["signals"], (old) =>
+            old?.filter((s) => s.id !== (payload.old as { id: string }).id) ?? []
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const filteredSignals = useMemo(() => {
     let result = signals;
@@ -77,7 +122,15 @@ export default function Signals() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-mono font-bold tracking-tight">Signal Detection</h1>
-            <p className="text-sm text-muted-foreground mt-1">Real-time monitoring across all channels</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Real-time monitoring across all channels
+              {realtimeCount > 0 && (
+                <Badge variant="outline" className="ml-2 text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green animate-pulse">
+                  <Radio className="h-2.5 w-2.5 mr-1" />
+                  {realtimeCount} new
+                </Badge>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
