@@ -19,8 +19,9 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 ## Database Tables (Lovable Cloud)
 - crises, signals, narratives, response_templates, response_log, war_room_messages, reputation_snapshots, profiles, user_roles, activity_log
 - Enums: crisis_status, crisis_type, risk_level, sentiment_type, signal_source, response_template_type, approval_status
-- Realtime enabled on: war_room_messages, signals
+- Realtime enabled on: war_room_messages, signals, response_log
 - All tables have RLS for authenticated users
+- Settings preferences persisted to profiles.preferences JSONB column
 
 ## AI
 - CrisisAI panel: sentiment, narrative, response, emotional, reputation, draft_response, post_crisis_summary, scenario_simulation
@@ -29,19 +30,18 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 - CX mounted in AppLayout — floating chat bubble on every page
 - Hook: src/hooks/useCrisisChat.ts (streaming SSE)
 
+## Notifications
+- NotificationListener component in AppLayout — realtime toast alerts
+- Subscribes to signals (INSERT) and response_log (UPDATE) via Supabase channels
+- Uses sonner toasts with contextual icons and sentiment indicators
+
 ## Auth & RBAC
 - Roles: admin, pr_manager, legal_reviewer, social_manager
 - has_role() security definer function
 - Default role on signup: pr_manager (via handle_new_user trigger)
 - Role-based nav filtering in sidebar
+- Admin role management UI on Settings page (manage-roles edge function)
 
 ## Seeded Data
 - Crisis: "Major Network Outage — Eastern Seaboard" (id: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
 - 10 signals, 5 narrative clusters seeded
-
-## Pending
-- Persist Settings to profiles table
-- Persist Reports to DB
-- In-app notification system
-- Demo walkthrough mode
-- Mobile responsive improvements

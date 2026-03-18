@@ -3,6 +3,7 @@ import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { GlobalRiskBar } from "./GlobalRiskBar";
 import { CrisisChat } from "./CrisisChat";
+import { NotificationListener } from "./NotificationListener";
 import { mockData } from "@/lib/mock-data";
 
 interface AppLayoutProps {
@@ -23,6 +24,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </div>
       <CrisisChat />
+      <NotificationListener />
     </SidebarProvider>
   );
 }
