@@ -41,9 +41,62 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 }
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  return (
+  // Fetch latest signals from DB
+  const { data: dbSignals = [] } = useQuery({
+    queryKey: ["dashboard-signals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("signals")
+        .select("*")
+        .order("detected_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data as Signal[];
+    },
+  });
+
+  // Fetch signal stats from DB
+  const { data: signalStats } = useQuery({
+    queryKey: ["dashboard-signal-stats"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("signals")
+        .select("id, sentiment");
+      if (error) throw error;
+      const total = data.length;
+      const negative = data.filter((s) => s.sentiment === "negative").length;
+      const positive = data.filter((s) => s.sentiment === "positive").length;
+      const sentimentScore = total > 0 ? (positive - negative) / total : 0;
+      return { total, sentimentScore };
+    },
+  });
+
+  // Real-time subscription for signals
+  useEffect(() => {
+    const channel = supabase
+      .channel("dashboard-signals-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "signals" },
+        (payload) => {
+          // Update latest signals list
+          queryClient.setQueryData<Signal[]>(["dashboard-signals"], (old) => {
+            const newSignal = payload.new as Signal;
+            const updated = old ? [newSignal, ...old] : [newSignal];
+            return updated.slice(0, 5);
+          });
+          // Invalidate stats to recount
+          queryClient.invalidateQueries({ queryKey: ["dashboard-signal-stats"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
