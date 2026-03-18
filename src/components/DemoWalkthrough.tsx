@@ -137,22 +137,31 @@ export function DemoWalkthrough() {
       });
   }, [user]);
 
-  // Measure target element whenever step changes
+  // Measure target element whenever step changes & elevate it
   useLayoutEffect(() => {
     if (!visible) return;
 
+    const current = TOUR_STEPS[step];
+    const targetEl = current?.target
+      ? (document.querySelector(`[data-tour="${current.target}"]`) as HTMLElement | null)
+      : null;
+
     const measure = () => {
-      const current = TOUR_STEPS[step];
       const rect = getTargetRect(current?.target);
       setSpotlightRect(rect);
       setCardStyle(computeCardStyle(rect));
     };
 
-    // Measure immediately + after a short delay (for layout shifts)
+    // Elevate target so clicks pass through the cutout
+    if (targetEl) {
+      targetEl.style.position = targetEl.style.position || "relative";
+      targetEl.dataset.tourPrevZ = targetEl.style.zIndex;
+      targetEl.style.zIndex = "101";
+    }
+
     measure();
     const t = setTimeout(measure, 100);
 
-    // Re-measure on resize
     const onResize = () => measure();
     window.addEventListener("resize", onResize);
 
@@ -160,6 +169,11 @@ export function DemoWalkthrough() {
       clearTimeout(t);
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(rafRef.current);
+      // Restore z-index
+      if (targetEl) {
+        targetEl.style.zIndex = targetEl.dataset.tourPrevZ || "";
+        delete targetEl.dataset.tourPrevZ;
+      }
     };
   }, [step, visible]);
 
