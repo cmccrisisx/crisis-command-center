@@ -169,14 +169,57 @@ function RoleManagement() {
 }
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
+  const { user, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
-  const [settings, setSettings] = useState<SettingsState>(loadSettings);
+  const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
   const [newKeyword, setNewKeyword] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const saveSettings = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    toast.success("Settings saved successfully");
+  // Load preferences from DB
+  const { isLoading: prefsLoading } = useQuery({
+    queryKey: ["user-preferences", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("user_id", user!.id)
+        .single();
+      if (error) throw error;
+      return data?.preferences as SettingsState | null;
+    },
+    // On success, merge into state
+    meta: { onSuccess: true },
+  });
+
+  // Sync loaded prefs into state
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("preferences")
+      .eq("user_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.preferences && typeof data.preferences === "object") {
+          setSettings({ ...DEFAULT_SETTINGS, ...(data.preferences as SettingsState) });
+        }
+      });
+  }, [user]);
+
+  const saveSettings = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ preferences: settings as unknown as Record<string, unknown> })
+      .eq("user_id", user.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Failed to save settings");
+    } else {
+      toast.success("Settings saved successfully");
+    }
   };
 
   const addKeyword = () => {
