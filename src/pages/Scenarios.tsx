@@ -107,7 +107,7 @@ export default function Scenarios() {
                             <Icon className={`h-3.5 w-3.5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
                             <span className="text-xs font-mono font-semibold">{preset.label}</span>
                           </div>
-                          <p className="text-[11px] text-muted-foreground leading-relaxed">{preset.content}</p>
+                          <p className="text-xs text-foreground/70 leading-relaxed">{preset.content}</p>
                         </div>
                       );
                     })}
