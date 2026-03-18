@@ -1,4 +1,4 @@
-import type { RiskLevel } from "@/lib/mock-data";
+import type { RiskLevel } from "@/lib/crisis-helpers";
 import { cn } from "@/lib/utils";
 
 interface GlobalRiskBarProps {

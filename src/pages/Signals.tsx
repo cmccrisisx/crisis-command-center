@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SentimentBadge } from "@/components/SentimentBadge";
-import { formatNumber, getSourceIcon } from "@/lib/mock-data";
+import { formatNumber, getSourceIcon } from "@/lib/crisis-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
