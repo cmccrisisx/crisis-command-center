@@ -18,6 +18,7 @@ import {
 import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateCrisisDialog } from "@/components/CreateCrisisDialog";
+import { CrisisStatusCard } from "@/components/CrisisStatusCard";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -204,25 +205,7 @@ export default function Dashboard() {
 
         {/* Active Crisis Alert */}
         {activeCrisis ? (
-          <Card className="border-crisis-red/30 bg-crisis-red/10 dark:bg-red-950/60">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-crisis-red" />
-                  <CardTitle className="text-base font-mono">{activeCrisis.title}</CardTitle>
-                </div>
-                <RiskBadge level={activeCrisis.risk_level} pulse />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-foreground/80">{activeCrisis.description}</p>
-              <div className="flex items-center gap-4 mt-3 font-mono text-xs tabular-nums">
-                <span className="text-foreground/70">Detected: <span className="text-foreground">{new Date(activeCrisis.detected_at).toLocaleTimeString()}</span></span>
-                <span className="text-foreground/70">Signals: <span className="text-foreground">{formatNumber(activeCrisis.signal_count ?? 0)}</span></span>
-                <span className="text-foreground/70">Type: <span className="text-foreground uppercase">{activeCrisis.type}</span></span>
-              </div>
-            </CardContent>
-          </Card>
+          <CrisisStatusCard crisis={activeCrisis} queryClient={queryClient} />
         ) : (
           <Card className="border-crisis-green/30 bg-crisis-green/10 dark:bg-green-950/40">
             <CardContent className="py-6 text-center">
