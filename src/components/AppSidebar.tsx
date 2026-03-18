@@ -5,6 +5,8 @@ import {
   BarChart3,
   FileText,
   Settings,
+  Megaphone,
+  Shield,
 } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 import { NavLink } from "@/components/NavLink";
@@ -27,7 +29,9 @@ const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Signals", url: "/signals", icon: Radio },
   { title: "War Room", url: "/war-room", icon: Swords },
+  { title: "Speak", url: "/speak", icon: Megaphone },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Stabilize", url: "/stabilize", icon: Shield },
   { title: "Reports", url: "/reports", icon: FileText },
 ];
 
@@ -107,7 +111,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-3">
         {!collapsed && (
           <div className="text-[10px] font-mono text-muted-foreground">
-            v1.0 · DEMO MODE
+            v2.0 · CRISIS-X
           </div>
         )}
       </SidebarFooter>

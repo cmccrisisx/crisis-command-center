@@ -39,7 +39,7 @@ export function useCrisisAI(): UseCrisisAIReturn {
     setError(null);
   }, []);
 
-  const streamResponse = useCallback(async (body: Record<string, unknown>) => {
+  const streamResponse = useCallback(async (body: object) => {
     setResult("");
     setError(null);
     setLoading(true);
