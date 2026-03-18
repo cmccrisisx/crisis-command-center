@@ -183,13 +183,13 @@ const airtelNigeriaSignals: Signal[] = [
 
 const activeCrisis: CrisisAlert = {
   id: "crisis-001",
-  title: "Major Network Outage — Eastern Seaboard",
-  description: "Widespread network disruption affecting 2.3M+ subscribers. Emergency services impacted. FCC investigation launched. Stock price declining.",
+  title: "Major Network Outage — Airtel Nigeria",
+  description: "Widespread network disruption affecting 15M+ Airtel Nigeria subscribers across Lagos, Abuja, Port Harcourt. Mobile banking and USSD services impacted. NCC investigation launched. Stock price declining on NSE.",
   riskLevel: "critical",
   type: "operational",
   detectedAt: new Date(Date.now() - 180 * 60000),
-  signalCount: 14500,
-  sentimentScore: -0.72,
+  signalCount: 18500,
+  sentimentScore: -0.76,
   isActive: true,
 };
 
