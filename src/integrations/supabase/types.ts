@@ -436,6 +436,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      transition_approval_status: {
+        Args: {
+          _new_status: Database["public"]["Enums"]["approval_status"]
+          _response_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "pr_manager" | "legal_reviewer" | "social_manager"
