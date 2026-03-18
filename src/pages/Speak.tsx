@@ -184,7 +184,7 @@ export default function Speak() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-mono">{tmpl.title}</CardTitle>
-                      <Badge variant="outline" className={`text-[9px] font-mono h-4 px-1.5 ${typeColor(tmpl.type)}`}>
+                      <Badge variant="outline" className={`text-xs font-mono h-5 px-1.5 ${typeColor(tmpl.type)}`}>
                         {tmpl.type.toUpperCase()}
                       </Badge>
                     </div>
