@@ -84,18 +84,50 @@ function statusColor(s: string) {
 export default function Speak() {
   const { user, roles } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState("twitter");
   const [draftContent, setDraftContent] = useState("");
   const [copied, setCopied] = useState(false);
   const drafter = useCrisisAI();
 
+  // Fetch templates from DB
+  const { data: dbTemplates = [] } = useQuery({
+    queryKey: ["response-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("response_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as TemplateRow[];
+    },
+  });
+
+  // Fetch active crisis for context
+  const { data: activeCrisis } = useQuery({
+    queryKey: ["speak-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crises")
+        .select("title, description")
+        .in("status", ["active", "detected", "responding"])
+        .order("detected_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+
+  const selectedTemplate = dbTemplates.find((t) => t.id === selectedTemplateId) ?? dbTemplates[0] ?? null;
+
   const generateDraft = () => {
-    const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}`;
+    const crisisContext = activeCrisis
+      ? `${activeCrisis.title}: ${activeCrisis.description}`
+      : "General crisis scenario";
     drafter.analyzeAdvanced({
       type: "draft_response",
       crisisContext,
-      templateContent: selectedTemplate.content,
+      templateContent: selectedTemplate?.content ?? "",
       channel: selectedChannel,
     });
   };
