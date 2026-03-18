@@ -39,10 +39,9 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 - Crisis: "Major Network Outage — Eastern Seaboard" (id: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
 - 10 signals, 5 narrative clusters seeded
 
-## Pending (Phase 2-4)
-- Wire Dashboard/Analytics/Speak templates/Reports/Settings to DB (remove mock data)
-- Admin role management UI
-- Realtime on approval queue in Speak
-- War Room crisis_id scoping
+## Pending
+- Persist Settings to profiles table
+- Persist Reports to DB
 - In-app notification system
 - Demo walkthrough mode
+- Mobile responsive improvements
