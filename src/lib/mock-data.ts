@@ -311,19 +311,19 @@ const stakeholderImpacts: StakeholderImpact[] = [
 ];
 
 export const mockData = {
-  signals: telecomSignals,
+  signals: airtelNigeriaSignals,
   crisis: activeCrisis,
   narratives: narrativeClusters,
   sentimentTimeline: generateSentimentTimeline(),
   stakeholders: stakeholderImpacts,
   globalRisk: "critical" as RiskLevel,
   stats: {
-    totalSignals: 14500,
-    activeAlerts: 3,
-    sentimentScore: -0.72,
-    mediaReach: 32000000,
+    totalSignals: 18500,
+    activeAlerts: 4,
+    sentimentScore: -0.76,
+    mediaReach: 45000000,
     responsesSent: 2,
-    avgResponseTime: "47 min",
+    avgResponseTime: "52 min",
   },
 };
 
