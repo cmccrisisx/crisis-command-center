@@ -114,7 +114,7 @@ export default function Stabilize() {
             <CardContent className="p-4">
               <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Recovery Phase</p>
               <p className="text-lg font-mono font-bold mt-1">Day 14</p>
-              <Badge variant="outline" className="text-[9px] font-mono h-4 px-1.5 border-crisis-green/30 text-crisis-green mt-0.5">STABILIZING</Badge>
+              <Badge variant="outline" className="text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green mt-0.5">STABILIZING</Badge>
             </CardContent>
           </Card>
         </div>
@@ -231,7 +231,7 @@ export default function Stabilize() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-[10px] font-mono h-7"
+                    className="text-xs font-mono h-7 whitespace-nowrap"
                     onClick={() => {
                       exportToPDF({
                         title: "Post-Crisis Analysis Report",
@@ -268,7 +268,7 @@ export default function Stabilize() {
             ].map((item, i) => (
               <div key={i} className="p-3 rounded-sm bg-surface-elevated border border-border">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge variant="outline" className={`text-[9px] font-mono h-4 px-1.5 ${
+                  <Badge variant="outline" className={`text-xs font-mono h-5 px-1.5 ${
                     item.severity === "critical" ? "text-crisis-red border-crisis-red/30" :
                     item.severity === "high" ? "text-crisis-amber border-crisis-amber/30" :
                     item.severity === "medium" ? "text-crisis-blue border-crisis-blue/30" :
@@ -276,7 +276,7 @@ export default function Stabilize() {
                   }`}>
                     {item.severity.toUpperCase()}
                   </Badge>
-                  <Badge variant="secondary" className="text-[9px] font-mono h-4 px-1.5">{item.category}</Badge>
+                  <Badge variant="secondary" className="text-xs font-mono h-5 px-1.5">{item.category}</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">{item.lesson}</p>
               </div>

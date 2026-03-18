@@ -1,9 +1,12 @@
+import { useState, useMemo } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SentimentBadge } from "@/components/SentimentBadge";
 import { formatNumber, getSourceIcon } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Search, Filter, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +14,14 @@ import type { Tables } from "@/integrations/supabase/types";
 
 type Signal = Tables<"signals">;
 
+const SOURCE_OPTIONS = ["twitter", "news", "blog", "linkedin"] as const;
+const SENTIMENT_OPTIONS = ["positive", "neutral", "negative"] as const;
+
 export default function Signals() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sourceFilters, setSourceFilters] = useState<string[]>([]);
+  const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
+
   const { data: signals = [], isLoading } = useQuery({
     queryKey: ["signals"],
     queryFn: async () => {
@@ -24,10 +34,42 @@ export default function Signals() {
     },
   });
 
-  const sourceCounts = ["twitter", "news", "blog", "linkedin"].map((source) => ({
+  const filteredSignals = useMemo(() => {
+    let result = signals;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.content.toLowerCase().includes(q) ||
+          s.author.toLowerCase().includes(q) ||
+          (s.keywords ?? []).some((k) => k.toLowerCase().includes(q))
+      );
+    }
+    if (sourceFilters.length > 0) {
+      result = result.filter((s) => sourceFilters.includes(s.source));
+    }
+    if (sentimentFilters.length > 0) {
+      result = result.filter((s) => sentimentFilters.includes(s.sentiment));
+    }
+    return result;
+  }, [signals, searchQuery, sourceFilters, sentimentFilters]);
+
+  const sourceCounts = SOURCE_OPTIONS.map((source) => ({
     source,
-    count: signals.filter((s) => s.source === source).length,
+    count: filteredSignals.filter((s) => s.source === source).length,
   }));
+
+  const toggleFilter = (
+    value: string,
+    current: string[],
+    setter: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    setter((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
+  const activeFilterCount = sourceFilters.length + sentimentFilters.length;
 
   return (
     <AppLayout>
@@ -40,12 +82,68 @@ export default function Signals() {
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input placeholder="Filter signals..." className="pl-8 h-8 w-48 text-xs font-mono bg-card" />
+              <Input
+                placeholder="Filter signals..."
+                className="pl-8 h-8 w-48 text-xs font-mono bg-card"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-xs font-mono">
-              <Filter className="h-3 w-3 mr-1.5" />
-              Filters
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-mono relative">
+                  <Filter className="h-3 w-3 mr-1.5" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-primary text-primary-foreground text-[10px] font-mono flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-3" align="end">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-mono font-semibold mb-2 uppercase tracking-wider text-muted-foreground">Source</p>
+                    <div className="space-y-1.5">
+                      {SOURCE_OPTIONS.map((src) => (
+                        <label key={src} className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={sourceFilters.includes(src)}
+                            onCheckedChange={() => toggleFilter(src, sourceFilters, setSourceFilters)}
+                          />
+                          <span className="text-xs font-mono capitalize">{src}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="border-t border-border pt-2">
+                    <p className="text-xs font-mono font-semibold mb-2 uppercase tracking-wider text-muted-foreground">Sentiment</p>
+                    <div className="space-y-1.5">
+                      {SENTIMENT_OPTIONS.map((sent) => (
+                        <label key={sent} className="flex items-center gap-2 cursor-pointer">
+                          <Checkbox
+                            checked={sentimentFilters.includes(sent)}
+                            onCheckedChange={() => toggleFilter(sent, sentimentFilters, setSentimentFilters)}
+                          />
+                          <span className="text-xs font-mono capitalize">{sent}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  {activeFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs font-mono h-7"
+                      onClick={() => { setSourceFilters([]); setSentimentFilters([]); }}
+                    >
+                      Clear all filters
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -54,7 +152,7 @@ export default function Signals() {
             <Card key={source} className="bg-card">
               <CardContent className="p-3 text-center">
                 <p className="text-lg mb-0.5">{getSourceIcon(source as any)}</p>
-                <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{source}</p>
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">{source}</p>
                 <p className="text-lg font-mono font-bold tabular-nums">{count}</p>
               </CardContent>
             </Card>
@@ -63,7 +161,12 @@ export default function Signals() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-wider">All Signals</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-mono uppercase tracking-wider">All Signals</CardTitle>
+              <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                {filteredSignals.length} of {signals.length}
+              </span>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {isLoading ? (
@@ -71,10 +174,12 @@ export default function Signals() {
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground font-mono">Loading signals…</span>
               </div>
-            ) : signals.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8 font-mono">No signals detected yet.</p>
+            ) : filteredSignals.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8 font-mono">
+                {signals.length === 0 ? "No signals detected yet." : "No signals match your filters."}
+              </p>
             ) : (
-              signals.map((signal) => (
+              filteredSignals.map((signal) => (
                 <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
                   <div className="shrink-0 w-10 h-10 rounded-sm bg-secondary flex items-center justify-center text-sm font-mono font-bold">
                     {getSourceIcon(signal.source)}
@@ -88,12 +193,12 @@ export default function Signals() {
                         </span>
                       )}
                       <SentimentBadge sentiment={signal.sentiment} />
-                      <span className="text-[10px] font-mono text-muted-foreground ml-auto tabular-nums">
+                      <span className="text-xs font-mono text-muted-foreground ml-auto tabular-nums whitespace-nowrap">
                         {formatNumber(signal.author_followers ?? 0)} followers
                       </span>
                     </div>
                     <p className="text-sm text-foreground leading-relaxed">{signal.content}</p>
-                    <div className="flex items-center gap-4 mt-2 text-[10px] font-mono text-muted-foreground tabular-nums">
+                    <div className="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground tabular-nums">
                       <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
                       <span>Keywords: {(signal.keywords ?? []).join(", ")}</span>
                       <span className="ml-auto">{new Date(signal.detected_at).toLocaleString()}</span>

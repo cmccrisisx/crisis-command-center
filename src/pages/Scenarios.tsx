@@ -64,7 +64,7 @@ export default function Scenarios() {
               AI-powered outcome projections for response strategies
             </p>
           </div>
-          <Badge variant="outline" className="text-[9px] font-mono h-5 px-2 border-crisis-purple/30 text-crisis-purple">
+          <Badge variant="outline" className="text-xs font-mono h-5 px-2 border-crisis-purple/30 text-crisis-purple">
             <FlaskConical className="h-3 w-3 mr-1" />
             STRATEGIZE MODULE
           </Badge>
@@ -148,15 +148,15 @@ export default function Scenarios() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
-                    <p className="text-[9px] font-mono text-muted-foreground uppercase">Signals</p>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Signals</p>
                     <p className="text-sm font-mono font-bold tabular-nums">{mockData.stats.totalSignals.toLocaleString()}</p>
                   </div>
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
-                    <p className="text-[9px] font-mono text-muted-foreground uppercase">Sentiment</p>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Sentiment</p>
                     <p className="text-sm font-mono font-bold tabular-nums text-crisis-red">{mockData.crisis.sentimentScore}</p>
                   </div>
                   <div className="p-2 rounded-sm bg-surface-elevated border border-border text-center">
-                    <p className="text-[9px] font-mono text-muted-foreground uppercase">Risk</p>
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Risk</p>
                     <p className="text-sm font-mono font-bold tabular-nums text-crisis-red uppercase">{mockData.globalRisk}</p>
                   </div>
                 </div>
@@ -174,15 +174,15 @@ export default function Scenarios() {
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1.5">
                         <TrendingUp className="h-3 w-3 text-crisis-green" />
-                        <span className="text-[9px] font-mono text-crisis-green">BEST</span>
+                        <span className="text-xs font-mono text-crisis-green">BEST</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Minus className="h-3 w-3 text-crisis-amber" />
-                        <span className="text-[9px] font-mono text-crisis-amber">LIKELY</span>
+                        <span className="text-xs font-mono text-crisis-amber">LIKELY</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <TrendingDown className="h-3 w-3 text-crisis-red" />
-                        <span className="text-[9px] font-mono text-crisis-red">WORST</span>
+                        <span className="text-xs font-mono text-crisis-red">WORST</span>
                       </div>
                     </div>
                   )}

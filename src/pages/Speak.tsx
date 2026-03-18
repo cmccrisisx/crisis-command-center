@@ -184,7 +184,7 @@ export default function Speak() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-sm font-mono">{tmpl.title}</CardTitle>
-                      <Badge variant="outline" className={`text-[9px] font-mono h-4 px-1.5 ${typeColor(tmpl.type)}`}>
+                      <Badge variant="outline" className={`text-xs font-mono h-5 px-1.5 ${typeColor(tmpl.type)}`}>
                         {tmpl.type.toUpperCase()}
                       </Badge>
                     </div>
@@ -192,8 +192,8 @@ export default function Speak() {
                   <CardContent>
                     <p className="text-xs text-muted-foreground leading-relaxed">{tmpl.content}</p>
                     <div className="flex items-center gap-2 mt-3">
-                      <Badge variant="secondary" className="text-[9px] font-mono">{tmpl.channel}</Badge>
-                      <Button variant="ghost" size="sm" className="ml-auto text-[10px] font-mono h-6" onClick={(e) => { e.stopPropagation(); copyToClipboard(tmpl.content); }}>
+                      <Badge variant="secondary" className="text-xs font-mono">{tmpl.channel}</Badge>
+                      <Button variant="ghost" size="sm" className="ml-auto text-xs font-mono h-6" onClick={(e) => { e.stopPropagation(); copyToClipboard(tmpl.content); }}>
                         {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                       </Button>
                     </div>
@@ -258,13 +258,13 @@ export default function Speak() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="text-[10px] font-mono h-7" onClick={() => copyToClipboard(drafter.result)}>
+                        <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => copyToClipboard(drafter.result)}>
                           <Copy className="h-3 w-3 mr-1" /> Copy
                         </Button>
-                        <Button variant="outline" size="sm" className="text-[10px] font-mono h-7" onClick={() => logResponse(drafter.result, selectedChannel)}>
+                        <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => logResponse(drafter.result, selectedChannel)}>
                           <MessageSquare className="h-3 w-3 mr-1" /> Save as Draft
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-[10px] font-mono h-7 ml-auto" onClick={() => { drafter.reset(); generateDraft(); }}>
+                        <Button variant="ghost" size="sm" className="text-xs font-mono h-7 ml-auto" onClick={() => { drafter.reset(); generateDraft(); }}>
                           <Brain className="h-3 w-3 mr-1" /> Regenerate
                         </Button>
                       </div>
@@ -329,7 +329,7 @@ export default function Speak() {
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm">{ch.icon}</span>
                         <span className="text-xs font-mono font-semibold">{ch.label}</span>
-                        {selectedChannel === ch.value && <Badge variant="outline" className="text-[8px] font-mono h-3.5 px-1 text-primary border-primary/30">SELECTED</Badge>}
+                        {selectedChannel === ch.value && <Badge variant="outline" className="text-xs font-mono h-4 px-1.5 text-primary border-primary/30">SELECTED</Badge>}
                       </div>
                       <p className="text-[10px] text-muted-foreground font-mono">
                         {ch.value === "twitter" && "Max 280 characters. Concise, empathetic tone."}
