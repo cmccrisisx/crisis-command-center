@@ -2,6 +2,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
 import { GlobalRiskBar } from "./GlobalRiskBar";
+import { CrisisChat } from "./CrisisChat";
 import { mockData } from "@/lib/mock-data";
 
 interface AppLayoutProps {
