@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CreateCrisisDialog } from "@/components/CreateCrisisDialog";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
