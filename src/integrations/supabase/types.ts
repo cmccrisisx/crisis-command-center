@@ -143,6 +143,7 @@ export type Database = {
           department: string | null
           display_name: string | null
           id: string
+          preferences: Json | null
           updated_at: string
           user_id: string
         }
@@ -152,6 +153,7 @@ export type Database = {
           department?: string | null
           display_name?: string | null
           id?: string
+          preferences?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -161,6 +163,7 @@ export type Database = {
           department?: string | null
           display_name?: string | null
           id?: string
+          preferences?: Json | null
           updated_at?: string
           user_id?: string
         }
