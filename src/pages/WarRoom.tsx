@@ -234,7 +234,7 @@ export default function WarRoom() {
               </CardHeader>
               <CardContent>
                 {!aiAdvisor.result && !aiAdvisor.loading && (
-                  <Button onClick={requestAIAdvice} variant="outline" className="w-full text-xs font-mono">
+                  <Button onClick={requestAIAdvice} variant="outline" className="w-full text-xs font-mono text-foreground">
                     <Brain className="h-3 w-3 mr-1.5" />
                     Get AI Recommendation
                   </Button>

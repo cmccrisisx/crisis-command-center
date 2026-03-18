@@ -258,7 +258,7 @@ export default function Speak() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => copyToClipboard(drafter.result)}>
+                        <Button variant="outline" size="sm" className="text-xs font-mono h-7 text-foreground" onClick={() => copyToClipboard(drafter.result)}>
                           <Copy className="h-3 w-3 mr-1" /> Copy
                         </Button>
                         <Button variant="outline" size="sm" className="text-xs font-mono h-7" onClick={() => logResponse(drafter.result, selectedChannel)}>

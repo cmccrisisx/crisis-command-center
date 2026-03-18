@@ -141,7 +141,7 @@ export default function SettingsPage() {
                 onChange={(e) => setNewKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addKeyword()}
               />
-              <Button variant="outline" size="sm" className="font-mono text-xs whitespace-nowrap" onClick={addKeyword}>
+              <Button variant="outline" size="sm" className="font-mono text-xs whitespace-nowrap text-foreground" onClick={addKeyword}>
                 Add
               </Button>
             </div>
