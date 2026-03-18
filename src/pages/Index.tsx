@@ -119,9 +119,9 @@ export default function Dashboard() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-          <StatCard label="Total Signals" value={formatNumber(mockData.stats.totalSignals)} icon={Radio} />
+          <StatCard label="Total Signals" value={formatNumber(signalStats?.total ?? mockData.stats.totalSignals)} icon={Radio} />
           <StatCard label="Active Alerts" value={mockData.stats.activeAlerts.toString()} icon={AlertTriangle} accent="text-crisis-red" />
-          <StatCard label="Sentiment" value={(mockData.stats.sentimentScore * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" />
+          <StatCard label="Sentiment" value={((signalStats?.sentimentScore ?? mockData.stats.sentimentScore) * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" />
           <StatCard label="Media Reach" value={formatNumber(mockData.stats.mediaReach)} icon={MessageSquare} />
           <StatCard label="Responses Sent" value={mockData.stats.responsesSent.toString()} icon={MessageSquare} />
           <StatCard label="Avg Response" value={mockData.stats.avgResponseTime} icon={Clock} />
