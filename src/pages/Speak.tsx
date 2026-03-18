@@ -11,7 +11,6 @@ import {
   Megaphone, History, ShieldCheck, Gavel, Globe, ArrowRight, X,
 } from "lucide-react";
 import { useCrisisAI } from "@/hooks/useCrisisAI";
-import { mockData } from "@/lib/mock-data";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,14 +19,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ResponseRow = Tables<"response_log">;
-
-const templates = [
-  { id: "t1", type: "holding" as const, title: "Initial Holding Statement", content: "We are aware of the issue affecting [service/product]. Our team is actively investigating and working to resolve this as quickly as possible. We will provide updates as more information becomes available. We apologize for any inconvenience.", channel: "general" },
-  { id: "t2", type: "holding" as const, title: "Service Disruption Acknowledgment", content: "We are experiencing a service disruption that is affecting some of our customers. Our technical teams have been mobilized and are working around the clock to restore full service. Customer safety remains our top priority.", channel: "twitter" },
-  { id: "t3", type: "apology" as const, title: "Full Apology Statement", content: "We sincerely apologize for the [incident] that has affected our customers. We take full responsibility and are committed to: 1) Resolving the immediate issue, 2) Conducting a thorough investigation, 3) Implementing measures to prevent recurrence. We value your trust and are working to earn it back.", channel: "general" },
-  { id: "t4", type: "clarification" as const, title: "Factual Clarification", content: "We want to address recent reports regarding [topic]. The facts are: [fact 1], [fact 2], [fact 3]. We are committed to transparency and will continue to share verified information as it becomes available.", channel: "press" },
-  { id: "t5", type: "apology" as const, title: "Customer-Facing Apology (Social)", content: "We hear you, and we're sorry. The [issue] is unacceptable and we own that. Here's what we're doing right now: [action]. We'll keep you updated every [timeframe]. Thank you for your patience. 🙏", channel: "twitter" },
-];
+type TemplateRow = Tables<"response_templates">;
 
 const channels = [
   { value: "twitter", label: "Twitter/X", icon: "𝕏" },
@@ -92,18 +84,50 @@ function statusColor(s: string) {
 export default function Speak() {
   const { user, roles } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState("twitter");
   const [draftContent, setDraftContent] = useState("");
   const [copied, setCopied] = useState(false);
   const drafter = useCrisisAI();
 
+  // Fetch templates from DB
+  const { data: dbTemplates = [] } = useQuery({
+    queryKey: ["response-templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("response_templates")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as TemplateRow[];
+    },
+  });
+
+  // Fetch active crisis for context
+  const { data: activeCrisis } = useQuery({
+    queryKey: ["speak-crisis"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("crises")
+        .select("title, description")
+        .in("status", ["active", "detected", "responding"])
+        .order("detected_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] ?? null;
+    },
+  });
+
+  const selectedTemplate = dbTemplates.find((t) => t.id === selectedTemplateId) ?? dbTemplates[0] ?? null;
+
   const generateDraft = () => {
-    const crisisContext = `${mockData.crisis.title}: ${mockData.crisis.description}`;
+    const crisisContext = activeCrisis
+      ? `${activeCrisis.title}: ${activeCrisis.description}`
+      : "General crisis scenario";
     drafter.analyzeAdvanced({
       type: "draft_response",
       crisisContext,
-      templateContent: selectedTemplate.content,
+      templateContent: selectedTemplate?.content ?? "",
       channel: selectedChannel,
     });
   };
@@ -175,11 +199,13 @@ export default function Speak() {
           {/* Templates Tab */}
           <TabsContent value="templates">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {templates.map((tmpl) => (
+              {dbTemplates.length === 0 ? (
+                <Card><CardContent className="py-12 text-center"><p className="text-xs font-mono text-muted-foreground">No templates found. Add templates to the database.</p></CardContent></Card>
+              ) : dbTemplates.map((tmpl) => (
                 <Card
                   key={tmpl.id}
-                  className={`cursor-pointer transition-colors ${selectedTemplate.id === tmpl.id ? "border-primary/50 bg-primary/5" : ""}`}
-                  onClick={() => setSelectedTemplate(tmpl)}
+                  className={`cursor-pointer transition-colors ${selectedTemplate?.id === tmpl.id ? "border-primary/50 bg-primary/5" : ""}`}
+                  onClick={() => setSelectedTemplateId(tmpl.id)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
@@ -213,10 +239,10 @@ export default function Speak() {
                 <CardContent className="space-y-4">
                   <div>
                     <label className="text-xs font-mono text-muted-foreground mb-1.5 block">Base Template</label>
-                    <Select value={selectedTemplate.id} onValueChange={(v) => setSelectedTemplate(templates.find(t => t.id === v) || templates[0])}>
-                      <SelectTrigger className="text-xs font-mono bg-card"><SelectValue /></SelectTrigger>
+                    <Select value={selectedTemplate?.id ?? ""} onValueChange={(v) => setSelectedTemplateId(v)}>
+                      <SelectTrigger className="text-xs font-mono bg-card"><SelectValue placeholder="Select template" /></SelectTrigger>
                       <SelectContent>
-                        {templates.map(t => <SelectItem key={t.id} value={t.id} className="text-xs font-mono">{t.title}</SelectItem>)}
+                        {dbTemplates.map(t => <SelectItem key={t.id} value={t.id} className="text-xs font-mono">{t.title}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
