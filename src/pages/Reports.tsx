@@ -3,6 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Calendar } from "lucide-react";
+import { exportToPDF } from "@/lib/pdf-export";
+import { mockData } from "@/lib/mock-data";
+import { toast } from "sonner";
 
 const reports = [
   {
