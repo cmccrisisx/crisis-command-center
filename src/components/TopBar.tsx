@@ -2,6 +2,7 @@ import { Bell, LogOut } from "lucide-react";
 import { RiskBadge } from "./RiskBadge";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { mockData } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,21 @@ const ROLE_LABELS: Record<string, string> = {
   pr_manager: "PR MANAGER",
   legal_reviewer: "LEGAL",
   social_manager: "SOCIAL",
+};
+
+const mockAlerts = [
+  { id: 1, title: "Emergency Services Disruption", risk: "critical" as const, time: "12 min ago" },
+  { id: 2, title: "FCC Investigation Announced", risk: "high" as const, time: "45 min ago" },
+  { id: 3, title: "Stock Price Drop 4.2%", risk: "high" as const, time: "1h ago" },
+  { id: 4, title: "Influencer @TechReporter_Jane engaging", risk: "medium" as const, time: "2h ago" },
+  { id: 5, title: "Customer churn signals rising", risk: "medium" as const, time: "3h ago" },
+];
+
+const riskColors: Record<string, string> = {
+  critical: "text-crisis-red",
+  high: "text-crisis-amber",
+  medium: "text-crisis-blue",
+  low: "text-crisis-green",
 };
 
 export function TopBar() {
@@ -46,10 +62,32 @@ export function TopBar() {
           </div>
         </div>
 
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-4 w-4" />
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-0" align="end">
+            <div className="px-3 py-2 border-b border-border">
+              <p className="text-xs font-mono font-semibold uppercase tracking-wider">Recent Alerts</p>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {mockAlerts.map((alert) => (
+                <div key={alert.id} className="px-3 py-2.5 border-b border-border last:border-0 hover:bg-accent/50 transition-colors">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className={`text-xs font-mono font-semibold uppercase ${riskColors[alert.risk]}`}>
+                      {alert.risk}
+                    </span>
+                    <span className="text-xs font-mono text-muted-foreground tabular-nums">{alert.time}</span>
+                  </div>
+                  <p className="text-xs text-foreground">{alert.title}</p>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         <div className="hidden md:flex items-center gap-2 ml-1 pl-2 border-l border-border">
           <div className="text-right">
