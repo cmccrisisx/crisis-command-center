@@ -57,6 +57,21 @@ export function CrisisChat() {
     }));
   };
 
+  const handleExportPDF = () => {
+    if (messages.length === 0) return;
+    const sections = messages.map((msg) => ({
+      title: msg.role === "user" ? "You" : "CX — Crisis Assistant",
+      content: msg.content,
+    }));
+    exportToPDF({
+      title: "CX Chat Transcript",
+      subtitle: "Crisis X AI Conversation Export",
+      date: new Date().toLocaleString(),
+      sections,
+      footer: "CX Chat Export — Crisis-X Platform",
+    });
+  };
+
   const panelSize = expanded
     ? "w-[680px] h-[700px]"
     : "w-[380px] h-[520px]";
