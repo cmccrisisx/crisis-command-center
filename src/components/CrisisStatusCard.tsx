@@ -28,6 +28,20 @@ const STATUS_COLORS: Record<string, string> = {
   resolved: "text-muted-foreground",
 };
 
+const RISK_LABELS: Record<string, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+  critical: "Critical",
+};
+
+const RISK_COLORS: Record<string, string> = {
+  low: "text-crisis-green",
+  medium: "text-crisis-amber",
+  high: "text-crisis-red",
+  critical: "text-crisis-red",
+};
+
 interface CrisisStatusCardProps {
   crisis: Crisis;
   queryClient: QueryClient;
