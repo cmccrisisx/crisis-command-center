@@ -86,25 +86,32 @@ export function CrisisChat() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50"
+            className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-1.5"
             data-tour="chat-bubble"
           >
-            <button
-              onClick={() => setOpen(true)}
-              className="h-14 w-14 rounded-full overflow-hidden ring-2 ring-primary/60 shadow-lg shadow-primary/30 hover:ring-primary hover:shadow-xl hover:shadow-primary/40 transition-all"
-            >
-              <img src={cxAvatar} alt="CX Assistant" className="h-full w-full object-cover" />
-            </button>
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1 }}
-                className="absolute -top-10 right-0 whitespace-nowrap bg-card border border-border text-card-foreground text-xs px-3 py-1.5 rounded-sm shadow-md"
+                className="whitespace-nowrap bg-card border border-border text-card-foreground text-xs px-3 py-1.5 rounded-sm shadow-md"
               >
                 Ask CX anything ⚡
               </motion.div>
             )}
+            <div className="relative">
+              <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping" />
+              <span className="absolute inset-0 rounded-full bg-primary/20 animate-pulse-glow" />
+              <button
+                onClick={() => setOpen(true)}
+                className="relative h-14 w-14 rounded-full overflow-hidden ring-2 ring-primary/60 shadow-lg shadow-primary/30 hover:ring-primary hover:shadow-xl hover:shadow-primary/40 transition-all"
+              >
+                <img src={cxAvatar} alt="CX Assistant" className="h-full w-full object-cover" />
+              </button>
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground tracking-wide">
+              Chat with CX
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
