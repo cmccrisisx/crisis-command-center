@@ -195,7 +195,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 font-mono"
+              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 font-mono"
             >
               Detect threats in real-time. Coordinate responses across teams.
               Protect your reputation with AI-powered crisis management.
