@@ -139,6 +139,16 @@ export function CrisisChat() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
+                  onClick={handleExportPDF}
+                  title="Export as PDF"
+                  disabled={messages.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
                   onClick={() => setExpanded(!expanded)}
                   title={expanded ? "Minimize" : "Expand"}
                 >
