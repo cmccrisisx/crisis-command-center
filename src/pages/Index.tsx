@@ -149,20 +149,50 @@ export default function Dashboard() {
     volume: s.signal_volume ?? 0,
   }));
 
-  // Real-time subscription for signals
+  // Real-time subscriptions for all dashboard data
   useEffect(() => {
     const channel = supabase
-      .channel("dashboard-signals-realtime")
+      .channel("dashboard-realtime")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "signals" },
+        { event: "*", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["dashboard-signals"], (old) => {
-            const newSignal = payload.new as Signal;
-            const updated = old ? [newSignal, ...old] : [newSignal];
-            return updated.slice(0, 5);
-          });
+          if (payload.eventType === "INSERT") {
+            queryClient.setQueryData<Signal[]>(["dashboard-signals"], (old) => {
+              const newSignal = payload.new as Signal;
+              const updated = old ? [newSignal, ...old] : [newSignal];
+              return updated.slice(0, 5);
+            });
+          }
           queryClient.invalidateQueries({ queryKey: ["dashboard-signal-stats"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "crises" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-crisis"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "narratives" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-narratives"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reputation_snapshots" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-snapshots"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "response_log" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-response-count"] });
         }
       )
       .subscribe();
