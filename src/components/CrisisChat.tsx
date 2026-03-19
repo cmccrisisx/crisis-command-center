@@ -74,8 +74,8 @@ export function CrisisChat() {
   };
 
   const panelSize = expanded
-    ? "w-[680px] h-[700px]"
-    : "w-[380px] h-[520px]";
+    ? "w-[calc(100vw-2rem)] sm:w-[680px] h-[calc(100dvh-3rem)] sm:h-[700px]"
+    : "w-[calc(100vw-2rem)] sm:w-[380px] h-[calc(100dvh-3rem)] sm:h-[520px]";
 
   return (
     <>
