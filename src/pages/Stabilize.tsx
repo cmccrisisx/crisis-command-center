@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ const chartStyle = {
 };
 
 export default function Stabilize() {
+  usePageTitle("Stabilize");
   const postCrisis = useCrisisAI();
   const currentRep = recoveryData[recoveryData.length - 1];
 

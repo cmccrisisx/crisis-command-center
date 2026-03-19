@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ const AVAILABLE_SECTIONS = [
 const REPORT_TYPES = ["Post-Crisis", "Recurring", "Ad-hoc", "Incident", "Compliance"];
 
 export default function Reports() {
+  usePageTitle("Reports");
   const [reports, setReports] = useState<Report[]>(defaultReports);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");

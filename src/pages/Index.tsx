@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
 import { CrisisAIPanel } from "@/components/CrisisAIPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +52,7 @@ function StatCard({ label, value, icon: Icon, accent, loading }: { label: string
 }
 
 export default function Dashboard() {
+  usePageTitle("Dashboard");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 

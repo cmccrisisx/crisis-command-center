@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNumber } from "@/lib/crisis-helpers";
@@ -21,6 +22,7 @@ const chartStyle = {
 };
 
 export default function Analytics() {
+  usePageTitle("Analytics");
   // Fetch reputation snapshots for sentiment timeline
   const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
     queryKey: ["analytics-snapshots"],

@@ -1,3 +1,4 @@
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RiskBadge } from "@/components/RiskBadge";
@@ -36,6 +37,7 @@ const approvalSteps = [
 ];
 
 export default function WarRoom() {
+  usePageTitle("War Room");
   const { user, profile, roles } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<WarRoomMsg[]>([]);

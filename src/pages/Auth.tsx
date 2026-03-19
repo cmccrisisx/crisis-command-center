@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { LogIn, UserPlus, AlertCircle } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 
 export default function Auth() {
+  usePageTitle("Sign In");
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
