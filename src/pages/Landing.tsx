@@ -107,7 +107,7 @@ export default function Landing() {
         {/* ============================================================ */}
         <section
           ref={heroRef}
-          className="relative min-h-screen flex items-center justify-center overflow-hidden"
+          className="relative h-screen flex items-center justify-center overflow-hidden"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -155,19 +155,19 @@ export default function Landing() {
           {/* Hero content */}
           <motion.div
             style={{ y: heroContentY }}
-            className="max-w-5xl mx-auto text-center relative z-10 px-6"
+            className="max-w-5xl mx-auto text-center relative z-10 px-6 pt-16"
           >
             {/* Logo */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8, filter: "blur(12px)" }}
               animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="mb-8"
+              className="mb-4"
             >
               <img
                 src={crisisLogo}
                 alt="Crisis-X"
-                className="h-28 w-auto mx-auto rounded-lg shadow-2xl shadow-primary/20"
+                className="h-16 w-auto mx-auto rounded-lg shadow-2xl shadow-primary/20"
               />
             </motion.div>
 
@@ -176,7 +176,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
-              className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6"
+              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4"
             >
               Crisis Intelligence.
               <br />
@@ -195,7 +195,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 font-mono"
+              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 font-mono"
             >
               Detect threats in real-time. Coordinate responses across teams.
               Protect your reputation with AI-powered crisis management.
@@ -206,7 +206,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.75, duration: 0.5, type: "spring", stiffness: 80 }}
-              className="flex items-center justify-center gap-4 mb-12"
+              className="flex items-center justify-center gap-4 mb-6"
             >
               <Button size="lg" asChild className="group">
                 <Link to="/auth?signup=true" className="font-mono text-xs uppercase tracking-wider gap-2">
