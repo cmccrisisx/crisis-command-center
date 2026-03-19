@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
@@ -6,139 +6,24 @@ import {
   motion,
   useScroll,
   useTransform,
-  useInView,
+  AnimatePresence,
 } from "framer-motion";
-import {
-  Radio,
-  Brain,
-  Target,
-  Megaphone,
-  Shield,
-  ArrowRight,
-  Zap,
-  Globe,
-  BarChart3,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 
-/* ------------------------------------------------------------------ */
-/*  Data                                                               */
-/* ------------------------------------------------------------------ */
+import hero1 from "@/assets/hero/hero-1.jpg";
+import hero2 from "@/assets/hero/hero-2.jpg";
+import hero3 from "@/assets/hero/hero-3.jpg";
+import hero4 from "@/assets/hero/hero-4.jpg";
 
-const modules = [
-  {
-    icon: Radio,
-    name: "Signal",
-    desc: "Real-time threat detection across social, news, and media channels.",
-    color: "text-crisis-blue",
-    glow: "card-glow-blue",
-    accent: "bg-crisis-blue",
-  },
-  {
-    icon: Brain,
-    name: "Sense",
-    desc: "AI-powered narrative clustering and sentiment analysis.",
-    color: "text-crisis-purple",
-    glow: "card-glow-purple",
-    accent: "bg-crisis-purple",
-  },
-  {
-    icon: Target,
-    name: "Strategize",
-    desc: "War room coordination with role-based response workflows.",
-    color: "text-crisis-amber",
-    glow: "card-glow-amber",
-    accent: "bg-crisis-amber",
-  },
-  {
-    icon: Megaphone,
-    name: "Speak",
-    desc: "Multi-channel response drafting with legal and exec approval gates.",
-    color: "text-crisis-red",
-    glow: "card-glow-red",
-    accent: "bg-crisis-red",
-  },
-  {
-    icon: Shield,
-    name: "Stabilize",
-    desc: "Reputation recovery tracking and post-crisis analytics.",
-    color: "text-crisis-green",
-    glow: "card-glow-green",
-    accent: "bg-crisis-green",
-  },
+const heroSlides = [
+  { src: hero1, alt: "Executive monitoring crisis dashboards" },
+  { src: hero2, alt: "Team collaborating during crisis briefing" },
+  { src: hero3, alt: "Professional analyzing real-time data wall" },
+  { src: hero4, alt: "War room communications strategy session" },
 ];
 
-const stats = [
-  { icon: Zap, value: "< 30s", label: "Signal Detection" },
-  { icon: Globe, value: "4+", label: "Channel Coverage" },
-  { icon: BarChart3, value: "AI", label: "Powered Response" },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Animation variants                                                 */
-/* ------------------------------------------------------------------ */
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.12, duration: 0.55, ease: "easeOut" as const },
-  }),
-};
-
-const cardVariant = {
-  hidden: { opacity: 0, y: 24, rotate: 1.5 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    rotate: 0,
-    transition: {
-      delay: i * 0.1,
-      duration: 0.5,
-      ease: "easeOut" as const,
-    },
-  }),
-};
-
-/* ------------------------------------------------------------------ */
-/*  AnimatedStat — counts up on viewport entry                         */
-/* ------------------------------------------------------------------ */
-
-function AnimatedStat({ stat, index }: { stat: typeof stats[0]; index: number }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-40px" });
-
-  return (
-    <motion.div
-      ref={ref}
-      custom={index}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-      variants={fadeUp}
-      className="text-center group"
-    >
-      <stat.icon className="h-6 w-6 mx-auto mb-3 text-primary transition-transform duration-300 group-hover:scale-110" />
-      <p className="text-3xl font-bold font-mono tabular-nums mb-1">
-        <motion.span
-          initial={{ opacity: 0, filter: "blur(8px)" }}
-          animate={isInView ? { opacity: 1, filter: "blur(0px)" } : {}}
-          transition={{ duration: 0.6, delay: index * 0.15 }}
-        >
-          {stat.value}
-        </motion.span>
-      </p>
-      <p className="text-sm text-muted-foreground font-mono uppercase tracking-wider">
-        {stat.label}
-      </p>
-    </motion.div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Landing Page                                                       */
-/* ------------------------------------------------------------------ */
+const SLIDE_DURATION = 6000;
 
 export default function Landing() {
   usePageTitle("Crisis Intelligence Platform");
@@ -149,10 +34,40 @@ export default function Landing() {
     offset: ["start start", "end start"],
   });
 
-  // Parallax transforms
   const heroContentY = useTransform(scrollYProgress, [0, 1], [0, 80]);
-  const orbY = useTransform(scrollYProgress, [0, 1], [0, -40]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, -40]);
   const gridOpacity = useTransform(scrollYProgress, [0, 0.5], [0.03, 0]);
+
+  // Slider state
+  const [current, setCurrent] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const goTo = useCallback((index: number) => {
+    setCurrent(index);
+    setProgress(0);
+  }, []);
+
+  // Auto-rotation + progress bar
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = 50; // update progress every 50ms
+    const steps = SLIDE_DURATION / interval;
+    let step = 0;
+
+    const timer = setInterval(() => {
+      step++;
+      setProgress((step / steps) * 100);
+      if (step >= steps) {
+        setCurrent((prev) => (prev + 1) % heroSlides.length);
+        step = 0;
+        setProgress(0);
+      }
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [isPaused, current]);
 
   return (
     <div className="dark">
@@ -160,15 +75,14 @@ export default function Landing() {
         {/* Risk accent bar */}
         <div className="h-1 w-full fixed top-0 left-0 bg-primary z-50" />
 
+        {/* Slide progress bar */}
+        <div className="h-0.5 fixed top-1 left-0 z-50 transition-none" style={{ width: `${progress}%`, background: "hsl(var(--crisis-blue))" }} />
+
         {/* Nav */}
         <nav className="fixed top-1 left-0 right-0 z-40 border-b border-border/50 bg-background/70 backdrop-blur-xl">
           <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <img
-                src={crisisLogo}
-                alt="Crisis-X"
-                className="h-8 w-auto rounded"
-              />
+              <img src={crisisLogo} alt="Crisis-X" className="h-8 w-auto rounded" />
               <span className="font-mono text-sm font-semibold tracking-wider uppercase">
                 Crisis-X
               </span>
@@ -191,24 +105,43 @@ export default function Landing() {
         {/* ============================================================ */}
         {/*  HERO                                                        */}
         {/* ============================================================ */}
-        <section ref={heroRef} className="relative pt-40 pb-28 px-6 overflow-hidden">
-          {/* Floating orbs (parallax layer) */}
-          <motion.div style={{ y: orbY }} className="absolute inset-0 pointer-events-none">
-            <div className="hero-orb hero-orb-red w-[420px] h-[420px] -top-20 -left-32 animate-float" />
-            <div className="hero-orb hero-orb-blue w-[340px] h-[340px] top-10 right-[-80px] animate-float-delayed" />
-            <div className="hero-orb hero-orb-purple w-[280px] h-[280px] bottom-0 left-1/3 animate-float-slow" />
-            <div className="hero-orb hero-orb-amber w-[200px] h-[200px] top-1/4 right-1/4 animate-float-slow-delayed" />
+        <section
+          ref={heroRef}
+          className="relative min-h-screen flex items-center justify-center overflow-hidden"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          {/* Background image slider */}
+          <motion.div style={{ y: bgY }} className="absolute inset-0">
+            <AnimatePresence mode="sync">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="absolute inset-0"
+              >
+                <img
+                  src={heroSlides[current].src}
+                  alt={heroSlides[current].alt}
+                  className="w-full h-full object-cover ken-burns"
+                />
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Dark gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/75 to-background/40" />
+
+            {/* Vignette */}
+            <div className="absolute inset-0 hero-vignette" />
           </motion.div>
 
           {/* Scan line overlay */}
           <div className="scan-line-overlay" />
 
           {/* Decorative grid (fades on scroll) */}
-          <motion.div
-            style={{ opacity: gridOpacity }}
-            className="absolute inset-0"
-            aria-hidden
-          >
+          <motion.div style={{ opacity: gridOpacity }} className="absolute inset-0" aria-hidden>
             <div
               className="w-full h-full"
               style={{
@@ -219,10 +152,10 @@ export default function Landing() {
             />
           </motion.div>
 
-          {/* Hero content (parallax — moves slower) */}
+          {/* Hero content */}
           <motion.div
             style={{ y: heroContentY }}
-            className="max-w-5xl mx-auto text-center relative z-10"
+            className="max-w-5xl mx-auto text-center relative z-10 px-6"
           >
             {/* Logo */}
             <motion.div
@@ -273,7 +206,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.75, duration: 0.5, type: "spring", stiffness: 80 }}
-              className="flex items-center justify-center gap-4"
+              className="flex items-center justify-center gap-4 mb-12"
             >
               <Button size="lg" asChild className="group">
                 <Link to="/auth?signup=true" className="font-mono text-xs uppercase tracking-wider gap-2">
@@ -287,6 +220,27 @@ export default function Landing() {
                 </Link>
               </Button>
             </motion.div>
+
+            {/* Slide indicators */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1, duration: 0.5 }}
+              className="flex items-center justify-center gap-2"
+            >
+              {heroSlides.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goTo(i)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === current
+                      ? "w-8 bg-primary"
+                      : "w-3 bg-muted-foreground/40 hover:bg-muted-foreground/60"
+                  }`}
+                  aria-label={`Go to slide ${i + 1}`}
+                />
+              ))}
+            </motion.div>
           </motion.div>
 
           {/* Decorative risk bars */}
@@ -296,101 +250,6 @@ export default function Landing() {
             <div className="flex-1 bg-risk-medium" />
             <div className="flex-1 bg-risk-low" />
           </div>
-        </section>
-
-        {/* ============================================================ */}
-        {/*  STATS                                                       */}
-        {/* ============================================================ */}
-        <section className="border-y border-border bg-card/50 py-14 px-6">
-          <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-            {stats.map((stat, i) => (
-              <AnimatedStat key={stat.label} stat={stat} index={i} />
-            ))}
-          </div>
-        </section>
-
-        {/* ============================================================ */}
-        {/*  FEATURES / MODULES                                          */}
-        {/* ============================================================ */}
-        <section className="py-24 px-6">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeUp}
-              custom={0}
-              className="text-center mb-16"
-            >
-              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-3">
-                Five Integrated Modules
-              </p>
-              <h2 className="text-3xl md:text-4xl font-bold">
-                Full-Spectrum Crisis Response
-              </h2>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {modules.map((mod, i) => (
-                <motion.div
-                  key={mod.name}
-                  custom={i + 1}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, margin: "-30px" }}
-                  variants={cardVariant}
-                  whileHover={{ y: -4, transition: { duration: 0.25 } }}
-                  className={`group relative border border-border rounded-sm p-6 bg-card transition-all duration-300 cursor-default overflow-hidden ${mod.glow}`}
-                >
-                  {/* Accent bar */}
-                  <div className={`absolute top-0 left-0 right-0 h-0.5 ${mod.accent} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
-
-                  <mod.icon
-                    className={`h-8 w-8 mb-4 ${mod.color} transition-transform duration-300 group-hover:scale-110`}
-                  />
-                  <h3 className="font-mono text-sm font-semibold uppercase tracking-wider mb-2">
-                    {mod.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {mod.desc}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ============================================================ */}
-        {/*  FINAL CTA                                                   */}
-        {/* ============================================================ */}
-        <section className="relative py-24 px-6 border-t border-border overflow-hidden">
-          {/* Background orb */}
-          <div className="hero-orb hero-orb-red w-[300px] h-[300px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-float opacity-60" />
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="max-w-3xl mx-auto text-center relative z-10"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Take Control of Your Next Crisis
-            </h2>
-            <p className="text-muted-foreground font-mono mb-8">
-              Don't wait for the headlines. Be ready.
-            </p>
-            <Button size="lg" asChild className="group">
-              <Link
-                to="/auth?signup=true"
-                className="font-mono text-xs uppercase tracking-wider gap-2"
-              >
-                Start Now{" "}
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </Link>
-            </Button>
-          </motion.div>
         </section>
 
         {/* Footer */}
