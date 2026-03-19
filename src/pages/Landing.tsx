@@ -10,6 +10,7 @@ import {
 } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+import PWAInstallButton from "@/components/PWAInstallButton";
 
 import hero1 from "@/assets/hero/hero-1.jpg";
 import hero2 from "@/assets/hero/hero-2.jpg";
