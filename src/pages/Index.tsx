@@ -206,10 +206,10 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">Command Center</h1>
-            <p className="text-sm text-muted-foreground mt-1">Real-time crisis monitoring & response</p>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Command Center</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Real-time crisis monitoring & response</p>
           </div>
           <div className="flex items-center gap-2">
             <CreateCrisisDialog />
@@ -217,14 +217,14 @@ export default function Dashboard() {
               className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs uppercase tracking-wider"
               onClick={() => navigate("/war-room")}
             >
-              <Zap className="h-3.5 w-3.5 mr-1.5" />
-              Escalate to War Room
+              <Zap className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Escalate to War Room</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           <StatCard label="Total Signals" value={formatNumber(signalStats?.total ?? 0)} icon={Radio} loading={statsLoading} />
           <StatCard label="Active Crises" value={activeCrisis ? "1" : "0"} icon={AlertTriangle} accent="text-crisis-red" loading={crisisLoading} />
           <StatCard label="Sentiment" value={((signalStats?.sentimentScore ?? 0) * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" loading={statsLoading} />

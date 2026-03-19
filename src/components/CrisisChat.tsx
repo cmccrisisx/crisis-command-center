@@ -74,8 +74,8 @@ export function CrisisChat() {
   };
 
   const panelSize = expanded
-    ? "w-[680px] h-[700px]"
-    : "w-[380px] h-[520px]";
+    ? "w-[calc(100vw-2rem)] sm:w-[680px] h-[calc(100dvh-3rem)] sm:h-[700px]"
+    : "w-[calc(100vw-2rem)] sm:w-[380px] h-[calc(100dvh-3rem)] sm:h-[520px]";
 
   return (
     <>
@@ -86,7 +86,7 @@ export function CrisisChat() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-1.5"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-center gap-1.5"
             data-tour="chat-bubble"
           >
             {messages.length === 0 && (
@@ -126,7 +126,7 @@ export function CrisisChat() {
             transition={{ duration: 0.2 }}
             layout
             className={cn(
-              "fixed bottom-6 right-6 z-50 flex flex-col bg-card border border-border rounded-sm shadow-2xl overflow-hidden transition-all duration-200",
+              "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col bg-card border border-border rounded-sm shadow-2xl overflow-hidden transition-all duration-200",
               panelSize
             )}
           >
