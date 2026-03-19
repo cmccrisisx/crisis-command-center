@@ -102,7 +102,7 @@ export function TopBar() {
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-96 p-0" align="end">
+          <PopoverContent className="w-80 sm:w-96 p-0" align="end">
             <div className="px-3 py-2 border-b border-border flex items-center justify-between">
               <p className="text-xs font-mono font-semibold uppercase tracking-wider">
                 Notifications
