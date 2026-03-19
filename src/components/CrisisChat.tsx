@@ -28,7 +28,7 @@ export function CrisisChat() {
   const [expanded, setExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [reactions, setReactions] = useState<Record<number, "up" | "down">>({});
-  const { messages, isLoading, error, send, clear, stop } = useCrisisChat();
+  const { messages, isLoading, error, historyLoaded, send, clear, stop } = useCrisisChat();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
