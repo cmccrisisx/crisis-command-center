@@ -89,13 +89,12 @@ export function CrisisChat() {
             className="fixed bottom-6 right-6 z-50"
             data-tour="chat-bubble"
           >
-            <Button
+            <button
               onClick={() => setOpen(true)}
-              className="h-14 w-14 rounded-full bg-primary shadow-lg shadow-primary/30 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/40 transition-all"
-              size="icon"
+              className="h-14 w-14 rounded-full overflow-hidden ring-2 ring-primary/60 shadow-lg shadow-primary/30 hover:ring-primary hover:shadow-xl hover:shadow-primary/40 transition-all"
             >
-              <MessageSquare className="h-6 w-6" />
-            </Button>
+              <img src={cxAvatar} alt="CX Assistant" className="h-full w-full object-cover" />
+            </button>
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
