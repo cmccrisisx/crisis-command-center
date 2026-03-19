@@ -155,7 +155,7 @@ export default function Landing() {
           {/* Hero content */}
           <motion.div
             style={{ y: heroContentY }}
-            className="max-w-5xl mx-auto text-center relative z-10 px-6"
+            className="max-w-5xl mx-auto text-center relative z-10 px-6 pt-16"
           >
             {/* Logo */}
             <motion.div
