@@ -206,7 +206,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.75, duration: 0.5, type: "spring", stiffness: 80 }}
-              className="flex items-center justify-center gap-4 mb-12"
+              className="flex items-center justify-center gap-4 mb-6"
             >
               <Button size="lg" asChild className="group">
                 <Link to="/auth?signup=true" className="font-mono text-xs uppercase tracking-wider gap-2">
