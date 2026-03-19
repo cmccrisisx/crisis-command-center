@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download } from "lucide-react";
+import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { exportToPDF } from "@/lib/pdf-export";
+import cxAvatar from "@/assets/cx-avatar.png";
 
 const QUICK_STARTERS = [
   { label: "🔥 Triage a crisis", prompt: "I have an active crisis situation. Help me triage it — what's the severity, recommended response time, and top 3 actions?" },
