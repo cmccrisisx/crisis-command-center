@@ -241,4 +241,23 @@
     box-shadow: 0 0 24px hsl(var(--crisis-green) / 0.2);
     border-color: hsl(var(--crisis-green) / 0.4);
   }
+
+  /* Ken Burns zoom effect for hero slider */
+  .ken-burns {
+    animation: ken-burns 6s ease-out forwards;
+  }
+
+  @keyframes ken-burns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.06);
+    }
+  }
+
+  /* Hero vignette overlay */
+  .hero-vignette {
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(var(--background)) 100%);
+  }
 }
