@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download } from "lucide-react";
+import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { exportToPDF } from "@/lib/pdf-export";
+import cxAvatar from "@/assets/cx-avatar.png";
 
 const QUICK_STARTERS = [
   { label: "🔥 Triage a crisis", prompt: "I have an active crisis situation. Help me triage it — what's the severity, recommended response time, and top 3 actions?" },
@@ -88,13 +89,12 @@ export function CrisisChat() {
             className="fixed bottom-6 right-6 z-50"
             data-tour="chat-bubble"
           >
-            <Button
+            <button
               onClick={() => setOpen(true)}
-              className="h-14 w-14 rounded-full bg-primary shadow-lg shadow-primary/30 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/40 transition-all"
-              size="icon"
+              className="h-14 w-14 rounded-full overflow-hidden ring-2 ring-primary/60 shadow-lg shadow-primary/30 hover:ring-primary hover:shadow-xl hover:shadow-primary/40 transition-all"
             >
-              <MessageSquare className="h-6 w-6" />
-            </Button>
+              <img src={cxAvatar} alt="CX Assistant" className="h-full w-full object-cover" />
+            </button>
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
@@ -126,7 +126,10 @@ export function CrisisChat() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-crisis-green animate-pulse" />
+                <div className="relative">
+                  <img src={cxAvatar} alt="CX" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/40" />
+                  <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-crisis-green ring-1 ring-card" />
+                </div>
                 <span className="font-mono text-sm font-semibold text-foreground tracking-wide">
                   CX
                 </span>
