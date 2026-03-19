@@ -1,15 +1,33 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Trash2, Square } from "lucide-react";
+import { MessageSquare, X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+const QUICK_STARTERS = [
+  { label: "🔥 Triage a crisis", prompt: "I have an active crisis situation. Help me triage it — what's the severity, recommended response time, and top 3 actions?" },
+  { label: "📝 Draft a response", prompt: "Help me draft a holding statement for a developing situation" },
+  { label: "🛡️ Reputation check", prompt: "Walk me through how to assess our current brand health and reputation risk score" },
+  { label: "💀 Cancel culture playbook", prompt: "We're getting pile-on backlash on social media. What's the playbook?" },
+  { label: "📊 Stakeholder map", prompt: "Help me prioritize which stakeholders to address first in a crisis" },
+  { label: "⚡ Platform strategy", prompt: "What's the best response strategy across Twitter/X, TikTok, LinkedIn, and Instagram?" },
+];
+
+const FOLLOW_UP_CHIPS = [
+  "Draft a response for this",
+  "What's the worst-case scenario?",
+  "How do we measure recovery?",
+  "Who should we talk to first?",
+  "Run a scenario simulation",
+];
+
 export function CrisisChat() {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [input, setInput] = useState("");
+  const [reactions, setReactions] = useState<Record<number, "up" | "down">>({});
   const { messages, isLoading, error, send, clear, stop } = useCrisisChat();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +48,17 @@ export function CrisisChat() {
     setInput("");
     send(trimmed);
   };
+
+  const handleReaction = (index: number, type: "up" | "down") => {
+    setReactions((prev) => ({
+      ...prev,
+      [index]: prev[index] === type ? undefined! : type,
+    }));
+  };
+
+  const panelSize = expanded
+    ? "w-[680px] h-[700px]"
+    : "w-[380px] h-[520px]";
 
   return (
     <>
@@ -72,7 +101,11 @@ export function CrisisChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 right-6 z-50 w-[380px] h-[520px] flex flex-col bg-card border border-border rounded-sm shadow-2xl overflow-hidden"
+            layout
+            className={cn(
+              "fixed bottom-6 right-6 z-50 flex flex-col bg-card border border-border rounded-sm shadow-2xl overflow-hidden transition-all duration-200",
+              panelSize
+            )}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
@@ -82,7 +115,7 @@ export function CrisisChat() {
                   CX
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Crisis Assistant
+                  Reputation Expert
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -90,7 +123,16 @@ export function CrisisChat() {
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={clear}
+                  onClick={() => setExpanded(!expanded)}
+                  title={expanded ? "Minimize" : "Expand"}
+                >
+                  {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => { clear(); setReactions({}); }}
                   title="Clear chat"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -109,28 +151,24 @@ export function CrisisChat() {
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-3 px-4">
-                  <div className="text-3xl">⚡</div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Hey, I'm CX
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Your AI crisis partner. Ask me about signals, draft
-                    responses, get strategy advice, or just figure out what to
-                    do next.
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 justify-center pt-2">
-                    {[
-                      "What's happening right now?",
-                      "Draft a holding statement",
-                      "Explain the approval workflow",
-                    ].map((q) => (
+                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
+                  <div className="text-4xl">🛡️</div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      yo, i'm CX
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                      Your reputation management expert. I've seen every type of crisis — from viral TikToks to boardroom meltdowns. Let's protect your brand. 🔥
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 justify-center pt-1">
+                    {QUICK_STARTERS.map((q) => (
                       <button
-                        key={q}
-                        onClick={() => send(q)}
-                        className="text-xs px-2.5 py-1.5 rounded-sm border border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        key={q.label}
+                        onClick={() => send(q.prompt)}
+                        className="text-xs px-2.5 py-1.5 rounded-sm border border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-colors"
                       >
-                        {q}
+                        {q.label}
                       </button>
                     ))}
                   </div>
@@ -138,43 +176,86 @@ export function CrisisChat() {
               )}
 
               {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "flex",
-                    msg.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
+                <div key={i}>
                   <div
                     className={cn(
-                      "max-w-[85%] text-sm rounded-sm px-3 py-2",
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                      "flex",
+                      msg.role === "user" ? "justify-end" : "justify-start"
                     )}
                   >
-                    {msg.role === "assistant" ? (
-                      <div className="prose prose-sm prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      msg.content
-                    )}
+                    <div
+                      className={cn(
+                        "max-w-[85%] text-sm rounded-sm px-3 py-2",
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground"
+                      )}
+                    >
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
                   </div>
+                  {/* Reactions for assistant messages */}
+                  {msg.role === "assistant" && !isLoading && (
+                    <div className="flex items-center gap-1 mt-1 ml-1">
+                      <button
+                        onClick={() => handleReaction(i, "up")}
+                        className={cn(
+                          "p-1 rounded-sm transition-colors",
+                          reactions[i] === "up"
+                            ? "text-crisis-green bg-crisis-green/10"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <ThumbsUp className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={() => handleReaction(i, "down")}
+                        className={cn(
+                          "p-1 rounded-sm transition-colors",
+                          reactions[i] === "down"
+                            ? "text-crisis-red bg-crisis-red/10"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                      >
+                        <ThumbsDown className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
 
+              {/* Personality loading indicator */}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="flex justify-start">
-                  <div className="bg-muted text-muted-foreground text-sm rounded-sm px-3 py-2">
-                    <span className="inline-flex gap-1">
-                      <span className="animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
-                      <span className="animate-bounce" style={{ animationDelay: "150ms" }}>·</span>
-                      <span className="animate-bounce" style={{ animationDelay: "300ms" }}>·</span>
-                    </span>
+                  <div className="bg-muted text-muted-foreground text-xs rounded-sm px-3 py-2 font-mono flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-crisis-amber animate-pulse" />
+                    CX is cooking...
                   </div>
                 </div>
               )}
+
+              {/* Follow-up chips after last assistant message */}
+              {messages.length > 0 &&
+                messages[messages.length - 1]?.role === "assistant" &&
+                !isLoading && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {FOLLOW_UP_CHIPS.map((chip) => (
+                      <button
+                        key={chip}
+                        onClick={() => send(chip)}
+                        className="text-xs px-2 py-1 rounded-sm border border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
               {error && (
                 <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
@@ -196,7 +277,7 @@ export function CrisisChat() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask CX..."
+                  placeholder="Ask CX anything..."
                   className="flex-1 bg-muted/50 border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   disabled={isLoading}
                 />
