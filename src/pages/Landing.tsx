@@ -176,7 +176,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4"
+              className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-3"
             >
               Crisis Intelligence.
               <br />
@@ -195,7 +195,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 font-mono"
+              className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto mb-5 font-mono"
             >
               Detect threats in real-time. Coordinate responses across teams.
               Protect your reputation with AI-powered crisis management.
