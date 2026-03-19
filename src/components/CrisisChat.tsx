@@ -158,7 +158,7 @@ export function CrisisChat() {
                   </div>
                 </div>
               )}
-              {messages.length === 0 && (
+              {historyLoaded && messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
                   <div className="text-4xl">🛡️</div>
                   <div>
