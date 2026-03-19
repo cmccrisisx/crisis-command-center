@@ -126,7 +126,7 @@ export function CrisisChat() {
             transition={{ duration: 0.2 }}
             layout
             className={cn(
-              "fixed bottom-6 right-6 z-50 flex flex-col bg-card border border-border rounded-sm shadow-2xl overflow-hidden transition-all duration-200",
+              "fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col bg-card border border-border rounded-sm shadow-2xl overflow-hidden transition-all duration-200",
               panelSize
             )}
           >
