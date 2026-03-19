@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2 } from "lucide-react";
+import { MessageSquare, X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { exportToPDF } from "@/lib/pdf-export";
 
 const QUICK_STARTERS = [
   { label: "🔥 Triage a crisis", prompt: "I have an active crisis situation. Help me triage it — what's the severity, recommended response time, and top 3 actions?" },
@@ -54,6 +55,21 @@ export function CrisisChat() {
       ...prev,
       [index]: prev[index] === type ? undefined! : type,
     }));
+  };
+
+  const handleExportPDF = () => {
+    if (messages.length === 0) return;
+    const sections = messages.map((msg) => ({
+      title: msg.role === "user" ? "You" : "CX — Crisis Assistant",
+      content: msg.content,
+    }));
+    exportToPDF({
+      title: "CX Chat Transcript",
+      subtitle: "Crisis X AI Conversation Export",
+      date: new Date().toLocaleString(),
+      sections,
+      footer: "CX Chat Export — Crisis-X Platform",
+    });
   };
 
   const panelSize = expanded
@@ -119,6 +135,16 @@ export function CrisisChat() {
                 </span>
               </div>
               <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleExportPDF}
+                  title="Export as PDF"
+                  disabled={messages.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
