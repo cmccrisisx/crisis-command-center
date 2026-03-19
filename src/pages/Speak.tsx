@@ -83,6 +83,7 @@ function statusColor(s: string) {
 }
 
 export default function Speak() {
+  usePageTitle("Speak");
   const { user, roles } = useAuth();
   const queryClient = useQueryClient();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);

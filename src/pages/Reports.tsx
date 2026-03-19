@@ -72,6 +72,7 @@ const AVAILABLE_SECTIONS = [
 const REPORT_TYPES = ["Post-Crisis", "Recurring", "Ad-hoc", "Incident", "Compliance"];
 
 export default function Reports() {
+  usePageTitle("Reports");
   const [reports, setReports] = useState<Report[]>(defaultReports);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");

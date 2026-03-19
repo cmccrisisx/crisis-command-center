@@ -11,6 +11,7 @@ import { LogIn, UserPlus, AlertCircle } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 
 export default function Auth() {
+  usePageTitle("Sign In");
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);

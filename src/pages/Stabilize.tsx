@@ -59,6 +59,7 @@ const chartStyle = {
 };
 
 export default function Stabilize() {
+  usePageTitle("Stabilize");
   const postCrisis = useCrisisAI();
   const currentRep = recoveryData[recoveryData.length - 1];
 

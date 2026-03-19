@@ -22,6 +22,7 @@ const chartStyle = {
 };
 
 export default function Analytics() {
+  usePageTitle("Analytics");
   // Fetch reputation snapshots for sentiment timeline
   const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
     queryKey: ["analytics-snapshots"],

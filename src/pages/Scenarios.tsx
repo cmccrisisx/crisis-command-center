@@ -41,6 +41,7 @@ const presetResponses = [
 ];
 
 export default function Scenarios() {
+  usePageTitle("Scenarios");
   const [selectedPreset, setSelectedPreset] = useState(presetResponses[0]);
   const [customResponse, setCustomResponse] = useState("");
   const [mode, setMode] = useState<"preset" | "custom">("preset");

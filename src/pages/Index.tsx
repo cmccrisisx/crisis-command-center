@@ -52,6 +52,7 @@ function StatCard({ label, value, icon: Icon, accent, loading }: { label: string
 }
 
 export default function Dashboard() {
+  usePageTitle("Dashboard");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 

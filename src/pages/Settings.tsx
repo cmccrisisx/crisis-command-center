@@ -178,6 +178,7 @@ function RoleManagement() {
 }
 
 export default function SettingsPage() {
+  usePageTitle("Settings");
   const { user, hasRole } = useAuth();
   const isAdmin = hasRole("admin");
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);

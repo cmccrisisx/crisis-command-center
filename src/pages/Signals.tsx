@@ -20,6 +20,7 @@ const SOURCE_OPTIONS = ["twitter", "news", "blog", "linkedin"] as const;
 const SENTIMENT_OPTIONS = ["positive", "neutral", "negative"] as const;
 
 export default function Signals() {
+  usePageTitle("Signals");
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);

@@ -37,6 +37,7 @@ const approvalSteps = [
 ];
 
 export default function WarRoom() {
+  usePageTitle("War Room");
   const { user, profile, roles } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<WarRoomMsg[]>([]);
