@@ -50,12 +50,12 @@ interface CrisisStatusCardProps {
 export function CrisisStatusCard({ crisis, queryClient }: CrisisStatusCardProps) {
   const [updating, setUpdating] = useState(false);
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (newStatus === crisis.status) return;
+  const handleUpdate = async (field: string, value: string) => {
+    if (value === (crisis as Record<string, unknown>)[field]) return;
     setUpdating(true);
     try {
-      const updateData: Record<string, unknown> = { status: newStatus };
-      if (newStatus === "resolved") {
+      const updateData: Record<string, unknown> = { [field]: value };
+      if (field === "status" && value === "resolved") {
         updateData.resolved_at = new Date().toISOString();
       }
       const { error } = await supabase
@@ -63,10 +63,11 @@ export function CrisisStatusCard({ crisis, queryClient }: CrisisStatusCardProps)
         .update(updateData)
         .eq("id", crisis.id);
       if (error) throw error;
-      toast.success(`Crisis status updated to ${STATUS_LABELS[newStatus]}`);
+      const label = field === "status" ? STATUS_LABELS[value] : RISK_LABELS[value];
+      toast.success(`Crisis ${field} updated to ${label}`);
       queryClient.invalidateQueries({ queryKey: ["dashboard-crisis"] });
     } catch (e) {
-      toast.error("Failed to update status");
+      toast.error(`Failed to update ${field}`);
     } finally {
       setUpdating(false);
     }
@@ -81,22 +82,31 @@ export function CrisisStatusCard({ crisis, queryClient }: CrisisStatusCardProps)
             <CardTitle className="text-base font-mono">{crisis.title}</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            <div className="relative">
-              {updating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground absolute -left-5 top-1/2 -translate-y-1/2" />}
-              <Select value={crisis.status} onValueChange={handleStatusChange} disabled={updating}>
-                <SelectTrigger className="h-7 w-[140px] text-[10px] font-mono uppercase tracking-wider bg-card border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Constants.public.Enums.crisis_status.map((s) => (
-                    <SelectItem key={s} value={s} className="text-[10px] font-mono uppercase">
-                      <span className={STATUS_COLORS[s]}>{STATUS_LABELS[s]}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <RiskBadge level={crisis.risk_level} pulse />
+            {updating && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            <Select value={crisis.status} onValueChange={(v) => handleUpdate("status", v)} disabled={updating}>
+              <SelectTrigger className="h-7 w-[140px] text-[10px] font-mono uppercase tracking-wider bg-card border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Constants.public.Enums.crisis_status.map((s) => (
+                  <SelectItem key={s} value={s} className="text-[10px] font-mono uppercase">
+                    <span className={STATUS_COLORS[s]}>{STATUS_LABELS[s]}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={crisis.risk_level} onValueChange={(v) => handleUpdate("risk_level", v)} disabled={updating}>
+              <SelectTrigger className="h-7 w-[110px] text-[10px] font-mono uppercase tracking-wider bg-card border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Constants.public.Enums.risk_level.map((r) => (
+                  <SelectItem key={r} value={r} className="text-[10px] font-mono uppercase">
+                    <span className={RISK_COLORS[r]}>{RISK_LABELS[r]}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CardHeader>
