@@ -1,20 +1,29 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { LogIn, UserPlus, AlertCircle } from "lucide-react";
+import { LogIn, UserPlus, AlertCircle, Radio, Brain, Target, Megaphone, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+
+const modules = [
+  { icon: Radio, label: "Signal", color: "bg-crisis-blue" },
+  { icon: Brain, label: "Sense", color: "bg-crisis-purple" },
+  { icon: Target, label: "Strategize", color: "bg-crisis-amber" },
+  { icon: Megaphone, label: "Speak", color: "bg-crisis-red" },
+  { icon: Shield, label: "Stabilize", color: "bg-crisis-green" },
+];
 
 export default function Auth() {
   usePageTitle("Sign In");
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [isSignUp, setIsSignUp] = useState(searchParams.get("signup") === "true");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -54,20 +63,92 @@ export default function Auth() {
 
   return (
     <div className="dark">
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex flex-col md:flex-row">
         {/* Risk bar */}
-        <div className="h-1 w-full fixed top-0 left-0 bg-crisis-green z-50" />
+        <div className="h-1 w-full fixed top-0 left-0 z-50 flex">
+          <div className="flex-1 bg-risk-critical" />
+          <div className="flex-1 bg-risk-high" />
+          <div className="flex-1 bg-risk-medium" />
+          <div className="flex-1 bg-risk-low" />
+        </div>
 
-        <Card className="w-full max-w-md border-border bg-card">
-          <CardHeader className="text-center pb-2">
-            <div className="flex items-center justify-center mb-4">
-              <img src={crisisLogo} alt="Crisis-X" className="h-24 w-auto rounded-lg shadow-lg shadow-black/30" />
-            </div>
-            <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-              Crisis Intelligence Platform
+        {/* Left branding panel */}
+        <div className="relative md:w-1/2 flex items-center justify-center p-8 md:p-16 overflow-hidden bg-card border-b md:border-b-0 md:border-r border-border">
+          {/* Grid pattern */}
+          <div className="absolute inset-0 opacity-[0.04]" style={{
+            backgroundImage: "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }} />
+
+          {/* Radial glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.08)_0%,transparent_70%)]" />
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6 }}
+            className="relative z-10 text-center max-w-sm"
+          >
+            <img
+              src={crisisLogo}
+              alt="Crisis-X"
+              className="h-24 md:h-32 w-auto mx-auto rounded-lg shadow-2xl shadow-primary/20 mb-8"
+            />
+
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Crisis Intelligence.
+              <br />
+              <span className="text-primary">Instant Clarity.</span>
+            </h2>
+
+            <p className="text-sm text-muted-foreground font-mono mb-8">
+              Detect. Coordinate. Respond. Recover.
             </p>
-          </CardHeader>
-          <CardContent>
+
+            {/* Module pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {modules.map((mod, i) => (
+                <motion.div
+                  key={mod.label}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 + i * 0.08, duration: 0.4 }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-border bg-background/50 backdrop-blur-sm"
+                >
+                  <div className={`h-1.5 w-1.5 rounded-full ${mod.color}`} />
+                  <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                    {mod.label}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Decorative risk bars */}
+            <div className="mt-10 flex gap-1 justify-center">
+              {["bg-risk-critical", "bg-risk-high", "bg-risk-medium", "bg-risk-low"].map((c) => (
+                <div key={c} className={`h-1 w-10 rounded-full ${c} opacity-60`} />
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Right form panel */}
+        <div className="md:w-1/2 flex items-center justify-center p-8 md:p-16">
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="w-full max-w-sm"
+          >
+            <div className="mb-8">
+              <h1 className="text-xl font-bold mb-1">
+                {isSignUp ? "Create Account" : "Welcome Back"}
+              </h1>
+              <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                {isSignUp ? "Join the crisis intelligence platform" : "Sign in to your command center"}
+              </p>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               {isSignUp && (
                 <div>
@@ -105,7 +186,7 @@ export default function Auth() {
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 text-xs text-crisis-red bg-crisis-red/10 border border-crisis-red/20 p-2 rounded-sm">
+                <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 border border-destructive/20 p-2 rounded-sm">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   {error}
                 </div>
@@ -127,8 +208,8 @@ export default function Auth() {
                 {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
               </button>
             </form>
-          </CardContent>
-        </Card>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
