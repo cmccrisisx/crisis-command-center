@@ -150,6 +150,14 @@ export function CrisisChat() {
 
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+              {!historyLoaded && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
+                    <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+                    Loading chat history...
+                  </div>
+                </div>
+              )}
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
                   <div className="text-4xl">🛡️</div>
