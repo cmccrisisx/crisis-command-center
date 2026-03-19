@@ -256,7 +256,7 @@ export default function Landing() {
         <footer className="border-t border-border py-8 px-6">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <p className="text-xs font-mono text-muted-foreground">
-              © {new Date().getFullYear()} Crisis-X. All rights reserved.
+              © 2026 Crisis-X | an AI Powered Crisis Intelligence Engine of CMC Connect LLP. All rights reserved.
             </p>
             <div className="flex items-center gap-1">
               <div className="h-2 w-2 rounded-full bg-crisis-green animate-pulse" />
