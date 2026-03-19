@@ -5,6 +5,7 @@ import { useCrisisChat } from "@/hooks/useCrisisChat";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { exportToPDF } from "@/lib/pdf-export";
 
 const QUICK_STARTERS = [
   { label: "🔥 Triage a crisis", prompt: "I have an active crisis situation. Help me triage it — what's the severity, recommended response time, and top 3 actions?" },
