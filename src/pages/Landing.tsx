@@ -89,6 +89,7 @@ export default function Landing() {
               </span>
             </div>
             <div className="flex items-center gap-3">
+              <PWAInstallButton />
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/auth" className="font-mono text-xs uppercase tracking-wider">
                   Sign In
