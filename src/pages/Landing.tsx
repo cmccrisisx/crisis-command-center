@@ -162,7 +162,7 @@ export default function Landing() {
               initial={{ opacity: 0, scale: 0.8, filter: "blur(12px)" }}
               animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="mb-8"
+              className="mb-4"
             >
               <img
                 src={crisisLogo}
