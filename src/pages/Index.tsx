@@ -206,10 +206,10 @@ export default function Dashboard() {
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">Command Center</h1>
-            <p className="text-sm text-muted-foreground mt-1">Real-time crisis monitoring & response</p>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Command Center</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Real-time crisis monitoring & response</p>
           </div>
           <div className="flex items-center gap-2">
             <CreateCrisisDialog />
@@ -217,8 +217,8 @@ export default function Dashboard() {
               className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs uppercase tracking-wider"
               onClick={() => navigate("/war-room")}
             >
-              <Zap className="h-3.5 w-3.5 mr-1.5" />
-              Escalate to War Room
+              <Zap className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Escalate to War Room</span>
             </Button>
           </div>
         </div>
