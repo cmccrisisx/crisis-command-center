@@ -17,6 +17,7 @@ import SettingsPage from "./pages/Settings.tsx";
 import Auth from "./pages/Auth.tsx";
 import Scenarios from "./pages/Scenarios.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import About from "./pages/About.tsx";
 
 const queryClient = new QueryClient();
 
