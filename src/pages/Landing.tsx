@@ -217,8 +217,8 @@ export default function Landing() {
                 </Link>
               </Button>
               <Button size="lg" variant="outline" asChild className="hover:border-primary/50 transition-colors duration-300">
-                <Link to="/auth" className="font-mono text-xs uppercase tracking-wider">
-                  Sign In
+                <Link to="/about" className="font-mono text-xs uppercase tracking-wider">
+                  Learn More
                 </Link>
               </Button>
             </motion.div>

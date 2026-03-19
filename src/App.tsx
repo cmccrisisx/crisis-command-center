@@ -17,6 +17,7 @@ import SettingsPage from "./pages/Settings.tsx";
 import Auth from "./pages/Auth.tsx";
 import Scenarios from "./pages/Scenarios.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import About from "./pages/About.tsx";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
           <div className="dark bg-background text-foreground min-h-screen">
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/about" element={<About />} />
               <Route path="/" element={<LandingOrDashboard />} />
               <Route path="/signals" element={<ProtectedRoute><Signals /></ProtectedRoute>} />
               <Route path="/war-room" element={<ProtectedRoute><WarRoom /></ProtectedRoute>} />
