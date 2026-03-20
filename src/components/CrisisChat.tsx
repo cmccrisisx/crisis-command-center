@@ -279,7 +279,7 @@ export function CrisisChat() {
                 <div className="flex justify-start">
                   <div className="bg-muted text-muted-foreground text-xs rounded-sm px-3 py-2 font-mono flex items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-crisis-amber animate-pulse" />
-                    CX is cooking...
+                    Naya is thinking...
                   </div>
                 </div>
               )}
