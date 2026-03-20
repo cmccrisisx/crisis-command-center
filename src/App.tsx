@@ -18,6 +18,7 @@ import Auth from "./pages/Auth.tsx";
 import Scenarios from "./pages/Scenarios.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
+import Launch from "./pages/Launch.tsx";
 
 const queryClient = new QueryClient();
 
