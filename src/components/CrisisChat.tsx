@@ -382,17 +382,30 @@ export function CrisisChat() {
                     <Square className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    disabled={!input.trim()}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={handleStartVoice}
+                      title="Voice conversation"
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      disabled={!input.trim()}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </>
                 )}
               </form>
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
