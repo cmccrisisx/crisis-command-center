@@ -134,7 +134,7 @@ export function CrisisChat() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <img src={cxAvatar} alt="CX" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/40" />
+                  <img src={nayaAvatar} alt="Naya" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/40" />
                   <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-crisis-green ring-1 ring-card" />
                 </div>
                 <span className="font-mono text-sm font-semibold text-foreground tracking-wide">
