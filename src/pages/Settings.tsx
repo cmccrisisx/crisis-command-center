@@ -373,7 +373,22 @@ export default function SettingsPage() {
           </Card>
         )}
 
-        <Card>
+        {/* Demo Requests — Admin Only */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Inbox className="h-4 w-4 text-crisis-blue" />
+                <CardTitle className="text-sm font-mono uppercase tracking-wider">Demo Requests</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Incoming demo requests from the About page contact form.</p>
+            </CardHeader>
+            <CardContent>
+              <DemoRequests />
+            </CardContent>
+          </Card>
+        )}
+
           <CardHeader>
             <CardTitle className="text-sm font-mono uppercase tracking-wider">Alert Thresholds</CardTitle>
           </CardHeader>
