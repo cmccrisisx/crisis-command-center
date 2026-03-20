@@ -15,7 +15,6 @@ const BRAND_QUERIES: { query: string; brandKey: string }[] = [
   { query: "Paystack downtime OR security OR payment gateway OR Stripe", brandKey: "paystack" },
 ];
 
-// Map brand keys to crisis IDs (seeded data)
 const BRAND_CRISIS_MAP: Record<string, string> = {
   mtn: "a1000000-0000-0000-0000-000000000001",
   dangote: "a2000000-0000-0000-0000-000000000002",
@@ -26,12 +25,9 @@ const BRAND_CRISIS_MAP: Record<string, string> = {
 };
 
 const SOURCE_MAP: Record<string, string> = {
-  twitter: "twitter",
-  "x.com": "twitter",
+  twitter: "twitter", "x.com": "twitter",
   linkedin: "linkedin",
-  blog: "blog",
-  medium: "blog",
-  substack: "blog",
+  blog: "blog", medium: "blog", substack: "blog",
 };
 
 function classifySource(url: string): string {
@@ -58,11 +54,45 @@ function isInfluencerSource(url: string): boolean {
   return big.some((d) => url.toLowerCase().includes(d));
 }
 
-async function enrichWithAI(
-  content: string,
+// Batch AI enrichment — send multiple items at once
+async function batchEnrichWithAI(
+  items: { content: string; idx: number }[],
   apiKey: string
-): Promise<{ sentiment: string; keywords: string[] } | null> {
+): Promise<Map<number, { sentiment: string; keywords: string[] }>> {
+  const results = new Map<number, { sentiment: string; keywords: string[] }>();
+  if (items.length === 0) return results;
+
+  // Simple heuristic fallback for speed — use keyword-based sentiment when AI is too slow
+  for (const item of items) {
+    const lower = item.content.toLowerCase();
+    const negWords = ["fraud", "scandal", "outage", "breach", "protest", "violation", "crisis", "crash", "loss", "shutdown", "attack", "fine", "penalty", "complaint", "investigation"];
+    const posWords = ["growth", "profit", "launch", "partnership", "expansion", "award", "milestone", "recovery", "improvement"];
+    
+    const negScore = negWords.filter(w => lower.includes(w)).length;
+    const posScore = posWords.filter(w => lower.includes(w)).length;
+    
+    let sentiment = "neutral";
+    if (negScore > posScore) sentiment = "negative";
+    else if (posScore > negScore) sentiment = "positive";
+
+    // Extract keywords from content
+    const words = item.content.split(/\s+/).filter(w => w.length > 4);
+    const freq = new Map<string, number>();
+    for (const w of words) {
+      const clean = w.toLowerCase().replace(/[^a-z]/g, "");
+      if (clean.length > 4) freq.set(clean, (freq.get(clean) || 0) + 1);
+    }
+    const keywords = [...freq.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([k]) => k);
+
+    results.set(item.idx, { sentiment, keywords });
+  }
+
+  // Now try AI enrichment for the batch (fire-and-forget style, use results if fast enough)
   try {
+    const batchText = items.slice(0, 5).map((it, i) => `[${i}] ${it.content.slice(0, 300)}`).join("\n\n");
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -74,55 +104,59 @@ async function enrichWithAI(
         messages: [
           {
             role: "system",
-            content:
-              "You are a signal analysis tool. Analyze the text and extract sentiment and keywords. Use the provided tool.",
+            content: "Classify each numbered news item's sentiment (positive/neutral/negative) and extract 3-5 keywords. Use the tool.",
           },
-          { role: "user", content: `Analyze this news signal:\n\n${content.slice(0, 1500)}` },
+          { role: "user", content: batchText },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "classify_signal",
-              description: "Classify a news signal's sentiment and extract keywords",
-              parameters: {
-                type: "object",
-                properties: {
-                  sentiment: {
-                    type: "string",
-                    enum: ["positive", "neutral", "negative"],
-                    description: "Overall sentiment of the content",
-                  },
-                  keywords: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-5 relevant keywords from the content",
+        tools: [{
+          type: "function",
+          function: {
+            name: "classify_signals",
+            description: "Classify multiple signals",
+            parameters: {
+              type: "object",
+              properties: {
+                signals: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      index: { type: "number" },
+                      sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+                      keywords: { type: "array", items: { type: "string" } },
+                    },
+                    required: ["index", "sentiment", "keywords"],
                   },
                 },
-                required: ["sentiment", "keywords"],
-                additionalProperties: false,
               },
+              required: ["signals"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "classify_signal" } },
+        }],
+        tool_choice: { type: "function", function: { name: "classify_signals" } },
       }),
     });
 
-    if (!resp.ok) {
-      console.error("AI enrichment failed:", resp.status);
-      return null;
+    if (resp.ok) {
+      const data = await resp.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall) {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        for (const sig of parsed.signals || []) {
+          if (sig.index < items.length) {
+            results.set(items[sig.index].idx, {
+              sentiment: sig.sentiment,
+              keywords: sig.keywords,
+            });
+          }
+        }
+      }
     }
-
-    const data = await resp.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) return null;
-
-    return JSON.parse(toolCall.function.arguments);
   } catch (e) {
-    console.error("AI enrichment error:", e);
-    return null;
+    console.error("AI batch enrichment failed, using heuristic:", e);
   }
+
+  return results;
 }
 
 Deno.serve(async (req) => {
@@ -134,126 +168,133 @@ Deno.serve(async (req) => {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
       return new Response(JSON.stringify({ error: "FIRECRAWL_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Parse optional body for single brand
+    let brandsToProcess = BRAND_QUERIES;
+    try {
+      const body = await req.json();
+      if (body?.brand) {
+        const filtered = BRAND_QUERIES.filter(b => b.brandKey === body.brand);
+        if (filtered.length) brandsToProcess = filtered;
+      }
+    } catch { /* no body, process all */ }
 
     let totalInserted = 0;
     const errors: string[] = [];
 
-    for (const brand of BRAND_QUERIES) {
-      try {
-        console.log(`Searching: ${brand.query}`);
+    // Process brands in pairs of 2 for speed
+    for (let i = 0; i < brandsToProcess.length; i += 2) {
+      const batch = brandsToProcess.slice(i, i + 2);
+      
+      const searchResults = await Promise.all(
+        batch.map(async (brand) => {
+          try {
+            console.log(`Searching: ${brand.brandKey}`);
+            const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                query: brand.query,
+                limit: 5,
+                lang: "en",
+              }),
+            });
 
-        const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: brand.query,
-            limit: 10,
-            lang: "en",
-            scrapeOptions: { formats: ["markdown"] },
-          }),
+            if (!resp.ok) {
+              errors.push(`${brand.brandKey}: Firecrawl ${resp.status}`);
+              return { brand, results: [] };
+            }
+            const data = await resp.json();
+            return { brand, results: data.data || [] };
+          } catch (e) {
+            errors.push(`${brand.brandKey}: ${e instanceof Error ? e.message : "unknown"}`);
+            return { brand, results: [] };
+          }
+        })
+      );
+
+      // Collect all items for batch enrichment
+      const allItems: { content: string; idx: number; url: string; brand: typeof batch[0]; result: any }[] = [];
+
+      for (const { brand, results } of searchResults) {
+        for (const result of results) {
+          if (!result.url) continue;
+          const content = result.markdown?.slice(0, 500) || result.title || result.description || "";
+          if (!content || content.length < 20) continue;
+          allItems.push({
+            content,
+            idx: allItems.length,
+            url: result.url,
+            brand,
+            result,
+          });
+        }
+      }
+
+      // Batch AI enrichment
+      const enrichments = await batchEnrichWithAI(
+        allItems.map((it, idx) => ({ content: it.content, idx })),
+        LOVABLE_API_KEY
+      );
+
+      // Insert signals
+      for (const item of allItems) {
+        const enrichment = enrichments.get(item.idx);
+        const source = classifySource(item.url);
+        const hostname = new URL(item.url).hostname.replace("www.", "").split(".")[0] || "Unknown";
+        const author = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+
+        const { error: insertErr } = await supabase.from("signals").insert({
+          crisis_id: BRAND_CRISIS_MAP[item.brand.brandKey],
+          source,
+          author,
+          content: (item.result.title || item.content.slice(0, 280)).slice(0, 500),
+          sentiment: enrichment?.sentiment || "neutral",
+          keywords: enrichment?.keywords || [],
+          reach: estimateReach(item.url),
+          author_followers: isInfluencerSource(item.url) ? 100000 + Math.floor(Math.random() * 900000) : 1000 + Math.floor(Math.random() * 50000),
+          is_influencer: isInfluencerSource(item.url),
+          source_url: item.url,
+          detected_at: new Date().toISOString(),
         });
 
-        if (!searchResp.ok) {
-          const errText = await searchResp.text();
-          console.error(`Firecrawl error for ${brand.brandKey}:`, searchResp.status, errText);
-          errors.push(`${brand.brandKey}: Firecrawl ${searchResp.status}`);
-          continue;
-        }
-
-        const searchData = await searchResp.json();
-        const results = searchData.data || [];
-
-        for (const result of results) {
-          const url = result.url;
-          if (!url) continue;
-
-          // Dedup: check if URL already exists
-          const { data: existing } = await supabase
-            .from("signals")
-            .select("id")
-            .eq("source_url", url)
-            .maybeSingle();
-
-          if (existing) continue;
-
-          const content = result.markdown?.slice(0, 2000) || result.title || result.description || "";
-          if (!content || content.length < 30) continue;
-
-          // AI enrichment
-          const enrichment = await enrichWithAI(content, LOVABLE_API_KEY);
-          const sentiment = enrichment?.sentiment || "neutral";
-          const keywords = enrichment?.keywords || [];
-
-          const source = classifySource(url);
-          const author = result.title
-            ? (new URL(url).hostname.replace("www.", "").split(".")[0] || "Unknown")
-            : "Unknown";
-          const reach = estimateReach(url);
-          const isInfluencer = isInfluencerSource(url);
-
-          const { error: insertErr } = await supabase.from("signals").insert({
-            crisis_id: BRAND_CRISIS_MAP[brand.brandKey],
-            source,
-            author: author.charAt(0).toUpperCase() + author.slice(1),
-            content: (result.title || content.slice(0, 280)).slice(0, 500),
-            sentiment,
-            keywords,
-            reach,
-            author_followers: isInfluencer ? 100000 + Math.floor(Math.random() * 900000) : 1000 + Math.floor(Math.random() * 50000),
-            is_influencer: isInfluencer,
-            source_url: url,
-            detected_at: new Date().toISOString(),
-          });
-
-          if (insertErr) {
-            // Likely unique constraint violation — skip
-            if (!insertErr.message?.includes("duplicate")) {
-              console.error("Insert error:", insertErr.message);
-            }
-          } else {
-            totalInserted++;
+        if (insertErr) {
+          if (!insertErr.message?.includes("duplicate")) {
+            console.error("Insert error:", insertErr.message);
           }
+        } else {
+          totalInserted++;
         }
-
-        // Rate limit between brands
-        await new Promise((r) => setTimeout(r, 1000));
-      } catch (brandErr) {
-        console.error(`Error for ${brand.brandKey}:`, brandErr);
-        errors.push(`${brand.brandKey}: ${brandErr instanceof Error ? brandErr.message : "unknown"}`);
       }
     }
 
-    // Update signal counts on crises
-    for (const [brandKey, crisisId] of Object.entries(BRAND_CRISIS_MAP)) {
+    // Update signal counts
+    for (const [, crisisId] of Object.entries(BRAND_CRISIS_MAP)) {
       const { count } = await supabase
         .from("signals")
         .select("*", { count: "exact", head: true })
         .eq("crisis_id", crisisId);
-
       await supabase.from("crises").update({ signal_count: count || 0 }).eq("id", crisisId);
     }
 
     console.log(`Ingestion complete: ${totalInserted} new signals`);
-
     return new Response(
       JSON.stringify({ success: true, inserted: totalInserted, errors }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
