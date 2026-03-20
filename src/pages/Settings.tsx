@@ -177,6 +177,88 @@ function RoleManagement() {
   );
 }
 
+/* ── Demo Requests Section ── */
+function DemoRequests() {
+  const queryClient = useQueryClient();
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const { data: requests = [], isLoading } = useQuery({
+    queryKey: ["demo-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("demo_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    const { error } = await supabase.from("demo_requests").delete().eq("id", id);
+    setDeleting(null);
+    if (error) {
+      toast.error("Failed to delete request");
+    } else {
+      toast.success("Demo request deleted");
+      queryClient.invalidateQueries({ queryKey: ["demo-requests"] });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+      </div>
+    );
+  }
+
+  if (requests.length === 0) {
+    return (
+      <p className="text-xs font-mono text-muted-foreground text-center py-6">No demo requests yet</p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-mono text-muted-foreground">{requests.length} request{requests.length !== 1 ? "s" : ""}</p>
+      {requests.map((r) => (
+        <div key={r.id} className="p-3 rounded-sm bg-surface-elevated border border-border">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground truncate">{r.name}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <a href={`mailto:${r.email}`} className="text-[10px] font-mono text-crisis-blue hover:underline truncate flex items-center gap-1">
+                  <Mail className="h-2.5 w-2.5 shrink-0" />
+                  {r.email}
+                </a>
+                <span className="text-[10px] font-mono text-muted-foreground">•</span>
+                <span className="text-[10px] font-mono text-muted-foreground truncate">{r.company}</span>
+              </div>
+              {r.message && (
+                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{r.message}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[9px] font-mono text-muted-foreground tabular-nums">
+                {new Date(r.created_at).toLocaleDateString()}
+              </span>
+              <button
+                onClick={() => handleDelete(r.id)}
+                disabled={deleting === r.id}
+                className="p-1 rounded-sm text-muted-foreground hover:text-crisis-red hover:bg-crisis-red/10 transition-colors"
+              >
+                {deleting === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   usePageTitle("Settings");
   const { user, hasRole } = useAuth();
