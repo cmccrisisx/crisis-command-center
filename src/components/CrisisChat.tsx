@@ -96,7 +96,7 @@ export function CrisisChat() {
                 transition={{ delay: 1 }}
                 className="whitespace-nowrap bg-card border border-border text-card-foreground text-xs px-3 py-1.5 rounded-sm shadow-md"
               >
-                Ask CX anything ⚡
+                Ask Naya anything ⚡
               </motion.div>
             )}
             <div className="relative">
