@@ -1,56 +1,20 @@
 
 
-# Add Real-Time Voice Conversation Mode to Naya
+# Update Naya Agent ID and Enable Voice Conversation
 
-## Overview
-Add a microphone button to the chat input area that lets users have a live voice conversation with Naya using ElevenLabs Conversational AI WebRTC. Users tap the mic, grant permission, and speak — Naya responds with her Nigerian-accented voice in real-time.
+## What's needed
+Replace the placeholder agent ID in `src/hooks/useNayaConversation.ts` with the real agent ID `agent_7001km67j3myeeprr67m00wjsm2c`.
 
-## Prerequisite: ElevenLabs Agent
-An ElevenLabs Conversational AI Agent must be created in the ElevenLabs dashboard with Naya's crisis advisor personality and the selected Nigerian female voice. The agent ID will be stored as a constant. Since we cannot create agents via API without additional setup, we'll use a configurable agent ID constant that you can update after creating the agent in ElevenLabs.
+Since this is a public agent (no auth required based on the provided integration examples), we can connect directly with the agent ID instead of going through the token endpoint — simpler and fewer failure points.
 
-## Implementation
+## Changes
 
-### 1. Create `useNayaConversation` hook
-New file: `src/hooks/useNayaConversation.ts`
-- Uses `useConversation` from `@elevenlabs/react` (already installed)
-- Fetches a WebRTC token from the existing `naya-voice-token` edge function
-- Manages connection state: `idle` → `connecting` → `connected` → `speaking`/`listening`
-- Handles microphone permission request with user-friendly error toast
-- Exposes: `startConversation()`, `endConversation()`, `status`, `isSpeaking`
-- Includes `onMessage` handler to show live transcripts in the chat
+### 1. Update `src/hooks/useNayaConversation.ts`
+- Replace `PLACEHOLDER_AGENT_ID` with `agent_7001km67j3myeeprr67m00wjsm2c`
+- Simplify `startConversation` to use direct `agentId` connection (public agent) instead of fetching a token from the edge function — this removes a network hop and potential failure point
+- Keep the token-based flow as a commented fallback in case auth is enabled later
 
-### 2. Update `naya-voice-token` edge function
-The edge function already accepts `agentId` and returns a token — no changes needed. It works as-is for the Conversational AI flow.
-
-### 3. Add voice conversation UI to `CrisisChat.tsx`
-- Add a `Mic` icon button next to the Send button in the input area
-- When tapped: requests mic permission → fetches token → starts WebRTC session
-- During conversation, show a visual indicator:
-  - Pulsing red ring around mic when connected
-  - "Naya is speaking..." / "Listening..." status text
-  - Waveform-style animation (simple CSS pulse)
-- Replace the input area with a "voice mode" overlay showing:
-  - Large animated mic icon with status
-  - "End Conversation" button
-  - Live transcript of what user said and Naya's responses
-- Pressing End returns to normal chat mode
-
-### 4. Voice mode state in chat panel
-- New state: `voiceMode: boolean`
-- When voice mode is active, the messages area shows a centered voice UI overlay
-- Transcripts from the conversation get appended to the chat messages array so they persist after ending voice mode
-
-## Files Created/Modified
-- `src/hooks/useNayaConversation.ts` — new hook wrapping ElevenLabs `useConversation`
-- `src/components/CrisisChat.tsx` — add mic button, voice mode UI overlay, transcript display
-- No edge function changes needed
-- No database changes needed
-
-## Agent ID Configuration
-The agent ID will be stored as a constant in `useNayaConversation.ts`. You'll need to:
-1. Go to [ElevenLabs Agents](https://elevenlabs.io/app/conversational-ai) 
-2. Create an agent with Naya's personality prompt and the selected voice
-3. Copy the agent ID and we'll configure it in the code
-
-Alternatively, we can prompt for the agent ID or store it as a secret. If you don't have an agent set up yet, I can proceed with a placeholder and you can update it later.
+### 2. No other file changes needed
+- VoiceMode.tsx, CrisisChat.tsx, and the edge function remain as-is
+- The `naya-voice-token` edge function stays deployed for future use if the agent is switched to authenticated mode
 
