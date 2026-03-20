@@ -138,10 +138,10 @@ export function CrisisChat() {
                   <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-crisis-green ring-1 ring-card" />
                 </div>
                 <span className="font-mono text-sm font-semibold text-foreground tracking-wide">
-                  CX
+                  Naya
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Reputation Expert
+                  Crisis Advisor
                 </span>
               </div>
               <div className="flex items-center gap-1">
