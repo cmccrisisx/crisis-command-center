@@ -164,6 +164,16 @@ export default function Signals() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs font-mono"
+              onClick={handleRefreshSignals}
+              disabled={isIngesting}
+            >
+              <RefreshCw className={`h-3 w-3 mr-1.5 ${isIngesting ? "animate-spin" : ""}`} />
+              {isIngesting ? "Ingesting…" : "Refresh Signals"}
+            </Button>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
