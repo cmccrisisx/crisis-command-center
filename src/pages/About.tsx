@@ -1,5 +1,10 @@
+import { useState } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
@@ -35,6 +40,94 @@ const fadeUp = {
     transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as const },
   }),
 };
+
+function BookDemoSection() {
+  const [form, setForm] = useState({ name: "", email: "", company: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || !form.company.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.from("demo_requests").insert({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      company: form.company.trim(),
+      message: form.message.trim() || null,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast.error("Something went wrong. Please try again.");
+    } else {
+      toast.success("Demo request submitted! We'll be in touch shortly.");
+      setForm({ name: "", email: "", company: "", message: "" });
+    }
+  };
+
+  return (
+    <section id="book-demo" className="py-16 px-6 border-t border-border">
+      <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-start">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          custom={0}
+          variants={fadeUp}
+        >
+          <span className="font-mono text-xs uppercase tracking-widest text-crisis-red mb-3 block">
+            Get Started
+          </span>
+          <h2 className="text-3xl font-bold tracking-tight mb-4">Book a Demo</h2>
+          <p className="text-muted-foreground leading-relaxed max-w-md">
+            Schedule a guided walkthrough of the Crisis-X Intelligence Engine. See how Africa's first AI-powered crisis platform can protect your organisation's reputation in real time.
+          </p>
+          <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
+            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-crisis-green" /> 30-minute personalised demo</li>
+            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-crisis-green" /> Live platform walkthrough</li>
+            <li className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-crisis-green" /> Custom use-case discussion</li>
+          </ul>
+        </motion.div>
+
+        <motion.form
+          onSubmit={handleSubmit}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          custom={1}
+          variants={fadeUp}
+          className="space-y-4 bg-card border border-border rounded-sm p-6"
+        >
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Name *</label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your full name" maxLength={100} required />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Work Email *</label>
+            <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@company.com" maxLength={255} required />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Company *</label>
+            <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Organisation name" maxLength={150} required />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Message</label>
+            <Textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Tell us about your crisis communication needs (optional)" maxLength={1000} rows={3} />
+          </div>
+          <Button type="submit" disabled={submitting} className="w-full font-mono text-xs uppercase tracking-wider">
+            {submitting ? "Submitting…" : "Request a Demo"}
+          </Button>
+        </motion.form>
+      </div>
+    </section>
+  );
+}
 
 const modules = [
   {
@@ -533,6 +626,9 @@ export default function About() {
             </motion.div>
           </div>
         </section>
+
+        {/* Book a Demo */}
+        <BookDemoSection />
 
         {/* Decorative risk bars */}
         <div className="flex h-1">
