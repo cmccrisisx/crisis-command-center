@@ -1,11 +1,8 @@
 import { useConversation } from "@elevenlabs/react";
 import { useState, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-// Replace with your ElevenLabs Agent ID after creating it at:
-// https://elevenlabs.io/app/conversational-ai
-const NAYA_AGENT_ID = "PLACEHOLDER_AGENT_ID";
+const NAYA_AGENT_ID = "agent_7001km67j3myeeprr67m00wjsm2c";
 
 export type VoiceStatus = "idle" | "connecting" | "connected";
 
@@ -24,7 +21,6 @@ export function useNayaConversation() {
       setVoiceStatus("connected");
     },
     onDisconnect: () => {
-      // Flush any pending user transcript
       if (pendingUserTranscript.current.trim()) {
         setTranscripts((prev) => [
           ...prev,
@@ -39,9 +35,7 @@ export function useNayaConversation() {
         const text = message.user_transcription_event?.user_transcript;
         if (text) {
           pendingUserTranscript.current = text;
-          // Add committed user transcript
           setTranscripts((prev) => {
-            // Replace last user entry if it was partial, or add new
             const last = prev[prev.length - 1];
             if (last?.role === "user") {
               return [...prev.slice(0, -1), { role: "user", content: text }];
@@ -82,15 +76,6 @@ export function useNayaConversation() {
   });
 
   const startConversation = useCallback(async () => {
-    if (NAYA_AGENT_ID === "PLACEHOLDER_AGENT_ID") {
-      toast({
-        variant: "destructive",
-        title: "Agent not configured",
-        description: "Please set your ElevenLabs Agent ID in useNayaConversation.ts",
-      });
-      return;
-    }
-
     setVoiceStatus("connecting");
     setTranscripts([]);
 
@@ -107,16 +92,8 @@ export function useNayaConversation() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke("naya-voice-token", {
-        body: { agentId: NAYA_AGENT_ID },
-      });
-
-      if (error || !data?.token) {
-        throw new Error("Failed to get voice token");
-      }
-
       await conversation.startSession({
-        conversationToken: data.token,
+        agentId: NAYA_AGENT_ID,
         connectionType: "webrtc",
       });
     } catch (err: any) {
