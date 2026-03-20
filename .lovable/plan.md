@@ -1,64 +1,75 @@
 
 
-# Seed Real-World Demo Data — MTN, Dangote, Zenith Bank
+# Real-Time Signal Ingestion Pipeline — Firecrawl + AI
 
 ## Overview
-Clear all existing demo data (Airtel scenario) and populate the platform with three realistic African brand crisis scenarios using real-world-plausible data. This will make the platform demo-ready with authentic signals, narratives, metrics, and response workflows.
+Build an automated edge function that scrapes real news/social mentions for **MTN Nigeria, Dangote, Zenith Bank, Flutterwave, Opay, and Paystack** using Firecrawl, then uses Lovable AI to extract sentiment, keywords, and crisis relevance before inserting live signals into the database.
 
-## Data Architecture — 3 Crisis Scenarios
+## Architecture
 
-### Crisis 1: MTN Nigeria — Network Outage & Data Breach (CRITICAL, operational)
-- 5G rollout causes widespread service disruption across Lagos, Abuja, Kano
-- Customer data exposure rumor trends on Twitter/X
-- NCC regulatory scrutiny, stock drops on NSE
-- ~40 signals (Twitter, News, LinkedIn, Blog), reputation snapshots over 7 days
+```text
+┌─────────────┐     ┌──────────────────┐     ┌─────────────┐     ┌──────────┐
+│  Cron Job    │────▶│ ingest-signals   │────▶│ Firecrawl   │────▶│ Lovable  │
+│ (every 15m) │     │ Edge Function    │     │ Search API  │     │ AI (NLP) │
+└─────────────┘     └──────────────────┘     └─────────────┘     └──────────┘
+                            │                                          │
+                            ▼                                          ▼
+                    ┌──────────────┐                          Sentiment, keywords,
+                    │ signals table │◀─────────────────────── source classification
+                    └──────────────┘
+```
 
-### Crisis 2: Dangote Refinery — Environmental Compliance Scandal (HIGH, regulatory)
-- Reports of gas flaring violations at Lekki refinery
-- Community protests in Ibeju-Lekki, environmental NGOs amplify
-- NESREA investigation launched, international media picks up
-- ~35 signals, reputation snapshots over 5 days
+## Steps
 
-### Crisis 3: Zenith Bank — Fraud & Customer Trust Crisis (MEDIUM, pr)
-- POS/mobile banking fraud ring exposed, customers report unauthorized debits
-- CBN issues directive, social media outrage trends
-- Zenith's response strategy being monitored
-- ~30 signals, reputation snapshots over 4 days
+### 1. Link Firecrawl connector
+Connect the existing PRAttribution Crawler (Firecrawl) connection to this project so the `FIRECRAWL_API_KEY` is available in edge functions.
 
-## Database Operations (Sequential)
+### 2. Create `ingest-signals` edge function
+- **Brand queries**: Search Firecrawl for each brand: `"MTN Nigeria crisis OR outage OR scandal"`, `"Dangote refinery OR regulation"`, `"Zenith Bank fraud OR customer"`, `"Flutterwave dispute OR shutdown"`, `"Opay fraud OR regulation"`, `"Paystack downtime OR security"`
+- **Deduplication**: Check existing signals by content hash or URL to avoid duplicates
+- **AI enrichment**: For each scraped result, call Lovable AI (gemini-2.5-flash-lite — fast & cheap) with tool calling to extract:
+  - `sentiment`: positive / neutral / negative
+  - `keywords`: array of 3-5 relevant terms
+  - `is_influencer`: boolean based on source authority
+  - `author`: extracted from the article/post
+  - `reach`: estimated from source domain authority
+- **Crisis matching**: Match each signal to the correct crisis record by brand name
+- **Insert**: Batch insert into `signals` table using service role key
 
-### Step 1: Clear existing data
-Truncate in dependency order: `war_room_messages`, `response_log`, `reputation_snapshots`, `narratives`, `signals`, `activity_log`, `response_templates`, `naya_chat_messages`, `notifications`, then `crises`.
+### 3. Schedule with pg_cron
+Set up a cron job to call `ingest-signals` every 15 minutes, keeping the signal feed fresh without hammering APIs.
 
-### Step 2: Insert 3 crises
-Each with realistic title, description, risk level, type, status, sentiment score, signal count.
+### 4. Add manual trigger button
+Add a "Refresh Signals" button on the Signals page that calls the edge function on-demand for instant data pull.
 
-### Step 3: Insert ~105 signals (40 + 35 + 30)
-Real-sounding authors (Nigerian journalists, influencers, analysts), realistic content referencing actual locations, regulators (NCC, NESREA, CBN), stock tickers, and social media patterns. Mix of twitter, news, linkedin, blog sources. Varied sentiment distribution.
+### 5. Create crises for new brands
+Insert 3 new crisis records for Flutterwave, Opay, and Paystack (the existing MTN, Dangote, Zenith Bank crises stay).
 
-### Step 4: Insert ~15 narratives (5 per crisis)
-Trending narrative clusters with keywords, sentiment, risk levels.
+## Technical Details
 
-### Step 5: Insert reputation snapshots
-Time-series data showing sentiment trajectory — declining for active crises, stabilizing for responding ones. ~8 snapshots per crisis across multiple days.
+- **Firecrawl Search API**: `POST /v1/search` with `scrapeOptions: { formats: ['markdown'] }` to get article content
+- **AI model**: `google/gemini-2.5-flash-lite` for signal classification (cheapest, fastest — handles sentiment/keyword extraction easily)
+- **Rate limiting**: 1-second delay between brand searches to respect Firecrawl limits; 6 brands × ~10 results = ~60 signals per run
+- **Dedup strategy**: Store a `source_url` column (new migration) on signals table; skip if URL already exists
+- **Service role**: Edge function uses `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS for inserts
 
-### Step 6: Insert response templates
-6 brand-specific templates (holding statements, apologies, clarifications) tailored to each crisis type.
+## Database Changes
 
-### Step 7: Insert war room messages
-~15 realistic team coordination messages across the 3 crises.
+### Migration: Add `source_url` column to signals
+```sql
+ALTER TABLE public.signals ADD COLUMN IF NOT EXISTS source_url text;
+CREATE UNIQUE INDEX IF NOT EXISTS signals_source_url_unique ON public.signals (source_url) WHERE source_url IS NOT NULL;
+```
 
-### Step 8: Insert activity log entries
-~10 entries showing crisis detection, status changes, response drafts.
+### Insert 3 fintech crisis records
+- **Flutterwave** — Regulatory scrutiny & merchant disputes (HIGH, regulatory)
+- **Opay** — Agent fraud & consumer protection concerns (MEDIUM, operational)
+- **Paystack** — Payment gateway downtime & security review (MEDIUM, operational)
 
-## Technical Notes
-- All inserts use the migration tool's insert capability (data operations, not schema changes)
-- Crisis IDs will use deterministic UUIDs for cross-referencing
-- Timestamps spread across the last 7 days for realistic time-series charts
-- `created_by` on crises set to NULL (seeded data, not user-created)
-- No code changes needed — the UI already renders from these tables dynamically
-
-## Files Modified
-- **Database only** — bulk insert operations across 8 tables
-- No frontend code changes required
+## Files Created/Modified
+- `supabase/functions/ingest-signals/index.ts` — new edge function (Firecrawl search + AI enrichment + DB insert)
+- `src/pages/Signals.tsx` — add "Refresh Signals" button
+- Database migration — add `source_url` column + unique index
+- Database insert — 3 new fintech crisis records
+- pg_cron job — scheduled every 15 minutes
 
