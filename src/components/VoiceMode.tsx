@@ -11,8 +11,8 @@ interface VoiceModeProps {
   isSpeaking: boolean;
   transcripts: { role: "user" | "assistant"; content: string }[];
   onEnd: () => void;
-  getInputByteFrequencyData?: () => Float32Array | undefined;
-  getOutputByteFrequencyData?: () => Float32Array | undefined;
+  getInputByteFrequencyData?: () => Uint8Array | undefined;
+  getOutputByteFrequencyData?: () => Uint8Array | undefined;
 }
 
 function AudioWaveform({
