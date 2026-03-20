@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download, Volume2, VolumeX, Loader2, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
 import { useNayaVoice } from "@/hooks/useNayaVoice";
+import { useNayaConversation } from "@/hooks/useNayaConversation";
+import { VoiceMode } from "@/components/VoiceMode";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,8 +33,10 @@ export function CrisisChat() {
   const [expanded, setExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [reactions, setReactions] = useState<Record<number, "up" | "down">>({});
+  const [voiceMode, setVoiceMode] = useState(false);
   const { messages, isLoading, error, historyLoaded, send, clear, stop } = useCrisisChat();
   const { speak, stop: stopVoice, playingIndex, loading: voiceLoading } = useNayaVoice();
+  const { voiceStatus, isSpeaking, transcripts, startConversation, endConversation } = useNayaConversation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +77,16 @@ export function CrisisChat() {
       sections,
       footer: "Naya Chat Export — Crisis-X Platform",
     });
+  };
+
+  const handleStartVoice = async () => {
+    setVoiceMode(true);
+    await startConversation();
+  };
+
+  const handleEndVoice = async () => {
+    await endConversation();
+    setVoiceMode(false);
   };
 
   const panelSize = expanded
@@ -186,149 +200,161 @@ export function CrisisChat() {
               </div>
             </div>
 
-            {/* Messages */}
+            {/* Messages / Voice Mode */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-              {!historyLoaded && (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
-                    Loading chat history...
-                  </div>
-                </div>
-              )}
-              {historyLoaded && messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
-                  <div className="text-4xl">🛡️</div>
-                  <div>
-                   <p className="text-sm font-semibold text-foreground">
-                      Hey, I'm Naya 👋🏾
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      Your reputation & crisis advisor. From viral storms to boardroom strategy — I've got your back. Let's protect your brand. 🔥
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 justify-center pt-1">
-                    {QUICK_STARTERS.map((q) => (
-                      <button
-                        key={q.label}
-                        onClick={() => send(q.prompt)}
-                        className="text-xs px-2.5 py-1.5 rounded-sm border border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-colors"
-                      >
-                        {q.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {messages.map((msg, i) => (
-                <div key={i}>
-                  <div
-                    className={cn(
-                      "flex",
-                      msg.role === "user" ? "justify-end" : "justify-start"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[85%] text-sm rounded-sm px-3 py-2",
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
-                      )}
-                    >
-                      {msg.role === "assistant" ? (
-                        <div className="prose prose-sm prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
-                      ) : (
-                        msg.content
-                      )}
-                    </div>
-                  </div>
-                  {/* Reactions + Read Aloud for assistant messages */}
-                  {msg.role === "assistant" && !isLoading && (
-                    <div className="flex items-center gap-1 mt-1 ml-1">
-                      <button
-                        onClick={() => speak(msg.content, i)}
-                        className={cn(
-                          "p-1 rounded-sm transition-colors",
-                          playingIndex === i
-                            ? "text-primary bg-primary/10"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                        title={playingIndex === i ? "Stop reading" : "Read aloud"}
-                      >
-                        {voiceLoading && playingIndex === i ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : playingIndex === i ? (
-                          <VolumeX className="h-3 w-3" />
-                        ) : (
-                          <Volume2 className="h-3 w-3" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleReaction(i, "up")}
-                        className={cn(
-                          "p-1 rounded-sm transition-colors",
-                          reactions[i] === "up"
-                            ? "text-crisis-green bg-crisis-green/10"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                      >
-                        <ThumbsUp className="h-3 w-3" />
-                      </button>
-                      <button
-                        onClick={() => handleReaction(i, "down")}
-                        className={cn(
-                          "p-1 rounded-sm transition-colors",
-                          reactions[i] === "down"
-                            ? "text-crisis-red bg-crisis-red/10"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                      >
-                        <ThumbsDown className="h-3 w-3" />
-                      </button>
+              {voiceMode ? (
+                <VoiceMode
+                  voiceStatus={voiceStatus}
+                  isSpeaking={isSpeaking}
+                  transcripts={transcripts}
+                  onEnd={handleEndVoice}
+                />
+              ) : (
+                <>
+                  {!historyLoaded && (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
+                        <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        Loading chat history...
+                      </div>
                     </div>
                   )}
-                </div>
-              ))}
+                  {historyLoaded && messages.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
+                      <div className="text-4xl">🛡️</div>
+                      <div>
+                       <p className="text-sm font-semibold text-foreground">
+                          Hey, I'm Naya 👋🏾
+                        </p>
+                        <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                          Your reputation & crisis advisor. From viral storms to boardroom strategy — I've got your back. Let's protect your brand. 🔥
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 justify-center pt-1">
+                        {QUICK_STARTERS.map((q) => (
+                          <button
+                            key={q.label}
+                            onClick={() => send(q.prompt)}
+                            className="text-xs px-2.5 py-1.5 rounded-sm border border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-colors"
+                          >
+                            {q.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              {/* Personality loading indicator */}
-              {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-                <div className="flex justify-start">
-                  <div className="bg-muted text-muted-foreground text-xs rounded-sm px-3 py-2 font-mono flex items-center gap-2">
-                    <span className="inline-block h-2 w-2 rounded-full bg-crisis-amber animate-pulse" />
-                    Naya is thinking...
-                  </div>
-                </div>
-              )}
-
-              {/* Follow-up chips after last assistant message */}
-              {messages.length > 0 &&
-                messages[messages.length - 1]?.role === "assistant" &&
-                !isLoading && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {FOLLOW_UP_CHIPS.map((chip) => (
-                      <button
-                        key={chip}
-                        onClick={() => send(chip)}
-                        className="text-xs px-2 py-1 rounded-sm border border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-colors"
+                  {messages.map((msg, i) => (
+                    <div key={i}>
+                      <div
+                        className={cn(
+                          "flex",
+                          msg.role === "user" ? "justify-end" : "justify-start"
+                        )}
                       >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                        <div
+                          className={cn(
+                            "max-w-[85%] text-sm rounded-sm px-3 py-2",
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          )}
+                        >
+                          {msg.role === "assistant" ? (
+                            <div className="prose prose-sm prose-invert max-w-none [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:mb-2 [&>ol]:mb-2">
+                              <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                          ) : (
+                            msg.content
+                          )}
+                        </div>
+                      </div>
+                      {/* Reactions + Read Aloud for assistant messages */}
+                      {msg.role === "assistant" && !isLoading && (
+                        <div className="flex items-center gap-1 mt-1 ml-1">
+                          <button
+                            onClick={() => speak(msg.content, i)}
+                            className={cn(
+                              "p-1 rounded-sm transition-colors",
+                              playingIndex === i
+                                ? "text-primary bg-primary/10"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            title={playingIndex === i ? "Stop reading" : "Read aloud"}
+                          >
+                            {voiceLoading && playingIndex === i ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : playingIndex === i ? (
+                              <VolumeX className="h-3 w-3" />
+                            ) : (
+                              <Volume2 className="h-3 w-3" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleReaction(i, "up")}
+                            className={cn(
+                              "p-1 rounded-sm transition-colors",
+                              reactions[i] === "up"
+                                ? "text-crisis-green bg-crisis-green/10"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                          >
+                            <ThumbsUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => handleReaction(i, "down")}
+                            className={cn(
+                              "p-1 rounded-sm transition-colors",
+                              reactions[i] === "down"
+                                ? "text-crisis-red bg-crisis-red/10"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                          >
+                            <ThumbsDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
 
-              {error && (
-                <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
-                  {error}
-                </div>
+                  {/* Personality loading indicator */}
+                  {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted text-muted-foreground text-xs rounded-sm px-3 py-2 font-mono flex items-center gap-2">
+                        <span className="inline-block h-2 w-2 rounded-full bg-crisis-amber animate-pulse" />
+                        Naya is thinking...
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Follow-up chips after last assistant message */}
+                  {messages.length > 0 &&
+                    messages[messages.length - 1]?.role === "assistant" &&
+                    !isLoading && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {FOLLOW_UP_CHIPS.map((chip) => (
+                          <button
+                            key={chip}
+                            onClick={() => send(chip)}
+                            className="text-xs px-2 py-1 rounded-sm border border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/30 transition-colors"
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                  {error && (
+                    <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-sm px-3 py-2">
+                      {error}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             {/* Input */}
+            {!voiceMode && (
             <div className="border-t border-border p-3">
               <form
                 onSubmit={(e) => {
@@ -356,17 +382,30 @@ export function CrisisChat() {
                     <Square className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    disabled={!input.trim()}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                      onClick={handleStartVoice}
+                      title="Voice conversation"
+                    >
+                      <Mic className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="submit"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      disabled={!input.trim()}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </>
                 )}
               </form>
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
