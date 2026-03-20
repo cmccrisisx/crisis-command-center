@@ -413,6 +413,7 @@ export type Database = {
           reach: number | null
           sentiment: Database["public"]["Enums"]["sentiment_type"]
           source: Database["public"]["Enums"]["signal_source"]
+          source_url: string | null
         }
         Insert: {
           author: string
@@ -427,6 +428,7 @@ export type Database = {
           reach?: number | null
           sentiment?: Database["public"]["Enums"]["sentiment_type"]
           source: Database["public"]["Enums"]["signal_source"]
+          source_url?: string | null
         }
         Update: {
           author?: string
@@ -441,6 +443,7 @@ export type Database = {
           reach?: number | null
           sentiment?: Database["public"]["Enums"]["sentiment_type"]
           source?: Database["public"]["Enums"]["signal_source"]
+          source_url?: string | null
         }
         Relationships: [
           {
