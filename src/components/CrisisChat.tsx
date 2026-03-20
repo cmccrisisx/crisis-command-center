@@ -36,7 +36,7 @@ export function CrisisChat() {
   const [voiceMode, setVoiceMode] = useState(false);
   const { messages, isLoading, error, historyLoaded, send, clear, stop } = useCrisisChat();
   const { speak, stop: stopVoice, playingIndex, loading: voiceLoading } = useNayaVoice();
-  const { voiceStatus, isSpeaking, transcripts, startConversation, endConversation } = useNayaConversation();
+  const { voiceStatus, isSpeaking, transcripts, startConversation, endConversation, getInputByteFrequencyData, getOutputByteFrequencyData } = useNayaConversation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,6 +208,8 @@ export function CrisisChat() {
                   isSpeaking={isSpeaking}
                   transcripts={transcripts}
                   onEnd={handleEndVoice}
+                  getInputByteFrequencyData={getInputByteFrequencyData}
+                  getOutputByteFrequencyData={getOutputByteFrequencyData}
                 />
               ) : (
                 <>

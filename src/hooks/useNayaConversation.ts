@@ -117,5 +117,9 @@ export function useNayaConversation() {
     transcripts,
     startConversation,
     endConversation,
+    getInputVolume: conversation.getInputVolume,
+    getOutputVolume: conversation.getOutputVolume,
+    getInputByteFrequencyData: conversation.getInputByteFrequencyData,
+    getOutputByteFrequencyData: conversation.getOutputByteFrequencyData,
   };
 }
