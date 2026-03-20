@@ -65,7 +65,7 @@ export function CrisisChat() {
       content: msg.content,
     }));
     exportToPDF({
-      title: "CX Chat Transcript",
+      title: "Naya Chat Transcript",
       subtitle: "Crisis X AI Conversation Export",
       date: new Date().toLocaleString(),
       sections,
