@@ -171,14 +171,14 @@ export default function WarRoom() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-mono font-bold tracking-tight">War Room</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">War Room</h1>
             {selectedCrisis && <RiskBadge level={selectedCrisis.risk_level} pulse />}
           </div>
           <div className="flex items-center gap-3">
             <Select value={selectedCrisisId ?? ""} onValueChange={setSelectedCrisisId}>
-              <SelectTrigger className="w-[280px] text-xs font-mono bg-card">
+              <SelectTrigger className="w-full sm:w-[280px] text-xs font-mono bg-card">
                 <SelectValue placeholder="Select crisis..." />
               </SelectTrigger>
               <SelectContent>
@@ -193,7 +193,7 @@ export default function WarRoom() {
               </SelectContent>
             </Select>
             {selectedCrisis && (
-              <span className="text-xs font-mono text-muted-foreground tabular-nums">
+              <span className="text-xs font-mono text-muted-foreground tabular-nums hidden sm:inline">
                 {new Date(selectedCrisis.detected_at).toLocaleTimeString()}
               </span>
             )}
