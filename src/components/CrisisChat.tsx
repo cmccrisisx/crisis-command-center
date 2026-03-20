@@ -61,7 +61,7 @@ export function CrisisChat() {
   const handleExportPDF = () => {
     if (messages.length === 0) return;
     const sections = messages.map((msg) => ({
-      title: msg.role === "user" ? "You" : "CX — Crisis Assistant",
+      title: msg.role === "user" ? "You" : "Naya — Crisis Advisor",
       content: msg.content,
     }));
     exportToPDF({
