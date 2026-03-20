@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download } from "lucide-react";
+import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
+import { useNayaVoice } from "@/hooks/useNayaVoice";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,7 @@ export function CrisisChat() {
   const [input, setInput] = useState("");
   const [reactions, setReactions] = useState<Record<number, "up" | "down">>({});
   const { messages, isLoading, error, historyLoaded, send, clear, stop } = useCrisisChat();
+  const { speak, stop: stopVoice, playingIndex, loading: voiceLoading } = useNayaVoice();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -244,9 +246,27 @@ export function CrisisChat() {
                       )}
                     </div>
                   </div>
-                  {/* Reactions for assistant messages */}
+                  {/* Reactions + Read Aloud for assistant messages */}
                   {msg.role === "assistant" && !isLoading && (
                     <div className="flex items-center gap-1 mt-1 ml-1">
+                      <button
+                        onClick={() => speak(msg.content, i)}
+                        className={cn(
+                          "p-1 rounded-sm transition-colors",
+                          playingIndex === i
+                            ? "text-primary bg-primary/10"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        title={playingIndex === i ? "Stop reading" : "Read aloud"}
+                      >
+                        {voiceLoading && playingIndex === i ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : playingIndex === i ? (
+                          <VolumeX className="h-3 w-3" />
+                        ) : (
+                          <Volume2 className="h-3 w-3" />
+                        )}
+                      </button>
                       <button
                         onClick={() => handleReaction(i, "up")}
                         className={cn(
