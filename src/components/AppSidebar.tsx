@@ -64,7 +64,21 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const isActive = (path: string) => location.pathname === path;
+
+  const { data: demoCount = 0 } = useQuery({
+    queryKey: ["demo-requests-count"],
+    enabled: isAdmin,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("demo_requests")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const visibleMain = mainNav.filter((item) => isAllowed(item, roles));
   const visibleSettings = settingsNav.filter((item) => isAllowed(item, roles));
