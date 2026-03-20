@@ -171,14 +171,14 @@ export default function WarRoom() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-mono font-bold tracking-tight">War Room</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">War Room</h1>
             {selectedCrisis && <RiskBadge level={selectedCrisis.risk_level} pulse />}
           </div>
           <div className="flex items-center gap-3">
             <Select value={selectedCrisisId ?? ""} onValueChange={setSelectedCrisisId}>
-              <SelectTrigger className="w-[280px] text-xs font-mono bg-card">
+              <SelectTrigger className="w-full sm:w-[280px] text-xs font-mono bg-card">
                 <SelectValue placeholder="Select crisis..." />
               </SelectTrigger>
               <SelectContent>
@@ -193,7 +193,7 @@ export default function WarRoom() {
               </SelectContent>
             </Select>
             {selectedCrisis && (
-              <span className="text-xs font-mono text-muted-foreground tabular-nums">
+              <span className="text-xs font-mono text-muted-foreground tabular-nums hidden sm:inline">
                 {new Date(selectedCrisis.detected_at).toLocaleTimeString()}
               </span>
             )}
@@ -225,31 +225,29 @@ export default function WarRoom() {
             <CardTitle className="text-sm font-mono uppercase tracking-wider">Chain of Command</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2">
-              {approvalSteps.map((step, i) => (
-                <div key={step.label} className="flex items-center gap-2 flex-1">
-                  <div
-                    className={`flex-1 p-3 rounded-sm border text-center ${
-                      step.status === "complete"
-                        ? "bg-crisis-green/10 border-crisis-green/30"
-                        : step.status === "current"
-                        ? "bg-crisis-amber/10 border-crisis-amber/30"
-                        : "bg-secondary border-border"
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-1.5 mb-1">
-                      {step.status === "complete" ? (
-                        <CheckCircle className="h-3.5 w-3.5 text-crisis-green" />
-                      ) : step.status === "current" ? (
-                        <Clock className="h-3.5 w-3.5 text-crisis-amber" />
-                      ) : (
-                        <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground" />
-                      )}
-                      <span className="text-xs font-mono font-semibold">{step.label}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">{step.assignee}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {approvalSteps.map((step) => (
+                <div
+                  key={step.label}
+                  className={`p-3 rounded-sm border text-center ${
+                    step.status === "complete"
+                      ? "bg-crisis-green/10 border-crisis-green/30"
+                      : step.status === "current"
+                      ? "bg-crisis-amber/10 border-crisis-amber/30"
+                      : "bg-secondary border-border"
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1.5 mb-1">
+                    {step.status === "complete" ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-crisis-green" />
+                    ) : step.status === "current" ? (
+                      <Clock className="h-3.5 w-3.5 text-crisis-amber" />
+                    ) : (
+                      <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground" />
+                    )}
+                    <span className="text-xs font-mono font-semibold">{step.label}</span>
                   </div>
-                  {i < approvalSteps.length - 1 && <div className="text-muted-foreground text-xs">→</div>}
+                  <p className="text-[10px] text-muted-foreground">{step.assignee}</p>
                 </div>
               ))}
             </div>

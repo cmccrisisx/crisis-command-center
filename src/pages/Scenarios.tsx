@@ -76,14 +76,14 @@ export default function Scenarios() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">Scenario Simulation</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Scenario Simulation</h1>
             <p className="text-sm text-muted-foreground mt-1">
               AI-powered outcome projections for response strategies
             </p>
           </div>
-          <Badge variant="outline" className="text-xs font-mono h-5 px-2 border-crisis-purple/30 text-crisis-purple">
+          <Badge variant="outline" className="text-xs font-mono h-5 px-2 border-crisis-purple/30 text-crisis-purple shrink-0">
             <FlaskConical className="h-3 w-3 mr-1" />
             STRATEGIZE MODULE
           </Badge>

@@ -238,9 +238,9 @@ export default function Reports() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">Reports</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Reports</h1>
             <p className="text-sm text-muted-foreground mt-1">Generate and export crisis reports</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

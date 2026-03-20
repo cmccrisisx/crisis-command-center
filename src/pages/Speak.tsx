@@ -169,16 +169,16 @@ export default function Speak() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">SPEAK — Response Center</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">SPEAK — Response Center</h1>
             <p className="text-sm text-muted-foreground mt-1">Draft, review, approve, and publish crisis responses</p>
           </div>
           <WorkflowLegend roles={roles} />
         </div>
 
         <Tabs defaultValue="queue" className="space-y-4">
-          <TabsList className="bg-secondary">
+          <TabsList className="bg-secondary w-full overflow-x-auto justify-start sm:w-auto sm:justify-center">
             <TabsTrigger value="queue" className="text-xs font-mono gap-1.5">
               <ShieldCheck className="h-3 w-3" /> Approval Queue
             </TabsTrigger>

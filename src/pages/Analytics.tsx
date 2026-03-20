@@ -89,7 +89,7 @@ export default function Analytics() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-mono font-bold tracking-tight">Analytics</h1>
+          <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Analytics</h1>
           <p className="text-sm text-muted-foreground mt-1">Deep-dive into crisis data & trends</p>
         </div>
 
