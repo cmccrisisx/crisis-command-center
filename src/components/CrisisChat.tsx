@@ -79,6 +79,20 @@ export function CrisisChat() {
     });
   };
 
+  const handleStartVoice = async () => {
+    setVoiceMode(true);
+    await startConversation();
+  };
+
+  const handleEndVoice = async () => {
+    await endConversation();
+    // Append transcripts to chat
+    transcripts.forEach((t) => {
+      send.__appendMessage?.(t.role, t.content);
+    });
+    setVoiceMode(false);
+  };
+
   const panelSize = expanded
     ? "w-[calc(100vw-2rem)] sm:w-[680px] h-[calc(100dvh-3rem)] sm:h-[700px]"
     : "w-[calc(100vw-2rem)] sm:w-[380px] h-[calc(100dvh-3rem)] sm:h-[520px]";
