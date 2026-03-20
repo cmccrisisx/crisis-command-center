@@ -389,6 +389,7 @@ export default function SettingsPage() {
           </Card>
         )}
 
+        <Card>
           <CardHeader>
             <CardTitle className="text-sm font-mono uppercase tracking-wider">Alert Thresholds</CardTitle>
           </CardHeader>
