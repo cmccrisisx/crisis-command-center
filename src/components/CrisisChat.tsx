@@ -69,7 +69,7 @@ export function CrisisChat() {
       subtitle: "Naya AI Conversation Export",
       date: new Date().toLocaleString(),
       sections,
-      footer: "CX Chat Export — Crisis-X Platform",
+      footer: "Naya Chat Export — Crisis-X Platform",
     });
   };
 
