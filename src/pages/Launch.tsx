@@ -84,18 +84,31 @@ export default function Launch() {
         <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(hsl(var(--muted-foreground)) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
 
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} className="relative z-10 text-center max-w-4xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm border border-crisis-red/30 bg-crisis-red/5 text-crisis-red text-xs font-mono uppercase tracking-widest mb-8">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-8"
+          >
+            <img
+              src={crisisXLogo}
+              alt="Crisis-X by CMC Connect LLP"
+              className="w-28 h-28 sm:w-36 sm:h-36 rounded-full mx-auto ring-2 ring-border/30 shadow-lg shadow-crisis-red/10"
+            />
+          </motion.div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm border border-crisis-red/30 bg-crisis-red/5 text-crisis-red text-xs font-mono uppercase tracking-widest mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-crisis-red animate-pulse-glow" />
             Official Launch — Wednesday 2025
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[0.95] mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[0.95] mb-4">
             Crisis-<span className="text-crisis-red">X</span>
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-4 text-balance">
+          <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-2 text-balance">
             Africa's First AI-Powered Crisis Intelligence Engine
           </p>
-          <p className="text-sm font-mono text-muted-foreground/60 uppercase tracking-widest mb-10">
-            by CMC Connect LLP
+          <p className="text-xs font-mono text-muted-foreground/50 uppercase tracking-widest mb-8">
+            A Specialised Crisis Management & Communication Service by CMC Connect LLP
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild size="lg" className="bg-crisis-red hover:bg-crisis-red/90 text-white rounded-sm">
