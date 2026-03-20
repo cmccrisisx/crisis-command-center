@@ -86,10 +86,6 @@ export function CrisisChat() {
 
   const handleEndVoice = async () => {
     await endConversation();
-    // Append transcripts to chat
-    transcripts.forEach((t) => {
-      send.__appendMessage?.(t.role, t.content);
-    });
     setVoiceMode(false);
   };
 
