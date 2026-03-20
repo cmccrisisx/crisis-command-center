@@ -321,7 +321,7 @@ export function CrisisChat() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask CX anything..."
+                  placeholder="Ask Naya anything..."
                   className="flex-1 bg-muted/50 border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   disabled={isLoading}
                 />
