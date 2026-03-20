@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Save, X, Shield, Loader2, Plus, Minus, PlayCircle } from "lucide-react";
+import { Save, X, Shield, Loader2, Plus, Minus, PlayCircle, Inbox, Trash2, Mail } from "lucide-react";
 import { useLaunchTour } from "@/components/DemoWalkthrough";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
