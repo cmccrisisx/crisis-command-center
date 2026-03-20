@@ -1,3 +1,6 @@
+# Memory: index.md
+Updated: now
+
 Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono font, sharp geometric components
 
 ## Design System
@@ -8,37 +11,15 @@ Crisis X platform - dark-mode-first Bloomberg Terminal aesthetic, JetBrains Mono
 - Risk levels: critical/high/medium/low with color-coded badges
 - No rounded bubbles — sharp sm radius (0.25rem)
 - Global risk bar at top of every page (1px, color-coded)
-- Outline button variant includes text-foreground globally (no per-button overrides)
 
 ## Architecture
 - 5 modules: SIGNAL, SENSE, STRATEGIZE, SPEAK, STABILIZE
-- Pages: Dashboard(/), Signals, War Room, Speak(/speak), Analytics, Stabilize(/stabilize), Reports, Settings
-- Mock data engine in src/lib/mock-data.ts (Airtel Nigeria outage scenario)
+- Pages: Dashboard(/), Signals, War Room, Analytics, Reports, Settings
 - Dark mode forced via .dark wrapper in App.tsx
+- AI advisor: **Naya** (not CX) — modern African professional woman persona
+- Chat table: `naya_chat_messages` (renamed from cx_chat_messages)
+- Avatar: `src/assets/naya-avatar.png`
 
-## Database Tables (Lovable Cloud)
-- crises, signals, narratives, response_templates, response_log, war_room_messages, reputation_snapshots, profiles, user_roles, activity_log
-- Enums: crisis_status, crisis_type, risk_level, sentiment_type, signal_source, response_template_type, approval_status
-- Realtime enabled on: war_room_messages, signals, response_log
-- All tables have RLS for authenticated users
-- Settings preferences persisted to profiles.preferences JSONB column
-
-## Seeded Data — Airtel Nigeria Telecom Outage
-- Crisis: "Major Network Outage — Airtel Nigeria" (id: a1b2c3d4-e5f6-7890-abcd-ef1234567890)
-- 22 signals (12 updated + 10 new): TechCabal, Channels TV, NCC, MTN/Glo competitors, fintech impact
-- 5 narrative clusters: Emergency services, NSE impact, NCC scrutiny, customer churn, mobile banking disruption
-- 12 reputation snapshots with realistic crisis timeline sentiment curve
-- Stakeholders: Subscribers, Investors (NSE), NCC/Regulators, Fintech Partners, Nigerian Media
-
-## AI
-- CrisisAI panel: sentiment, narrative, response, emotional, reputation, draft_response, post_crisis_summary, scenario_simulation
-- Edge function: supabase/functions/crisis-ai/index.ts (Lovable AI gateway, gemini-3-flash-preview)
-- Conversational AI agent "CX": supabase/functions/crisis-chat/index.ts + src/components/CrisisChat.tsx
-- CX mounted in AppLayout — floating chat bubble on every page
-
-## Auth & RBAC
-- Roles: admin, pr_manager, legal_reviewer, social_manager
-- has_role() security definer function
-- Default role on signup: pr_manager (via handle_new_user trigger)
-- Role-based nav filtering in sidebar
-- Admin role management UI on Settings page (manage-roles edge function)
+## Pending
+- Real-time data subscriptions
+- Email notifications for demo requests (needs domain setup)
