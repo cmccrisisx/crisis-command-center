@@ -1,71 +1,63 @@
 
 
-# Final Webapp Polish and Production Hardening
+# Crisis-X Launch Pitch — Both PPTX + Web Page
 
-## Security Findings (3 Critical, 5 Warnings)
+## Deliverables
 
-The security scan found real issues that need fixing before go-live:
+### 1. PowerPoint Deck (.pptx) — 12-14 slides
+A premium, dark-themed slide deck matching the Crisis-X aesthetic (dark obsidian background, Crisis Red accents, JetBrains Mono font feel). For the Wednesday stage presentation.
 
-### Critical — RLS Policy Fixes
+**Slide outline:**
+1. **Title Slide** — "Crisis-X: Africa's First AI-Powered Crisis Intelligence Engine" | CMC Connect LLP | Launch Date
+2. **The Problem** — Crises move faster than teams can respond. Stats on reputation damage speed, social media amplification
+3. **Introducing Crisis-X** — One-line positioning: "Detect. Analyze. Respond. Recover. In real time."
+4. **The 5-Module Architecture** — Visual diagram: SIGNAL → SENSE → STRATEGIZE → SPEAK → STABILIZE with color-coded icons
+5. **SIGNAL: Detect** — Multi-source ingestion, AI filtering, influencer detection
+6. **SENSE: Analyze** — Narrative clustering, sentiment analysis, reputation scoring
+7. **STRATEGIZE: Plan** — War Room, scenario modeling, AI-generated holding statements
+8. **SPEAK: Respond** — Multi-channel publishing, approval workflows, audit trail
+9. **STABILIZE: Recover** — Reputation monitoring, media reach, post-crisis reporting
+10. **Meet Naya** — AI Crisis Advisor with real-time voice conversation (ElevenLabs), chat, scenario analysis
+11. **User Flow** — 5-step visual journey from signal detection to reputation recovery
+12. **Industry Use Cases** — 6 sectors: Corporate, Government, Telecoms, Oil & Gas, Healthcare, Aviation
+13. **Platform Highlights** — Key stats (< 60s detection, real-time AI, RBAC, PWA, PDF export)
+14. **Call to Action** — Book a demo, get started, contact CMC Connect LLP
 
-**1. `demo_requests` table** — any authenticated user can read all emails/contacts and delete any request
-- Fix: Restrict SELECT and DELETE to admins only using `has_role(auth.uid(), 'admin')`
+### 2. Interactive Web Launch Page (`/launch`)
+A new route in the app — a cinematic, scroll-driven page designed for sharing online post-event.
 
-**2. `user_roles` table** — all authenticated users can see everyone's roles (privilege enumeration)
-- Fix: Restrict SELECT to own roles: `USING (auth.uid() = user_id)`
+**Sections:**
+- Hero with animated logo reveal + launch announcement
+- Problem statement with animated counters
+- 5-module showcase with hover/scroll animations
+- Naya AI advisor spotlight
+- User flow timeline (interactive)
+- Industry use cases grid
+- CTA: Book Demo + Get Started buttons
 
-**3. `response_log` UPDATE** — any user can update any response (including approving their own)
-- Fix: Restrict UPDATE to owner (`auth.uid() = user_id`) OR admin role
+## Technical Details
 
-### Warnings — Tighten Permissive Policies
+### PPTX Generation
+- Use `pptxgenjs` via `lov-exec` script
+- Dark theme: background `#0A0B0F`, text white/ice, accents Crisis Red `#E02D3C`
+- Color palette per module: red (Signal), purple (Sense), amber (Strategize), blue (Speak), green (Stabilize)
+- Embed the Crisis-X logo from `src/assets/crisis-x-logo.jpeg`
+- Output to `/mnt/documents/crisis-x-launch-pitch.pptx`
+- QA via LibreOffice → PDF → image inspection
 
-**4. `crises` UPDATE** — any user can modify any crisis
-- Fix: Restrict to creator (`auth.uid() = created_by`) OR admin
+### Web Launch Page
+- New file: `src/pages/Launch.tsx`
+- Route: `/launch` (public, no auth required)
+- Uses framer-motion for scroll animations
+- Reuses existing design tokens and Crisis-X branding
+- Mobile responsive from the start
+- Links to `/auth?signup=true` and `/about#book-demo`
 
-**5. `response_templates` UPDATE** — any user can edit anyone's templates
-- Fix: Restrict to creator (`auth.uid() = created_by`) OR admin
+### Route Update
+- `src/App.tsx` — add `/launch` route
 
-**6. `narratives` INSERT WITH CHECK** — currently `true`, should be `auth.uid() IS NOT NULL` (minor)
-
-**7. `reputation_snapshots` INSERT WITH CHECK** — same as above
-
-**8. Leaked password protection** — disabled in auth config
-- Fix: Enable via auth configuration
-
-### Tables with acceptable `USING(true)` SELECT (no change needed)
-- `crises`, `narratives`, `reputation_snapshots`, `response_log`, `response_templates`, `signals`, `activity_log`, `profiles` — team-wide read access is intentional for a crisis platform
-
-## UI Polish
-
-### 9. `NotFound.tsx` — doesn't match dark theme
-- Uses `bg-muted` instead of the app's dark aesthetic
-- Fix: Restyle with dark background, Crisis X branding, and a proper "Return to Dashboard" button
-
-### 10. Loading states consistency
-- `ProtectedRoute` and `LandingOrDashboard` both have custom loaders — these are fine, already branded
-
-## Implementation
-
-### Database Migration (single SQL migration)
-Drop and recreate the overly permissive policies:
-- `demo_requests`: admin-only SELECT and DELETE
-- `user_roles`: own-roles-only SELECT
-- `response_log`: owner-or-admin UPDATE
-- `crises`: creator-or-admin UPDATE
-- `response_templates`: creator-or-admin UPDATE
-- `narratives`: tighten INSERT WITH CHECK
-- `reputation_snapshots`: tighten INSERT WITH CHECK
-
-### Auth Config
-- Enable leaked password protection
-
-### File Changes
-- `src/pages/NotFound.tsx` — restyle to match Crisis X dark theme
-
-## Files Modified
-- `src/pages/NotFound.tsx` — visual polish
-- 1 database migration — RLS hardening (7 policy replacements)
-- Auth config update — leaked password protection
-
-No edge function or component logic changes needed.
+## Files Created/Modified
+- `/mnt/documents/crisis-x-launch-pitch.pptx` — downloadable slide deck
+- `src/pages/Launch.tsx` — interactive web launch page
+- `src/App.tsx` — add route
 
