@@ -13,6 +13,8 @@ import crisisLogo from "@/assets/crisis-x-logo.jpeg";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -62,7 +64,21 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const isActive = (path: string) => location.pathname === path;
+
+  const { data: demoCount = 0 } = useQuery({
+    queryKey: ["demo-requests-count"],
+    enabled: isAdmin,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("demo_requests")
+        .select("*", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const visibleMain = mainNav.filter((item) => isAllowed(item, roles));
   const visibleSettings = settingsNav.filter((item) => isAllowed(item, roles));
@@ -122,6 +138,11 @@ export function AppSidebar() {
                       >
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
+                        {item.url === "/settings" && demoCount > 0 && (
+                          <span className="ml-auto inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-sm bg-crisis-red text-[9px] font-mono font-bold text-white tabular-nums">
+                            {demoCount}
+                          </span>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
