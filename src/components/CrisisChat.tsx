@@ -198,11 +198,11 @@ export function CrisisChat() {
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
                   <div className="text-4xl">🛡️</div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      yo, i'm CX
+                   <p className="text-sm font-semibold text-foreground">
+                      Hey, I'm Naya 👋🏾
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      Your reputation management expert. I've seen every type of crisis — from viral TikToks to boardroom meltdowns. Let's protect your brand. 🔥
+                      Your reputation & crisis advisor. From viral storms to boardroom strategy — I've got your back. Let's protect your brand. 🔥
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 justify-center pt-1">
