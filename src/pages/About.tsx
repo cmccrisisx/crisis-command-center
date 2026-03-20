@@ -539,6 +539,9 @@ export default function About() {
           </div>
         </section>
 
+        {/* Book a Demo */}
+        <BookDemoSection />
+
         {/* Decorative risk bars */}
         <div className="flex h-1">
           <div className="flex-1 bg-risk-critical" />
