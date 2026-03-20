@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, Filter, Loader2, Radio } from "lucide-react";
+import { Search, Filter, Loader2, Radio, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -26,6 +27,34 @@ export default function Signals() {
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
   const [realtimeCount, setRealtimeCount] = useState(0);
+  const [isIngesting, setIsIngesting] = useState(false);
+
+  const handleRefreshSignals = async () => {
+    setIsIngesting(true);
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-signals`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      const data = await resp.json();
+      if (data.success) {
+        toast.success(`Ingested ${data.inserted} new signals`);
+        queryClient.invalidateQueries({ queryKey: ["signals"] });
+      } else {
+        toast.error(data.error || "Ingestion failed");
+      }
+    } catch (e) {
+      toast.error("Failed to refresh signals");
+    } finally {
+      setIsIngesting(false);
+    }
+  };
 
   const { data: signals = [], isLoading } = useQuery({
     queryKey: ["signals"],
@@ -135,6 +164,16 @@ export default function Signals() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs font-mono"
+              onClick={handleRefreshSignals}
+              disabled={isIngesting}
+            >
+              <RefreshCw className={`h-3 w-3 mr-1.5 ${isIngesting ? "animate-spin" : ""}`} />
+              {isIngesting ? "Ingesting…" : "Refresh Signals"}
+            </Button>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
