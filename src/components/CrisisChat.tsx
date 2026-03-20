@@ -106,7 +106,7 @@ export function CrisisChat() {
                 onClick={() => setOpen(true)}
                 className="relative h-14 w-14 rounded-full overflow-hidden ring-2 ring-primary/60 shadow-lg shadow-primary/30 hover:ring-primary hover:shadow-xl hover:shadow-primary/40 transition-all"
               >
-                <img src={cxAvatar} alt="CX Assistant" className="h-full w-full object-cover" />
+                <img src={nayaAvatar} alt="Naya" className="h-full w-full object-cover" />
               </button>
             </div>
             <span className="text-[10px] font-mono text-muted-foreground tracking-wide">
