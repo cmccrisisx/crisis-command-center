@@ -110,7 +110,7 @@ export function CrisisChat() {
               </button>
             </div>
             <span className="text-[10px] font-mono text-muted-foreground tracking-wide">
-              Chat with CX
+              Chat with Naya
             </span>
           </motion.div>
         )}
