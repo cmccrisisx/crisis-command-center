@@ -1,0 +1,1 @@
+ALTER TABLE public.cx_chat_messages RENAME TO naya_chat_messages;

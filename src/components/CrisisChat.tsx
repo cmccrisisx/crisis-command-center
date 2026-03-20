@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { exportToPDF } from "@/lib/pdf-export";
-import cxAvatar from "@/assets/cx-avatar.png";
+import nayaAvatar from "@/assets/naya-avatar.png";
 
 const QUICK_STARTERS = [
   { label: "🔥 Triage a crisis", prompt: "I have an active crisis situation. Help me triage it — what's the severity, recommended response time, and top 3 actions?" },
@@ -61,15 +61,15 @@ export function CrisisChat() {
   const handleExportPDF = () => {
     if (messages.length === 0) return;
     const sections = messages.map((msg) => ({
-      title: msg.role === "user" ? "You" : "CX — Crisis Assistant",
+      title: msg.role === "user" ? "You" : "Naya — Crisis Advisor",
       content: msg.content,
     }));
     exportToPDF({
-      title: "CX Chat Transcript",
-      subtitle: "Crisis X AI Conversation Export",
+      title: "Naya Chat Transcript",
+      subtitle: "Naya AI Conversation Export",
       date: new Date().toLocaleString(),
       sections,
-      footer: "CX Chat Export — Crisis-X Platform",
+      footer: "Naya Chat Export — Crisis-X Platform",
     });
   };
 
@@ -96,7 +96,7 @@ export function CrisisChat() {
                 transition={{ delay: 1 }}
                 className="whitespace-nowrap bg-card border border-border text-card-foreground text-xs px-3 py-1.5 rounded-sm shadow-md"
               >
-                Ask CX anything ⚡
+                Ask Naya anything ⚡
               </motion.div>
             )}
             <div className="relative">
@@ -106,11 +106,11 @@ export function CrisisChat() {
                 onClick={() => setOpen(true)}
                 className="relative h-14 w-14 rounded-full overflow-hidden ring-2 ring-primary/60 shadow-lg shadow-primary/30 hover:ring-primary hover:shadow-xl hover:shadow-primary/40 transition-all"
               >
-                <img src={cxAvatar} alt="CX Assistant" className="h-full w-full object-cover" />
+                <img src={nayaAvatar} alt="Naya" className="h-full w-full object-cover" />
               </button>
             </div>
             <span className="text-[10px] font-mono text-muted-foreground tracking-wide">
-              Chat with CX
+              Chat with Naya
             </span>
           </motion.div>
         )}
@@ -134,14 +134,14 @@ export function CrisisChat() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <img src={cxAvatar} alt="CX" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/40" />
+                  <img src={nayaAvatar} alt="Naya" className="h-6 w-6 rounded-full object-cover ring-1 ring-primary/40" />
                   <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-crisis-green ring-1 ring-card" />
                 </div>
                 <span className="font-mono text-sm font-semibold text-foreground tracking-wide">
-                  CX
+                  Naya
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Reputation Expert
+                  Crisis Advisor
                 </span>
               </div>
               <div className="flex items-center gap-1">
@@ -198,11 +198,11 @@ export function CrisisChat() {
                 <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-4">
                   <div className="text-4xl">🛡️</div>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      yo, i'm CX
+                   <p className="text-sm font-semibold text-foreground">
+                      Hey, I'm Naya 👋🏾
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                      Your reputation management expert. I've seen every type of crisis — from viral TikToks to boardroom meltdowns. Let's protect your brand. 🔥
+                      Your reputation & crisis advisor. From viral storms to boardroom strategy — I've got your back. Let's protect your brand. 🔥
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 justify-center pt-1">
@@ -279,7 +279,7 @@ export function CrisisChat() {
                 <div className="flex justify-start">
                   <div className="bg-muted text-muted-foreground text-xs rounded-sm px-3 py-2 font-mono flex items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full bg-crisis-amber animate-pulse" />
-                    CX is cooking...
+                    Naya is thinking...
                   </div>
                 </div>
               )}
@@ -321,7 +321,7 @@ export function CrisisChat() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask CX anything..."
+                  placeholder="Ask Naya anything..."
                   className="flex-1 bg-muted/50 border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                   disabled={isLoading}
                 />

@@ -56,9 +56,9 @@ const TOUR_STEPS: TourStep[] = [
     target: "topbar",
   },
   {
-    title: "AI Advisor — CX",
+    title: "AI Advisor — Naya",
     description:
-      "The floating chat bubble gives you instant access to the Crisis AI advisor — ask about risk assessments, draft responses, or get strategic recommendations.",
+      "The floating chat bubble gives you instant access to Naya, your AI crisis advisor — ask about risk assessments, draft responses, or get strategic recommendations.",
     icon: "🤖",
     target: "chat-bubble",
   },
