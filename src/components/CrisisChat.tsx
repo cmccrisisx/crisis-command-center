@@ -33,8 +33,10 @@ export function CrisisChat() {
   const [expanded, setExpanded] = useState(false);
   const [input, setInput] = useState("");
   const [reactions, setReactions] = useState<Record<number, "up" | "down">>({});
+  const [voiceMode, setVoiceMode] = useState(false);
   const { messages, isLoading, error, historyLoaded, send, clear, stop } = useCrisisChat();
   const { speak, stop: stopVoice, playingIndex, loading: voiceLoading } = useNayaVoice();
+  const { voiceStatus, isSpeaking, transcripts, startConversation, endConversation } = useNayaConversation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
