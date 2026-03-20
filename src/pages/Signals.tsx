@@ -27,6 +27,34 @@ export default function Signals() {
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
   const [realtimeCount, setRealtimeCount] = useState(0);
+  const [isIngesting, setIsIngesting] = useState(false);
+
+  const handleRefreshSignals = async () => {
+    setIsIngesting(true);
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-signals`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      const data = await resp.json();
+      if (data.success) {
+        toast.success(`Ingested ${data.inserted} new signals`);
+        queryClient.invalidateQueries({ queryKey: ["signals"] });
+      } else {
+        toast.error(data.error || "Ingestion failed");
+      }
+    } catch (e) {
+      toast.error("Failed to refresh signals");
+    } finally {
+      setIsIngesting(false);
+    }
+  };
 
   const { data: signals = [], isLoading } = useQuery({
     queryKey: ["signals"],
