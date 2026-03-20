@@ -246,9 +246,27 @@ export function CrisisChat() {
                       )}
                     </div>
                   </div>
-                  {/* Reactions for assistant messages */}
+                  {/* Reactions + Read Aloud for assistant messages */}
                   {msg.role === "assistant" && !isLoading && (
                     <div className="flex items-center gap-1 mt-1 ml-1">
+                      <button
+                        onClick={() => speak(msg.content, i)}
+                        className={cn(
+                          "p-1 rounded-sm transition-colors",
+                          playingIndex === i
+                            ? "text-primary bg-primary/10"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        title={playingIndex === i ? "Stop reading" : "Read aloud"}
+                      >
+                        {voiceLoading && playingIndex === i ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : playingIndex === i ? (
+                          <VolumeX className="h-3 w-3" />
+                        ) : (
+                          <Volume2 className="h-3 w-3" />
+                        )}
+                      </button>
                       <button
                         onClick={() => handleReaction(i, "up")}
                         className={cn(
