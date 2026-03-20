@@ -21,7 +21,7 @@ function AudioWaveform({
   barCount = 24,
   label,
 }: {
-  getFrequencyData?: () => Float32Array | undefined;
+  getFrequencyData?: () => Uint8Array | undefined;
   color: string;
   barCount?: number;
   label: string;
