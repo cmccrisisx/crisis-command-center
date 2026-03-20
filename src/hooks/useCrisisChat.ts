@@ -170,7 +170,7 @@ export function useCrisisChat() {
     // Delete all chat messages for this user
     const userId = userIdRef.current;
     if (userId) {
-      await supabase.from("cx_chat_messages").delete().eq("user_id", userId);
+      await supabase.from("naya_chat_messages").delete().eq("user_id", userId);
     }
   }, []);
 
