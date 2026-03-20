@@ -169,9 +169,9 @@ export default function Speak() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">SPEAK — Response Center</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">SPEAK — Response Center</h1>
             <p className="text-sm text-muted-foreground mt-1">Draft, review, approve, and publish crisis responses</p>
           </div>
           <WorkflowLegend roles={roles} />
