@@ -44,7 +44,7 @@ export function useCrisisChat() {
   const persistMessage = useCallback(async (msg: ChatMessage) => {
     const userId = userIdRef.current;
     if (!userId) return;
-    await supabase.from("cx_chat_messages").insert({
+    await supabase.from("naya_chat_messages").insert({
       user_id: userId,
       role: msg.role,
       content: msg.content,
