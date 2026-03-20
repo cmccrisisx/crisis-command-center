@@ -27,7 +27,7 @@ export function useCrisisChat() {
       userIdRef.current = session.user.id;
 
       const { data, error } = await supabase
-        .from("cx_chat_messages")
+        .from("naya_chat_messages")
         .select("role, content")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: true })
