@@ -1,66 +1,71 @@
 
 
-# Pre-Launch Enhancements: Mobile Responsiveness + Data Audit
+# Final Webapp Polish and Production Hardening
 
-## Data Status: All Live
+## Security Findings (3 Critical, 5 Warnings)
 
-Every page queries the database directly via the client SDK. No mock data files exist. Current database counts:
-- **122 signals**, **6 crises**, **30 narratives**, **45 reputation snapshots**, **6 response templates**
-- Only `Reports.tsx` has hardcoded `defaultReports[]` (3 static report entries used as fallback UI) — this is acceptable scaffolding, not mock data
+The security scan found real issues that need fixing before go-live:
 
-The `ingest-signals` edge function generates simulated signals on demand (the "Ingest Signals" button on the Signals page). This is intentional for demo purposes. All chart data, stats, and AI analysis pull from live database tables.
+### Critical — RLS Policy Fixes
 
-**Verdict: The app runs on real database data. No hidden mock layers.**
+**1. `demo_requests` table** — any authenticated user can read all emails/contacts and delete any request
+- Fix: Restrict SELECT and DELETE to admins only using `has_role(auth.uid(), 'admin')`
 
-## Mobile Responsiveness Issues Found
+**2. `user_roles` table** — all authenticated users can see everyone's roles (privilege enumeration)
+- Fix: Restrict SELECT to own roles: `USING (auth.uid() = user_id)`
 
-### 1. War Room header — overflows on mobile
-- Header uses `flex items-center justify-between` with a fixed `w-[280px]` SelectTrigger
-- No flex-wrap or stacking on small screens — will overflow
+**3. `response_log` UPDATE** — any user can update any response (including approving their own)
+- Fix: Restrict UPDATE to owner (`auth.uid() = user_id`) OR admin role
 
-### 2. War Room approval chain — horizontal overflow
-- `div className="flex items-center gap-2"` with 4 equal steps — no wrapping
-- On mobile, the chain overflows or gets crushed
+### Warnings — Tighten Permissive Policies
 
-### 3. Stabilize header — button text truncates
-- "Generate Post-Crisis Report" button doesn't shrink on mobile
-- Header is `flex items-center justify-between` with no wrapping
+**4. `crises` UPDATE** — any user can modify any crisis
+- Fix: Restrict to creator (`auth.uid() = created_by`) OR admin
 
-### 4. Analytics page title — no responsive sizing
-- `text-2xl` with no `sm:` breakpoint adjustment
+**5. `response_templates` UPDATE** — any user can edit anyone's templates
+- Fix: Restrict to creator (`auth.uid() = created_by`) OR admin
 
-### 5. Speak page — tabs overflow on small screens
-- Multiple tab triggers in a row may overflow horizontally
+**6. `narratives` INSERT WITH CHECK** — currently `true`, should be `auth.uid() IS NOT NULL` (minor)
 
-### 6. Scenarios page — preset cards may not stack properly on narrow screens
+**7. `reputation_snapshots` INSERT WITH CHECK** — same as above
 
-## Plan
+**8. Leaked password protection** — disabled in auth config
+- Fix: Enable via auth configuration
 
-### File: `src/pages/WarRoom.tsx`
-- Make header flex-wrap: `flex flex-col sm:flex-row sm:items-center justify-between gap-3`
-- Make SelectTrigger responsive: `w-full sm:w-[280px]`
-- Make approval chain wrap on mobile: `flex flex-wrap` or convert to `grid grid-cols-2 sm:grid-cols-4`
+### Tables with acceptable `USING(true)` SELECT (no change needed)
+- `crises`, `narratives`, `reputation_snapshots`, `response_log`, `response_templates`, `signals`, `activity_log`, `profiles` — team-wide read access is intentional for a crisis platform
 
-### File: `src/pages/Stabilize.tsx`
-- Wrap header: `flex flex-col sm:flex-row sm:items-center justify-between gap-3`
-- Make button text hide on mobile, show icon only: `<span className="hidden sm:inline">Generate Post-Crisis Report</span>`
+## UI Polish
 
-### File: `src/pages/Analytics.tsx`
-- Responsive title: `text-xl sm:text-2xl`
+### 9. `NotFound.tsx` — doesn't match dark theme
+- Uses `bg-muted` instead of the app's dark aesthetic
+- Fix: Restyle with dark background, Crisis X branding, and a proper "Return to Dashboard" button
 
-### File: `src/pages/Speak.tsx`
-- Add `overflow-x-auto` to TabsList wrapper for horizontal scroll on mobile
-- Responsive title sizing
+### 10. Loading states consistency
+- `ProtectedRoute` and `LandingOrDashboard` both have custom loaders — these are fine, already branded
 
-### File: `src/pages/Scenarios.tsx`
-- Responsive title and preset card grid adjustments
+## Implementation
 
-### File: `src/pages/Reports.tsx`
-- Note: `defaultReports` array is static scaffolding — flag it with a comment but leave as-is (not mock data, just default report templates)
+### Database Migration (single SQL migration)
+Drop and recreate the overly permissive policies:
+- `demo_requests`: admin-only SELECT and DELETE
+- `user_roles`: own-roles-only SELECT
+- `response_log`: owner-or-admin UPDATE
+- `crises`: creator-or-admin UPDATE
+- `response_templates`: creator-or-admin UPDATE
+- `narratives`: tighten INSERT WITH CHECK
+- `reputation_snapshots`: tighten INSERT WITH CHECK
 
-### Files: All page headers
-- Consistent pattern: `text-xl sm:text-2xl` for h1 elements
-- Consistent pattern: `flex flex-col sm:flex-row` for header layouts with buttons
+### Auth Config
+- Enable leaked password protection
 
-No database changes needed. No edge function changes needed.
+### File Changes
+- `src/pages/NotFound.tsx` — restyle to match Crisis X dark theme
+
+## Files Modified
+- `src/pages/NotFound.tsx` — visual polish
+- 1 database migration — RLS hardening (7 policy replacements)
+- Auth config update — leaked password protection
+
+No edge function or component logic changes needed.
 
