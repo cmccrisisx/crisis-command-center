@@ -66,7 +66,7 @@ export function CrisisChat() {
     }));
     exportToPDF({
       title: "Naya Chat Transcript",
-      subtitle: "Crisis X AI Conversation Export",
+      subtitle: "Naya AI Conversation Export",
       date: new Date().toLocaleString(),
       sections,
       footer: "CX Chat Export — Crisis-X Platform",
