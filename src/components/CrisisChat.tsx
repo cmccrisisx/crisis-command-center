@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { X, Send, Trash2, Square, ThumbsUp, ThumbsDown, Maximize2, Minimize2, Download, Volume2, VolumeX, Loader2, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCrisisChat } from "@/hooks/useCrisisChat";
 import { useNayaVoice } from "@/hooks/useNayaVoice";
+import { useNayaConversation } from "@/hooks/useNayaConversation";
+import { VoiceMode } from "@/components/VoiceMode";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
