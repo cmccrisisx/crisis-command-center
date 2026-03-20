@@ -1,49 +1,42 @@
 
 
-# Book a Demo — Contact Form with Backend Storage
+# Rename AI Agent from "CX" to "Naya"
 
 ## Overview
-Add a "Book a Demo" section to the About page with a form that saves submissions to a new `demo_requests` database table.
+Rebrand the AI assistant from "CX" to **Naya** — a contemporary, youthful, modern African corporate female persona. Update the avatar, system prompt personality, and all UI references.
 
-## Steps
+## Changes
 
-### 1. Database — Create `demo_requests` table
-```sql
-CREATE TABLE public.demo_requests (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  email text NOT NULL,
-  company text NOT NULL,
-  message text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+### 1. Generate new avatar — AI image
+- Generate a portrait of a modern young African professional woman via AI image generation
+- Save as `src/assets/naya-avatar.png`
+- Style: confident, corporate-casual, warm lighting, contemporary African aesthetic
 
-ALTER TABLE public.demo_requests ENABLE ROW LEVEL SECURITY;
+### 2. Update system prompt — `supabase/functions/crisis-chat/index.ts`
+- Rename "CX" → "Naya" in the system prompt opening
+- Adjust persona to reflect a sharp, modern African professional woman — keep the same expertise but give her a warmer, more relatable voice with subtle African cultural references
+- Deploy the edge function
 
--- Allow anonymous inserts (public form, no auth required)
-CREATE POLICY "Anyone can submit demo request"
-  ON public.demo_requests FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (true);
+### 3. Update chat UI — `src/components/CrisisChat.tsx`
+- Replace all "CX" references with "Naya" (avatar alt text, header name, placeholder, loading state, PDF export labels, tooltip)
+- Update import from `cx-avatar.png` to `naya-avatar.png`
+- Change greeting from "yo, i'm CX" to something fitting Naya's persona
 
--- Only authenticated users (admins) can view submissions
-CREATE POLICY "Authenticated can view demo requests"
-  ON public.demo_requests FOR SELECT
-  TO authenticated
-  USING (true);
-```
+### 4. Update chat hook — `src/hooks/useCrisisChat.ts`
+- Table name `cx_chat_messages` stays (it's a DB table — renaming requires migration and isn't worth the risk). Only code references to the name "CX" change.
 
-### 2. About Page — Add form section (`src/pages/About.tsx`)
-- New section before the footer: two-column layout
-  - Left: "Book a Demo" heading + short copy about scheduling a walkthrough of the platform
-  - Right: form with Name, Work Email, Company, Message (optional)
-- Submit inserts into `demo_requests` via `supabase.from('demo_requests').insert()`
-- Success toast + form reset on completion
-- Error toast on failure
-- Styled with existing Input/Textarea/Button components, crisis-red submit button
-- `framer-motion` fadeUp entrance animation
+### 5. Update demo walkthrough — `src/components/DemoWalkthrough.tsx`
+- Change "AI Advisor — CX" to "AI Advisor — Naya" and update description
 
-### Files Modified
-- **Database migration** — new `demo_requests` table with RLS
-- **`src/pages/About.tsx`** — new Book a Demo form section
+### 6. Rename database table (migration)
+- Rename `cx_chat_messages` → `naya_chat_messages` for consistency
+- Update all code references to the new table name
+
+## Files Modified
+- `src/assets/naya-avatar.png` — new AI-generated avatar
+- `supabase/functions/crisis-chat/index.ts` — persona rename + personality tweak
+- `src/components/CrisisChat.tsx` — all UI text + avatar import
+- `src/hooks/useCrisisChat.ts` — table name references
+- `src/components/DemoWalkthrough.tsx` — walkthrough step text
+- Database migration — rename table
 
