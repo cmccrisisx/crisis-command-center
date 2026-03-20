@@ -138,6 +138,11 @@ export function AppSidebar() {
                       >
                         <item.icon className="h-4 w-4 shrink-0" />
                         {!collapsed && <span>{item.title}</span>}
+                        {item.url === "/settings" && demoCount > 0 && (
+                          <span className="ml-auto inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-sm bg-crisis-red text-[9px] font-mono font-bold text-white tabular-nums">
+                            {demoCount}
+                          </span>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
