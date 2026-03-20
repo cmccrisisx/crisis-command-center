@@ -18,6 +18,7 @@ import Auth from "./pages/Auth.tsx";
 import Scenarios from "./pages/Scenarios.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
+import Launch from "./pages/Launch.tsx";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/about" element={<About />} />
+              <Route path="/launch" element={<Launch />} />
               <Route path="/" element={<LandingOrDashboard />} />
               <Route path="/signals" element={<ProtectedRoute><Signals /></ProtectedRoute>} />
               <Route path="/war-room" element={<ProtectedRoute><WarRoom /></ProtectedRoute>} />
