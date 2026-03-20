@@ -208,6 +208,8 @@ export function CrisisChat() {
                   isSpeaking={isSpeaking}
                   transcripts={transcripts}
                   onEnd={handleEndVoice}
+                  getInputByteFrequencyData={getInputByteFrequencyData}
+                  getOutputByteFrequencyData={getOutputByteFrequencyData}
                 />
               ) : (
                 <>
