@@ -95,14 +95,15 @@ export default function Stabilize() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-mono font-bold tracking-tight">STABILIZE — Recovery</h1>
+            <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">STABILIZE — Recovery</h1>
             <p className="text-sm text-muted-foreground mt-1">Track reputation recovery & post-crisis analysis</p>
           </div>
-          <Button onClick={generateReport} variant="outline" className="text-xs font-mono uppercase tracking-wider" disabled={postCrisis.loading}>
+          <Button onClick={generateReport} variant="outline" className="text-xs font-mono uppercase tracking-wider shrink-0" disabled={postCrisis.loading}>
             {postCrisis.loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Brain className="h-3.5 w-3.5 mr-1.5" />}
-            Generate Post-Crisis Report
+            <span className="hidden sm:inline">Generate Post-Crisis Report</span>
+            <span className="sm:hidden">Generate Report</span>
           </Button>
         </div>
 

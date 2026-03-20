@@ -178,7 +178,7 @@ export default function Speak() {
         </div>
 
         <Tabs defaultValue="queue" className="space-y-4">
-          <TabsList className="bg-secondary">
+          <TabsList className="bg-secondary w-full overflow-x-auto justify-start sm:w-auto sm:justify-center">
             <TabsTrigger value="queue" className="text-xs font-mono gap-1.5">
               <ShieldCheck className="h-3 w-3" /> Approval Queue
             </TabsTrigger>
