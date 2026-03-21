@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ScrollToTop from "@/components/ScrollToTop";
 import Landing from "./pages/Landing.tsx";
 import Index from "./pages/Index.tsx";
 import Signals from "./pages/Signals.tsx";
@@ -51,6 +52,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <div className="dark bg-background text-foreground min-h-screen">
+            <ScrollToTop />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/about" element={<About />} />
