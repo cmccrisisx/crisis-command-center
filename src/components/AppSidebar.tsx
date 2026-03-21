@@ -9,7 +9,7 @@ import {
   Shield,
   FlaskConical,
 } from "lucide-react";
-import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+import crisisLogo from "@/assets/crisis-x-logo.png";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";

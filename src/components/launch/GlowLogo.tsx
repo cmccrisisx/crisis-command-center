@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import crisisXLogo from "@/assets/crisis-x-logo.jpeg";
+import crisisXLogo from "@/assets/crisis-x-logo.png";
 
 export default function GlowLogo() {
   return (

@@ -92,7 +92,7 @@ export default function Auth() {
             <img
               src={crisisLogo}
               alt="Crisis-X"
-              className="h-24 md:h-32 w-auto mx-auto rounded-lg shadow-2xl shadow-primary/20 mb-8"
+              className="h-24 md:h-32 w-auto mx-auto mb-8"
             />
 
             <h2 className="text-2xl md:text-3xl font-bold mb-3">

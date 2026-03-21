@@ -169,7 +169,7 @@ export default function Landing() {
               <img
                 src={crisisLogo}
                 alt="Crisis-X"
-                className="h-16 w-auto mx-auto rounded-lg shadow-2xl shadow-primary/20"
+                className="h-16 w-auto mx-auto"
               />
             </motion.div>
 
