@@ -11,6 +11,7 @@ import {
 import { ArrowRight } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.png";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import PublicNav from "@/components/PublicNav";
 
 import hero1 from "@/assets/hero/hero-1.jpg";
 import hero2 from "@/assets/hero/hero-2.jpg";
