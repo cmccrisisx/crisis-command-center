@@ -40,7 +40,7 @@ export default function PublicNav({ hideSignIn }: PublicNavProps) {
               to={link.to}
               className={cn(
                 "px-3 py-1.5 rounded-sm font-mono text-xs uppercase tracking-wider transition-colors",
-                pathname === link.to
+                pathname === link.to || (!link.exact && pathname.startsWith(link.to + "/"))
                   ? "text-foreground bg-accent"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               )}
