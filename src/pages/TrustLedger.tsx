@@ -339,34 +339,67 @@ export default function TrustLedger() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="max-w-[140px]">Document</TableHead>
+                      <TableHead className="max-w-[160px]">Document</TableHead>
                       <TableHead className="whitespace-nowrap">Date</TableHead>
                       <TableHead>Hash</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-10 text-center">QR</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {records.map((r: any) => (
                       <TableRow key={r.id}>
-                        <TableCell className="font-medium text-sm max-w-[140px] truncate">
+                        <TableCell className="font-medium text-sm max-w-[160px] truncate">
                           {r.document_title}
                         </TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground">
+                        <TableCell className="text-xs font-mono text-muted-foreground whitespace-nowrap">
                           {format(new Date(r.minted_at), "MMM dd, yyyy HH:mm")}
                         </TableCell>
                         <TableCell>
-                          <button
-                            onClick={() => copyText(r.content_hash, r.id)}
-                            className="inline-flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {truncateHash(r.content_hash)}
-                            {copied === r.id ? (
-                              <Check className="w-3 h-3 text-crisis-green" />
-                            ) : (
-                              <Copy className="w-3 h-3" />
-                            )}
-                          </button>
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => copyText(r.content_hash, r.id)}
+                              className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              {truncateHash(r.content_hash)}
+                              {copied === r.id ? (
+                                <Check className="w-3 h-3 text-crisis-green" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button className="p-1 rounded-sm hover:bg-muted transition-colors" title="Show QR Code">
+                                  <QrCode className="w-3.5 h-3.5 text-crisis-amber" />
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-xs">
+                                <DialogHeader>
+                                  <DialogTitle className="text-sm font-mono">Verification QR Code</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex flex-col items-center gap-4 py-4">
+                                  <div className="bg-white p-3 rounded-sm">
+                                    <QRCodeSVG
+                                      value={`${window.location.origin}/verify?hash=${r.content_hash}`}
+                                      size={180}
+                                      level="M"
+                                      fgColor="#0a0b0f"
+                                    />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground text-center max-w-[220px]">
+                                    Scan to verify <span className="font-medium text-foreground">{r.document_title}</span>
+                                  </p>
+                                  <button
+                                    onClick={() => copyText(`${window.location.origin}/verify?hash=${r.content_hash}`, `qr-${r.id}`)}
+                                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    {copied === `qr-${r.id}` ? <Check className="w-3 h-3 text-crisis-green" /> : <Copy className="w-3 h-3" />}
+                                    Copy verification link
+                                  </button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </TableCell>
                         <TableCell>
                           {r.status === "verified" ? (
@@ -378,40 +411,6 @@ export default function TrustLedger() {
                               Anchoring…
                             </Badge>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <button className="p-1.5 rounded-sm hover:bg-muted transition-colors" title="Show QR Code">
-                                <QrCode className="w-3.5 h-3.5 text-muted-foreground" />
-                              </button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-xs">
-                              <DialogHeader>
-                                <DialogTitle className="text-sm font-mono">Verification QR Code</DialogTitle>
-                              </DialogHeader>
-                              <div className="flex flex-col items-center gap-4 py-4">
-                                <div className="bg-white p-3 rounded-sm">
-                                  <QRCodeSVG
-                                    value={`${window.location.origin}/verify?hash=${r.content_hash}`}
-                                    size={180}
-                                    level="M"
-                                    fgColor="#0a0b0f"
-                                  />
-                                </div>
-                                <p className="text-xs text-muted-foreground text-center max-w-[220px]">
-                                  Scan to verify <span className="font-medium text-foreground">{r.document_title}</span>
-                                </p>
-                                <button
-                                  onClick={() => copyText(`${window.location.origin}/verify?hash=${r.content_hash}`, `qr-${r.id}`)}
-                                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                  {copied === `qr-${r.id}` ? <Check className="w-3 h-3 text-crisis-green" /> : <Copy className="w-3 h-3" />}
-                                  Copy verification link
-                                </button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
                         </TableCell>
                       </TableRow>
                     ))}
