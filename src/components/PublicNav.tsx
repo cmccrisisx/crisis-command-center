@@ -25,11 +25,8 @@ export default function PublicNav({ hideSignIn }: PublicNavProps) {
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-14">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center">
           <img src={crisisLogo} alt="Crisis-X" className="h-7 w-auto" />
-          <span className="font-mono text-xs font-semibold tracking-wider uppercase hidden sm:inline">
-            Crisis-X
-          </span>
         </Link>
 
         {/* Desktop links */}
