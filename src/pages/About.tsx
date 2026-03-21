@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PublicNav from "@/components/PublicNav";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -291,33 +292,7 @@ export default function About() {
   return (
     <div className="dark">
       <div className="min-h-screen bg-background text-foreground">
-        {/* Risk accent bar */}
-        <div className="h-1 w-full fixed top-0 left-0 bg-primary z-50" />
-
-        {/* Nav */}
-        <nav className="fixed top-1 left-0 right-0 z-40 border-b border-border/50 bg-background/70 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-            <Link to="/" className="flex items-center gap-3">
-              <img src={crisisLogo} alt="Crisis-X" className="h-8 w-auto" />
-              <span className="font-mono text-sm font-semibold tracking-wider uppercase">
-                Crisis-X
-              </span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <PWAInstallButton />
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/" className="font-mono text-xs uppercase tracking-wider gap-1.5">
-                  <ArrowLeft className="h-3.5 w-3.5" /> Home
-                </Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link to="/auth?signup=true" className="font-mono text-xs uppercase tracking-wider">
-                  Get Started
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </nav>
+        <PublicNav />
 
         {/* Hero */}
         <section className="pt-28 pb-16 px-6">

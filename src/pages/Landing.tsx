@@ -11,6 +11,7 @@ import {
 import { ArrowRight } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.png";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import PublicNav from "@/components/PublicNav";
 
 import hero1 from "@/assets/hero/hero-1.jpg";
 import hero2 from "@/assets/hero/hero-2.jpg";
@@ -73,36 +74,9 @@ export default function Landing() {
   return (
     <div className="dark">
       <div className="min-h-screen bg-background text-foreground">
-        {/* Risk accent bar */}
-        <div className="h-1 w-full fixed top-0 left-0 bg-primary z-50" />
-
+        <PublicNav />
         {/* Slide progress bar */}
-        <div className="h-0.5 fixed top-1 left-0 z-50 transition-none" style={{ width: `${progress}%`, background: "hsl(var(--crisis-blue))" }} />
-
-        {/* Nav */}
-        <nav className="fixed top-1 left-0 right-0 z-40 border-b border-border/50 bg-background/70 backdrop-blur-xl">
-          <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <img src={crisisLogo} alt="Crisis-X" className="h-8 w-auto" />
-              <span className="font-mono text-sm font-semibold tracking-wider uppercase">
-                Crisis-X
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <PWAInstallButton />
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/auth" className="font-mono text-xs uppercase tracking-wider">
-                  Sign In
-                </Link>
-              </Button>
-              <Button size="sm" asChild>
-                <Link to="/auth?signup=true" className="font-mono text-xs uppercase tracking-wider">
-                  Get Started
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </nav>
+        <div className="h-0.5 fixed top-14 left-0 z-40 transition-none" style={{ width: `${progress}%`, background: "hsl(var(--crisis-blue))" }} />
 
         {/* ============================================================ */}
         {/*  HERO                                                        */}

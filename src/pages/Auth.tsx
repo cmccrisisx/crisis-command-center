@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { LogIn, UserPlus, AlertCircle, Radio, Brain, Target, Megaphone, Shield } from "lucide-react";
 import { motion } from "framer-motion";
 import crisisLogo from "@/assets/crisis-x-logo.png";
+import PublicNav from "@/components/PublicNav";
 
 const modules = [
   { icon: Radio, label: "Signal", color: "bg-crisis-blue" },
@@ -63,14 +64,8 @@ export default function Auth() {
 
   return (
     <div className="dark">
-      <div className="min-h-screen bg-background flex flex-col md:flex-row">
-        {/* Risk bar */}
-        <div className="h-1 w-full fixed top-0 left-0 z-50 flex">
-          <div className="flex-1 bg-risk-critical" />
-          <div className="flex-1 bg-risk-high" />
-          <div className="flex-1 bg-risk-medium" />
-          <div className="flex-1 bg-risk-low" />
-        </div>
+      <div className="min-h-screen bg-background flex flex-col md:flex-row pt-14">
+        <PublicNav hideSignIn />
 
         {/* Left branding panel */}
         <div className="relative md:w-1/2 flex items-center justify-center p-8 md:p-16 overflow-hidden bg-card border-b md:border-b-0 md:border-r border-border">

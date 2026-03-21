@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import PublicNav from "@/components/PublicNav";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -95,6 +96,7 @@ export default function Launch() {
 
   return (
     <div className="dark bg-background text-foreground min-h-screen overflow-x-hidden">
+      <PublicNav />
       {/* ── Hero ── */}
       <motion.section ref={heroRef} style={{ opacity: heroOpacity, scale: heroScale }} className="relative min-h-screen flex flex-col items-center justify-center px-4">
         <div className="absolute top-0 left-0 right-0 h-[3px] bg-crisis-red" />
