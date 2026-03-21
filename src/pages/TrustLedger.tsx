@@ -244,8 +244,8 @@ export default function TrustLedger() {
             <CardContent className="space-y-4">
               <div className="p-4 rounded-sm bg-background border border-border">
                 <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">SHA-256 Hash</p>
-                <p className="font-mono text-xs break-all text-foreground/80">
-                  {hashPreview || "Upload a file to generate hash…"}
+                <p className="font-mono text-xs break-all">
+                  <AnimatedHash hash={hashPreview} />
                 </p>
               </div>
 
