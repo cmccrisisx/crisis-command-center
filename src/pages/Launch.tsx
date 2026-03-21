@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import PublicNav from "@/components/PublicNav";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
