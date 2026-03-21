@@ -26,7 +26,7 @@ export default function PublicNav({ hideSignIn }: PublicNavProps) {
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-14">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <img src={crisisLogo} alt="Crisis-X" className="h-7 w-auto" />
+          <img src={crisisLogo} alt="Crisis-X" className="h-9 w-auto" />
         </Link>
 
         {/* Desktop links */}
