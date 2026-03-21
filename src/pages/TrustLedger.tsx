@@ -37,6 +37,40 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/** Falling hex rain behind the hash display */
+function MatrixRain() {
+  const cols = 18;
+  const hexChars = "0123456789abcdef";
+  const [columns] = useState(() =>
+    Array.from({ length: cols }, () => ({
+      chars: Array.from({ length: 6 }, () => hexChars[Math.floor(Math.random() * 16)]),
+      duration: 2 + Math.random() * 3,
+      delay: Math.random() * 2,
+    }))
+  );
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.07]" aria-hidden>
+      <div className="flex justify-between h-full px-1">
+        {columns.map((col, i) => (
+          <div
+            key={i}
+            className="flex flex-col font-mono text-[9px] text-crisis-amber animate-matrix-fall"
+            style={{
+              animationDuration: `${col.duration}s`,
+              animationDelay: `${col.delay}s`,
+            }}
+          >
+            {col.chars.map((c, j) => (
+              <span key={j} className="leading-tight">{c}</span>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Typewriter effect for the SHA-256 hash reveal */
 function AnimatedHash({ hash }: { hash: string }) {
   const [displayed, setDisplayed] = useState("");
