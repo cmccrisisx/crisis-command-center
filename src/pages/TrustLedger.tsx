@@ -15,9 +15,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  ShieldCheck, Upload, Copy, Check, Loader2, FileText, Lock, QrCode,
+  ShieldCheck, Upload, Copy, Check, Loader2, FileText, Lock, QrCode, Download,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
