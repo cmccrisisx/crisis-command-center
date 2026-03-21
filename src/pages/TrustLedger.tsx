@@ -276,9 +276,10 @@ export default function TrustLedger() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-sm bg-background border border-border">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">SHA-256 Hash</p>
-                <p className="font-mono text-xs break-all">
+              <div className="relative p-4 rounded-sm bg-background border border-border overflow-hidden">
+                <MatrixRain />
+                <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1 relative z-10">SHA-256 Hash</p>
+                <p className="font-mono text-xs break-all relative z-10">
                   <AnimatedHash hash={hashPreview} />
                 </p>
               </div>
