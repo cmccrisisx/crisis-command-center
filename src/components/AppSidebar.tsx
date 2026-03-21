@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Radio,
   Swords,
+  ShieldCheck,
   BarChart3,
   FileText,
   Settings,
