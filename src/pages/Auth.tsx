@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, UserPlus, AlertCircle, Radio, Brain, Target, Megaphone, Shield } from "lucide-react";
 import { motion } from "framer-motion";
-import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+import crisisLogo from "@/assets/crisis-x-logo.png";
 
 const modules = [
   { icon: Radio, label: "Signal", color: "bg-crisis-blue" },
