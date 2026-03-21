@@ -29,7 +29,7 @@ import {
   Plane,
   Wifi,
 } from "lucide-react";
-import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+import crisisLogo from "@/assets/crisis-x-logo.png";
 import PWAInstallButton from "@/components/PWAInstallButton";
 
 const fadeUp = {
@@ -298,7 +298,7 @@ export default function About() {
         <nav className="fixed top-1 left-0 right-0 z-40 border-b border-border/50 bg-background/70 backdrop-blur-xl">
           <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
             <Link to="/" className="flex items-center gap-3">
-              <img src={crisisLogo} alt="Crisis-X" className="h-8 w-auto rounded" />
+              <img src={crisisLogo} alt="Crisis-X" className="h-8 w-auto" />
               <span className="font-mono text-sm font-semibold tracking-wider uppercase">
                 Crisis-X
               </span>

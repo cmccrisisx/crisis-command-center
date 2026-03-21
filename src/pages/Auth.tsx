@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogIn, UserPlus, AlertCircle, Radio, Brain, Target, Megaphone, Shield } from "lucide-react";
 import { motion } from "framer-motion";
-import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+import crisisLogo from "@/assets/crisis-x-logo.png";
 
 const modules = [
   { icon: Radio, label: "Signal", color: "bg-crisis-blue" },
@@ -92,7 +92,7 @@ export default function Auth() {
             <img
               src={crisisLogo}
               alt="Crisis-X"
-              className="h-24 md:h-32 w-auto mx-auto rounded-lg shadow-2xl shadow-primary/20 mb-8"
+              className="h-24 md:h-32 w-auto mx-auto mb-8"
             />
 
             <h2 className="text-2xl md:text-3xl font-bold mb-3">
