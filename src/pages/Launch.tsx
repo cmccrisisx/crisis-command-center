@@ -5,7 +5,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Mic, BarChart3, Clock, Shield, Smartphone, Zap,
   Building2, Plane, Fuel, Heart, Wifi, Users,
-  ArrowRight, ChevronDown,
+  ArrowRight, ChevronDown, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlowLogo from "@/components/launch/GlowLogo";
@@ -303,6 +303,45 @@ export default function Launch() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Verified Authority ── */}
+      <section className="py-24 sm:py-32 px-4 border-b border-border/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <Reveal>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm border border-crisis-amber/30 bg-crisis-amber/5 text-crisis-amber text-xs font-mono uppercase tracking-widest mb-6">
+              <ShieldCheck className="w-3 h-3" /> Verified Authority
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-balance">
+              Proof Over Trust
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto mb-8">
+              In an age of synthetic media, "truth" is no longer enough. Crisis-X anchors every official
+              communication with a cryptographic signature — so stakeholders know instantly what is authentic.
+            </p>
+          </Reveal>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            {[
+              { title: "SHA-256 Hashing", desc: "Every document receives an immutable fingerprint that changes if even a single byte is altered." },
+              { title: "HMAC Signatures", desc: "Server-side cryptographic signing ensures only authorized issuers can mint verified records." },
+              { title: "Public Verification", desc: "Anyone — journalists, regulators, public — can verify a document's authenticity instantly." },
+            ].map((f, i) => (
+              <Reveal key={i} delay={i * 0.1}>
+                <div className="p-5 bg-card border border-crisis-amber/20 rounded-sm transition-all duration-300 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5">
+                  <p className="font-semibold text-sm mb-1">{f.title}</p>
+                  <p className="text-xs text-muted-foreground">{f.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={0.4}>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild variant="outline" size="lg" className="rounded-sm border-crisis-amber/30 text-crisis-amber hover:bg-crisis-amber/10">
+                <Link to="/verify">Public Verification Portal</Link>
+              </Button>
+            </div>
+          </Reveal>
         </div>
       </section>
 
