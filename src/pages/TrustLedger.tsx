@@ -379,6 +379,40 @@ export default function TrustLedger() {
                             </Badge>
                           )}
                         </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button className="p-1.5 rounded-sm hover:bg-muted transition-colors" title="Show QR Code">
+                                <QrCode className="w-3.5 h-3.5 text-muted-foreground" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-xs">
+                              <DialogHeader>
+                                <DialogTitle className="text-sm font-mono">Verification QR Code</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex flex-col items-center gap-4 py-4">
+                                <div className="bg-white p-3 rounded-sm">
+                                  <QRCodeSVG
+                                    value={`${window.location.origin}/verify?hash=${r.content_hash}`}
+                                    size={180}
+                                    level="M"
+                                    fgColor="#0a0b0f"
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center max-w-[220px]">
+                                  Scan to verify <span className="font-medium text-foreground">{r.document_title}</span>
+                                </p>
+                                <button
+                                  onClick={() => copyText(`${window.location.origin}/verify?hash=${r.content_hash}`, `qr-${r.id}`)}
+                                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {copied === `qr-${r.id}` ? <Check className="w-3 h-3 text-crisis-green" /> : <Copy className="w-3 h-3" />}
+                                  Copy verification link
+                                </button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
