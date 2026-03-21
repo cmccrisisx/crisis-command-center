@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import PublicNav from "@/components/PublicNav";
 import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
