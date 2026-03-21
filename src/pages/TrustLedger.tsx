@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,38 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+/** Typewriter effect for the SHA-256 hash reveal */
+function AnimatedHash({ hash }: { hash: string }) {
+  const [displayed, setDisplayed] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!hash) { setDisplayed(""); setDone(false); return; }
+    setDone(false);
+    setDisplayed("");
+    let i = 0;
+    const speed = Math.max(8, Math.min(25, 1200 / hash.length));
+    const timer = setInterval(() => {
+      i++;
+      setDisplayed(hash.slice(0, i));
+      if (i >= hash.length) {
+        clearInterval(timer);
+        setDone(true);
+      }
+    }, speed);
+    return () => clearInterval(timer);
+  }, [hash]);
+
+  if (!hash) return <span className="text-muted-foreground/50">Upload a file to generate hash…</span>;
+
+  return (
+    <span className={`transition-colors duration-500 ${done ? "text-crisis-green" : "text-crisis-amber"}`}>
+      {displayed}
+      {!done && <span className="inline-block w-[2px] h-3.5 bg-crisis-amber ml-0.5 animate-pulse align-middle" />}
+    </span>
+  );
 }
 
 export default function TrustLedger() {
@@ -212,8 +244,8 @@ export default function TrustLedger() {
             <CardContent className="space-y-4">
               <div className="p-4 rounded-sm bg-background border border-border">
                 <p className="text-[10px] font-mono uppercase text-muted-foreground mb-1">SHA-256 Hash</p>
-                <p className="font-mono text-xs break-all text-foreground/80">
-                  {hashPreview || "Upload a file to generate hash…"}
+                <p className="font-mono text-xs break-all">
+                  <AnimatedHash hash={hashPreview} />
                 </p>
               </div>
 
