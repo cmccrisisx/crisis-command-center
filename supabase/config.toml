@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.naya-voice-token]
 verify_jwt = false
+
+[functions.verify-communication]
+verify_jwt = false
