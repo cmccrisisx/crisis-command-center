@@ -378,24 +378,42 @@ export default function TrustLedger() {
                                   <DialogTitle className="text-sm font-mono">Verification QR Code</DialogTitle>
                                 </DialogHeader>
                                 <div className="flex flex-col items-center gap-4 py-4">
-                                  <div className="bg-white p-3 rounded-sm">
-                                    <QRCodeSVG
+                                  <div className="bg-white p-3 rounded-sm" id={`qr-canvas-${r.id}`}>
+                                    <QRCodeCanvas
                                       value={`${window.location.origin}/verify?hash=${r.content_hash}`}
                                       size={180}
                                       level="M"
                                       fgColor="#0a0b0f"
+                                      bgColor="#ffffff"
                                     />
                                   </div>
                                   <p className="text-xs text-muted-foreground text-center max-w-[220px]">
                                     Scan to verify <span className="font-medium text-foreground">{r.document_title}</span>
                                   </p>
-                                  <button
-                                    onClick={() => copyText(`${window.location.origin}/verify?hash=${r.content_hash}`, `qr-${r.id}`)}
-                                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                                  >
-                                    {copied === `qr-${r.id}` ? <Check className="w-3 h-3 text-crisis-green" /> : <Copy className="w-3 h-3" />}
-                                    Copy verification link
-                                  </button>
+                                  <div className="flex items-center gap-3">
+                                    <button
+                                      onClick={() => copyText(`${window.location.origin}/verify?hash=${r.content_hash}`, `qr-${r.id}`)}
+                                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                      {copied === `qr-${r.id}` ? <Check className="w-3 h-3 text-crisis-green" /> : <Copy className="w-3 h-3" />}
+                                      Copy link
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const container = document.getElementById(`qr-canvas-${r.id}`);
+                                        const canvas = container?.querySelector("canvas");
+                                        if (!canvas) return;
+                                        const link = document.createElement("a");
+                                        link.download = `crisis-x-verify-${r.document_title.replace(/\s+/g, "-").toLowerCase()}.png`;
+                                        link.href = canvas.toDataURL("image/png");
+                                        link.click();
+                                      }}
+                                      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                      <Download className="w-3 h-3" />
+                                      Save PNG
+                                    </button>
+                                  </div>
                                 </div>
                               </DialogContent>
                             </Dialog>
