@@ -1,4 +1,5 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,11 +34,37 @@ function fileToBase64(file: File): Promise<string> {
 
 export default function Verify() {
   usePageTitle("Verify — Crisis-X");
+  const [searchParams] = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [state, setState] = useState<VerifyState>("idle");
   const [record, setRecord] = useState<VerifiedRecord | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hashChecked = useRef(false);
+
+  // Auto-verify if ?hash= is present
+  useEffect(() => {
+    const hash = searchParams.get("hash");
+    if (!hash || hashChecked.current) return;
+    hashChecked.current = true;
+    setState("scanning");
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    fetch(`https://${projectId}.supabase.co/functions/v1/verify-communication`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "verify-hash", contentHash: hash }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.verified) {
+          setRecord(data.record);
+          setState("verified");
+        } else {
+          setState("tampered");
+        }
+      })
+      .catch(() => setState("tampered"));
+  }, [searchParams]);
 
   const handleFile = useCallback((f: File) => {
     setFile(f);

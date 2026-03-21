@@ -12,8 +12,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ShieldCheck, Upload, Copy, Check, Loader2, FileText, Lock,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  ShieldCheck, Upload, Copy, Check, Loader2, FileText, Lock, QrCode,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -339,6 +343,7 @@ export default function TrustLedger() {
                       <TableHead>Date Minted</TableHead>
                       <TableHead>Transaction Hash</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-10">QR</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -373,6 +378,40 @@ export default function TrustLedger() {
                               Anchoring…
                             </Badge>
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button className="p-1.5 rounded-sm hover:bg-muted transition-colors" title="Show QR Code">
+                                <QrCode className="w-3.5 h-3.5 text-muted-foreground" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-xs">
+                              <DialogHeader>
+                                <DialogTitle className="text-sm font-mono">Verification QR Code</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex flex-col items-center gap-4 py-4">
+                                <div className="bg-white p-3 rounded-sm">
+                                  <QRCodeSVG
+                                    value={`${window.location.origin}/verify?hash=${r.content_hash}`}
+                                    size={180}
+                                    level="M"
+                                    fgColor="#0a0b0f"
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center max-w-[220px]">
+                                  Scan to verify <span className="font-medium text-foreground">{r.document_title}</span>
+                                </p>
+                                <button
+                                  onClick={() => copyText(`${window.location.origin}/verify?hash=${r.content_hash}`, `qr-${r.id}`)}
+                                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {copied === `qr-${r.id}` ? <Check className="w-3 h-3 text-crisis-green" /> : <Copy className="w-3 h-3" />}
+                                  Copy verification link
+                                </button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                         </TableCell>
                       </TableRow>
                     ))}
