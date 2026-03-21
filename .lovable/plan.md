@@ -1,44 +1,32 @@
 
 
-## Email Notifications for Document Minting
+## Add Public Navigation Bar to Public Pages
 
-### What We're Building
-When a document is minted on the Trust Ledger, an email notification is sent to the authorizing executive with details about the anchored document, its verification link, and QR code.
+### Problem
+The public pages (Landing, About, Launch, Verify) have no shared navigation, making it hard to move between them.
 
-### Prerequisites
-This project doesn't have an email domain configured yet. We need to set that up first before we can send any emails.
+### Solution
+Create a `PublicNav` component — a minimal dark header with the Crisis-X logo and links to the public pages, plus a "Sign In" CTA button.
 
-**Step 1 — Set up email domain**
-Configure a sender domain through the email setup dialog. This is required before any emails can be sent.
+### Changes
 
-**Step 2 — Set up email infrastructure**
-Run email infrastructure setup (queue, processing function, cron job).
+**New file: `src/components/PublicNav.tsx`**
+- Fixed top header with Crisis-X logo (links to `/`)
+- Nav links: About, Launch, Verify
+- "Sign In" button linking to `/auth`
+- Mobile: hamburger menu with a sheet/drawer for links
+- Matches dark aesthetic — border-b, bg-background, font-mono labels
 
-**Step 3 — Add executive email field**
-- Add `executive_email` column to `verified_communications` table (nullable text)
-- Add an "Executive Email" input field to the Trust Ledger minting form (below the "Authorizing Executive" name field)
+**Updated pages** (add `<PublicNav />` at the top):
+- `src/pages/Landing.tsx`
+- `src/pages/Launch.tsx`
+- `src/pages/About.tsx`
+- `src/pages/Verify.tsx`
+- `src/pages/Auth.tsx` (nav without "Sign In" button since user is already there)
 
-**Step 4 — Create a transactional email template**
-Scaffold a transactional email for the minting notification with:
-- Document title, authorizing executive name
-- Truncated SHA-256 hash
-- Direct verification link (`/verify?hash=...`)
-- Minted timestamp
-- Dark-themed styling matching Crisis X brand (white email body background per email guidelines, but Crisis X branded header/footer)
-
-**Step 5 — Send notification from the mint action**
-Update the `verify-communication` Edge Function's `mint` action to:
-- Accept the new `executiveEmail` parameter
-- Store it in the `executive_email` column
-- After successful insert, invoke the transactional email function to send the notification to that email address
-
-**Step 6 — Update the frontend**
-- Add the email input to `TrustLedger.tsx` minting form
-- Pass `executiveEmail` in the `supabase.functions.invoke` call
-- Make the email field optional (notification only sent if provided)
-
-### Technical Notes
-- Email sending uses the pgmq queue system with automatic retries
-- The email is enqueued (not sent inline) so it won't block the minting response
-- The executive email field is optional to avoid breaking the existing flow
+### Technical Details
+- Uses existing `crisisLogo` asset, `Link` from react-router, `Sheet` for mobile menu
+- Highlights active route using `useLocation`
+- Sticky/fixed positioning so it stays visible on scroll
+- Z-index above page content but below modals
 
