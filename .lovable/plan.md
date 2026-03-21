@@ -1,31 +1,71 @@
 
 
-# GlowLogo — Dramatic Unveiling Effect
+# Verified Authority — Implementation Plan
 
-## Concept
-Transform the logo into a theatrical reveal experience fit for a stage unveiling. The logo starts hidden behind an animated "curtain" of particles/lines, then dramatically reveals itself with a cinematic sequence.
+## Overview
+Build two views — an internal Trust Ledger for minting verified communications, and a public Verification Portal — sharing one backend (edge function + database table).
 
-## Animation Sequence (auto-plays on page load)
-1. **Stage 0 (0-1s)**: A glowing red horizontal line appears center-screen, pulsing — teasing something is coming
-2. **Stage 1 (1-2s)**: The line splits vertically into two halves that slide apart like curtains, revealing the logo behind with a bright flash
-3. **Stage 2 (2-3s)**: Logo scales from 0.95→1 with blur-to-sharp transition, red glow intensifies dramatically then settles to the ambient pulse
-4. **Stage 3 (3s+)**: Logo enters its idle state — gentle float + breathing glow + interactive hover
+## 1. Database Migration
 
-## Interactive Features (post-reveal)
-- **Hover**: Logo lifts slightly (y: -4), glow intensifies, subtle scale 1.02
-- **Click/Tap**: Triggers a brief "pulse burst" — a ring of red light expands outward from the logo and fades (like a sonar ping) — satisfying feedback for presenters clicking during the talk
-- **Mouse proximity glow**: The red glow subtly follows/intensifies toward the cursor direction using `onMouseMove` to calculate offset
+New table `verified_communications`:
+- `id` uuid PK, `document_title` text, `authorizing_executive` text, `content_hash` text (SHA-256), `signature` text (HMAC), `file_name` text, `file_size` bigint, `mime_type` text, `minted_by` uuid (references profiles.user_id), `minted_at` timestamptz default now(), `status` text default 'anchoring', `chain_tx_hash` text nullable, `verification_url` text, `metadata` jsonb default '{}'
 
-## Technical Details
+RLS policies:
+- Authenticated SELECT (all records for internal users)
+- Authenticated INSERT (minted_by = auth.uid())
+- Admin UPDATE (status changes)
+- Anon SELECT by content_hash only (public verification lookups)
 
-### File: `src/components/launch/GlowLogo.tsx` — full rewrite
-- Use framer-motion `AnimatePresence` + `variants` for the multi-stage sequence
-- `useState` to track reveal phase (`hidden` → `revealing` → `revealed`)
-- Curtain effect: two `motion.div` elements with `clipPath` or `translateX` animation
-- Burst effect on click: a `motion.div` circle that scales from 0→3 with opacity 1→0
-- Mouse-follow glow: `onMouseMove` handler calculates relative position, applies as `radialGradient` offset on a background layer
-- No new dependencies
+Storage bucket `verified-documents` (private) for uploaded files.
 
-### File: `src/pages/Launch.tsx` — no changes needed
-Already renders `<GlowLogo />` in the hero.
+## 2. Edge Function: `verify-communication`
+
+Two endpoints:
+- `POST` with `action: "mint"` — receives file as base64, computes SHA-256 via Web Crypto, signs with HMAC using service role key, inserts record, returns hash + signature. Auth required.
+- `POST` with `action: "verify"` — receives file as base64, computes SHA-256, looks up match in table, returns result. No auth required.
+
+## 3. Trust Ledger Page (`src/pages/TrustLedger.tsx`) — Protected
+
+Crisis-X command center aesthetic:
+- Header: "Trust Ledger: Asset Minting & Verification"
+- Split layout: Left = drag-and-drop upload zone + title/executive inputs. Right = minting console showing hash preview + "Anchor to Blockchain" button (amber accent)
+- Bottom: history table from `verified_communications` — Document Name, Date Minted, Hash (truncated + copy), Status badges (green "Verified", pulsing blue "Anchoring...")
+- Flow: upload → client-side hash preview → click Anchor → edge function call → spinner → verified + copy link
+
+## 4. Verification Portal (`src/pages/Verify.tsx`) — Public
+
+Minimalist, no-auth page:
+- Centered Crisis-X logo + "Public Trust Verification Portal"
+- File upload dropzone + "Scan File" button
+- States: Loading (scanning animation), Verified (green shield, issuer/timestamp/ledger receipt), Tampered (red warning, explanation text)
+- Footer: "Powered by Crisis-X Trust Infrastructure"
+
+## 5. Routing & Navigation
+
+- `src/App.tsx`: Add `/trust-ledger` (protected), `/verify` (public)
+- `src/components/AppSidebar.tsx`: Add "Trust Ledger" nav item with ShieldCheck icon, allowed roles: admin, pr_manager
+
+## 6. Launch Page
+
+Add "Verified Authority" feature highlight section in `src/pages/Launch.tsx` — shield icon, brief copy about cryptographic verification of corporate communications.
+
+## Files
+
+| Action | File |
+|--------|------|
+| Create | `supabase/functions/verify-communication/index.ts` |
+| Create | `src/pages/TrustLedger.tsx` |
+| Create | `src/pages/Verify.tsx` |
+| Modify | `src/App.tsx` — 2 new routes |
+| Modify | `src/components/AppSidebar.tsx` — nav item |
+| Modify | `src/pages/Launch.tsx` — feature section |
+| Modify | `supabase/config.toml` — function config |
+| Migration | `verified_communications` table + RLS + storage bucket |
+
+## Implementation Order
+1. Database migration
+2. Edge function + deploy
+3. Trust Ledger page
+4. Verify page
+5. Routing + sidebar + launch page update
 
