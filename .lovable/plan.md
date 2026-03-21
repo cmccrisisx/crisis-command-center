@@ -1,28 +1,31 @@
 
 
-# Fix Launch Page Logo — Show Full Logo with Creative Interactivity
+# GlowLogo — Dramatic Unveiling Effect
 
-## Problem
-The GlowLogo component forces the logo into a `w-32 h-32` square with `object-cover`, which clips the wide landscape logo (it contains "Crisis" + red X + subtitle text). The rotating gradient background also overlaps and obscures the logo content.
+## Concept
+Transform the logo into a theatrical reveal experience fit for a stage unveiling. The logo starts hidden behind an animated "curtain" of particles/lines, then dramatically reveals itself with a cinematic sequence.
 
-## Solution
+## Animation Sequence (auto-plays on page load)
+1. **Stage 0 (0-1s)**: A glowing red horizontal line appears center-screen, pulsing — teasing something is coming
+2. **Stage 1 (1-2s)**: The line splits vertically into two halves that slide apart like curtains, revealing the logo behind with a bright flash
+3. **Stage 2 (2-3s)**: Logo scales from 0.95→1 with blur-to-sharp transition, red glow intensifies dramatically then settles to the ambient pulse
+4. **Stage 3 (3s+)**: Logo enters its idle state — gentle float + breathing glow + interactive hover
 
-### Rewrite `src/components/launch/GlowLogo.tsx`
-- **Remove forced square dimensions** — use `max-w-xs sm:max-w-sm md:max-w-md` with `w-auto h-auto` so the logo displays at its natural aspect ratio, fully visible
-- **Remove `object-cover`** — use `object-contain` to ensure nothing is clipped
-- **Remove the rotating conic-gradient overlay** — it covers the logo text. Replace with a subtle glow effect that sits *behind* the logo, not on top
-- **Keep the pulsing red glow** — position it as a background shadow that frames the logo without overlapping content
-- **Add interactive hover effect** — on hover, the logo scales up slightly (1.03) and the glow intensifies, giving a premium interactive feel
-- **Add entrance animation** — logo fades in and scales from 0.9 to 1 with a blur-to-clear transition
-- **Add a subtle floating animation** — gentle `y: [0, -6, 0]` loop so the logo feels alive on stage
+## Interactive Features (post-reveal)
+- **Hover**: Logo lifts slightly (y: -4), glow intensifies, subtle scale 1.02
+- **Click/Tap**: Triggers a brief "pulse burst" — a ring of red light expands outward from the logo and fades (like a sonar ping) — satisfying feedback for presenters clicking during the talk
+- **Mouse proximity glow**: The red glow subtly follows/intensifies toward the cursor direction using `onMouseMove` to calculate offset
 
-### Styling details
-- Container: `inline-block`, no forced width/height, padding for glow space
-- Logo `<img>`: `max-w-[280px] sm:max-w-[380px] md:max-w-[440px] h-auto` — responsive, never clipped
-- Background glow: `box-shadow` only, positioned on a pseudo-layer behind the image
-- No rounded corners cropping — remove `rounded-2xl` from the image, keep it on the glow container only
-- Remove `ring-1 ring-white/10` border that doesn't suit a transparent PNG
+## Technical Details
 
-### File changed
-- `src/components/launch/GlowLogo.tsx` — full rewrite
+### File: `src/components/launch/GlowLogo.tsx` — full rewrite
+- Use framer-motion `AnimatePresence` + `variants` for the multi-stage sequence
+- `useState` to track reveal phase (`hidden` → `revealing` → `revealed`)
+- Curtain effect: two `motion.div` elements with `clipPath` or `translateX` animation
+- Burst effect on click: a `motion.div` circle that scales from 0→3 with opacity 1→0
+- Mouse-follow glow: `onMouseMove` handler calculates relative position, applies as `radialGradient` offset on a background layer
+- No new dependencies
+
+### File: `src/pages/Launch.tsx` — no changes needed
+Already renders `<GlowLogo />` in the hero.
 
