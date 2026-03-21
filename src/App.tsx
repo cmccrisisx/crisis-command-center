@@ -19,6 +19,8 @@ import Scenarios from "./pages/Scenarios.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import About from "./pages/About.tsx";
 import Launch from "./pages/Launch.tsx";
+import TrustLedger from "./pages/TrustLedger.tsx";
+import Verify from "./pages/Verify.tsx";
 
 const queryClient = new QueryClient();
 
