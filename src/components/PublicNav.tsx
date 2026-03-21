@@ -78,7 +78,7 @@ export default function PublicNav({ hideSignIn }: PublicNavProps) {
                     onClick={() => setOpen(false)}
                     className={cn(
                       "px-4 py-3 rounded-sm font-mono text-sm uppercase tracking-wider transition-colors",
-                      pathname === link.to
+                      pathname === link.to || (!link.exact && pathname.startsWith(link.to + "/"))
                         ? "text-foreground bg-accent"
                         : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
                     )}
