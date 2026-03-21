@@ -52,6 +52,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <div className="dark bg-background text-foreground min-h-screen">
+            <ScrollToTop />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/about" element={<About />} />
