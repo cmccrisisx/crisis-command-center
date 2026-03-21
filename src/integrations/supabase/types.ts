@@ -476,6 +476,57 @@ export type Database = {
         }
         Relationships: []
       }
+      verified_communications: {
+        Row: {
+          authorizing_executive: string
+          chain_tx_hash: string | null
+          content_hash: string
+          document_title: string
+          file_name: string
+          file_size: number
+          id: string
+          metadata: Json | null
+          mime_type: string
+          minted_at: string
+          minted_by: string
+          signature: string
+          status: string
+          verification_url: string | null
+        }
+        Insert: {
+          authorizing_executive: string
+          chain_tx_hash?: string | null
+          content_hash: string
+          document_title: string
+          file_name: string
+          file_size?: number
+          id?: string
+          metadata?: Json | null
+          mime_type?: string
+          minted_at?: string
+          minted_by: string
+          signature: string
+          status?: string
+          verification_url?: string | null
+        }
+        Update: {
+          authorizing_executive?: string
+          chain_tx_hash?: string | null
+          content_hash?: string
+          document_title?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          metadata?: Json | null
+          mime_type?: string
+          minted_at?: string
+          minted_by?: string
+          signature?: string
+          status?: string
+          verification_url?: string | null
+        }
+        Relationships: []
+      }
       war_room_messages: {
         Row: {
           created_at: string
