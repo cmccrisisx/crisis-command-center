@@ -7,6 +7,7 @@ import crisisLogo from "@/assets/crisis-x-logo.png";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
+  { to: "/", label: "Home", exact: true },
   { to: "/about", label: "About" },
   { to: "/launch", label: "Launch" },
   { to: "/verify", label: "Verify" },
