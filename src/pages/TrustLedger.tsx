@@ -339,17 +339,17 @@ export default function TrustLedger() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Document</TableHead>
-                      <TableHead>Date Minted</TableHead>
-                      <TableHead>Transaction Hash</TableHead>
+                      <TableHead className="max-w-[140px]">Document</TableHead>
+                      <TableHead className="whitespace-nowrap">Date</TableHead>
+                      <TableHead>Hash</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-10">QR</TableHead>
+                      <TableHead className="w-10 text-center">QR</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {records.map((r: any) => (
                       <TableRow key={r.id}>
-                        <TableCell className="font-medium text-sm max-w-[200px] truncate">
+                        <TableCell className="font-medium text-sm max-w-[140px] truncate">
                           {r.document_title}
                         </TableCell>
                         <TableCell className="text-xs font-mono text-muted-foreground">
