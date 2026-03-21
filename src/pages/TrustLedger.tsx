@@ -12,8 +12,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ShieldCheck, Upload, Copy, Check, Loader2, FileText, Lock,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  ShieldCheck, Upload, Copy, Check, Loader2, FileText, Lock, QrCode,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
