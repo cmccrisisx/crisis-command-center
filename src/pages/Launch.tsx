@@ -5,7 +5,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Mic, BarChart3, Clock, Shield, Smartphone, Zap,
   Building2, Plane, Fuel, Heart, Wifi, Users,
-  ArrowRight, ChevronDown,
+  ArrowRight, ChevronDown, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GlowLogo from "@/components/launch/GlowLogo";
