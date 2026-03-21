@@ -34,11 +34,61 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, fileBase64, fileName, fileSize, mimeType, documentTitle, authorizingExecutive } =
-      await req.json();
+    const body = await req.json();
+    const { action } = body;
 
-    if (!action || !fileBase64) {
-      return new Response(JSON.stringify({ error: "Missing action or fileBase64" }), {
+    // Hash-based lookup (from QR code links) — no file needed
+    if (action === "verify-hash") {
+      const { contentHash } = body;
+      if (!contentHash) {
+        return new Response(JSON.stringify({ error: "Missing contentHash" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { data, error } = await supabase
+        .from("verified_communications")
+        .select("*")
+        .eq("content_hash", contentHash)
+        .eq("status", "verified")
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        return new Response(
+          JSON.stringify({
+            verified: true,
+            record: {
+              documentTitle: data.document_title,
+              authorizingExecutive: data.authorizing_executive,
+              mintedAt: data.minted_at,
+              contentHash: data.content_hash,
+              signature: data.signature,
+              chainTxHash: data.chain_tx_hash,
+            },
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({ verified: false, contentHash }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { fileBase64, fileName, fileSize, mimeType, documentTitle, authorizingExecutive } = body;
+
+    if (!fileBase64) {
+      return new Response(JSON.stringify({ error: "Missing fileBase64" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
