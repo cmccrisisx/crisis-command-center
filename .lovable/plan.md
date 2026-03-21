@@ -1,31 +1,28 @@
 
 
-# Replace Crisis-X Logo Platform-Wide
+# Fix Launch Page Logo — Show Full Logo with Creative Interactivity
 
-## What's Changing
-The uploaded white Crisis-X logo (PNG with transparency) replaces the old JPEG logo everywhere in the platform. The new logo is white text + red X on transparent background — perfect for the dark theme.
+## Problem
+The GlowLogo component forces the logo into a `w-32 h-32` square with `object-cover`, which clips the wide landscape logo (it contains "Crisis" + red X + subtitle text). The rotating gradient background also overlaps and obscures the logo content.
 
-## Files to Modify
+## Solution
 
-### Asset
-- Copy `user-uploads://white_logo_crisisX.png` → `src/assets/crisis-x-logo.png`
-- Also copy to `public/images/crisis-x-logo.png` for PWA manifest
+### Rewrite `src/components/launch/GlowLogo.tsx`
+- **Remove forced square dimensions** — use `max-w-xs sm:max-w-sm md:max-w-md` with `w-auto h-auto` so the logo displays at its natural aspect ratio, fully visible
+- **Remove `object-cover`** — use `object-contain` to ensure nothing is clipped
+- **Remove the rotating conic-gradient overlay** — it covers the logo text. Replace with a subtle glow effect that sits *behind* the logo, not on top
+- **Keep the pulsing red glow** — position it as a background shadow that frames the logo without overlapping content
+- **Add interactive hover effect** — on hover, the logo scales up slightly (1.03) and the glow intensifies, giving a premium interactive feel
+- **Add entrance animation** — logo fades in and scales from 0.9 to 1 with a blur-to-clear transition
+- **Add a subtle floating animation** — gentle `y: [0, -6, 0]` loop so the logo feels alive on stage
 
-### Import Updates (change `.jpeg` → `.png` in 6 files)
-1. **`src/pages/Landing.tsx`** — nav logo + hero logo
-2. **`src/pages/Auth.tsx`** — login page logo
-3. **`src/pages/About.tsx`** — nav logo
-4. **`src/components/AppSidebar.tsx`** — sidebar logo
-5. **`src/components/launch/GlowLogo.tsx`** — launch page animated logo
+### Styling details
+- Container: `inline-block`, no forced width/height, padding for glow space
+- Logo `<img>`: `max-w-[280px] sm:max-w-[380px] md:max-w-[440px] h-auto` — responsive, never clipped
+- Background glow: `box-shadow` only, positioned on a pseudo-layer behind the image
+- No rounded corners cropping — remove `rounded-2xl` from the image, keep it on the glow container only
+- Remove `ring-1 ring-white/10` border that doesn't suit a transparent PNG
 
-### Styling Adjustments
-- Remove `rounded` / `rounded-lg` classes from logo `<img>` tags — the new PNG has transparency, so rounded corners on a box look wrong
-- Remove `shadow-2xl shadow-primary/20` where applied — transparent PNGs don't need box shadows
-- Keep sizing classes (`h-8`, `h-14`, `h-16`, `h-24`, etc.) as-is
-
-### PWA Manifest (`public/manifest.json`)
-- Update icon paths from `.jpeg` to `.png` and type from `image/jpeg` to `image/png`
-
-## No other changes needed
-The old `.jpeg` file can remain (no harm), but all references will point to the new `.png`.
+### File changed
+- `src/components/launch/GlowLogo.tsx` — full rewrite
 
