@@ -117,9 +117,9 @@ export default function Verify() {
 
   return (
     <div className="dark bg-background text-foreground min-h-screen flex flex-col">
+      <PublicNav />
       {/* Header */}
-      <header className="flex flex-col items-center pt-12 pb-6 px-4">
-        <img src={crisisLogo} alt="Crisis-X" className="h-10 w-auto mb-6" />
+      <header className="flex flex-col items-center pt-20 pb-6 px-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-1">
           Public Trust Verification Portal
         </h1>

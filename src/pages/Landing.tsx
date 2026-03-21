@@ -74,6 +74,7 @@ export default function Landing() {
   return (
     <div className="dark">
       <div className="min-h-screen bg-background text-foreground">
+        <PublicNav />
         {/* Risk accent bar */}
         <div className="h-1 w-full fixed top-0 left-0 bg-primary z-50" />
 

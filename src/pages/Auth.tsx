@@ -65,6 +65,7 @@ export default function Auth() {
   return (
     <div className="dark">
       <div className="min-h-screen bg-background flex flex-col md:flex-row">
+        <PublicNav hideSignIn />
         {/* Risk bar */}
         <div className="h-1 w-full fixed top-0 left-0 z-50 flex">
           <div className="flex-1 bg-risk-critical" />
