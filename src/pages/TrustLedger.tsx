@@ -343,6 +343,7 @@ export default function TrustLedger() {
                       <TableHead>Date Minted</TableHead>
                       <TableHead>Transaction Hash</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="w-10">QR</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
