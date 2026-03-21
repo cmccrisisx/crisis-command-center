@@ -261,3 +261,14 @@
     background: radial-gradient(ellipse at center, transparent 40%, hsl(var(--background)) 100%);
   }
 }
+
+@keyframes matrix-fall {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.animate-matrix-fall {
+  animation: matrix-fall linear infinite;
+}
