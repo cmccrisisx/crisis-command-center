@@ -29,7 +29,7 @@ import {
   Plane,
   Wifi,
 } from "lucide-react";
-import crisisLogo from "@/assets/crisis-x-logo.jpeg";
+import crisisLogo from "@/assets/crisis-x-logo.png";
 import PWAInstallButton from "@/components/PWAInstallButton";
 
 const fadeUp = {
