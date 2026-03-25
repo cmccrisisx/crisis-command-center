@@ -1,10 +1,8 @@
 
 
-## Remove Duplicate "Crisis-X" Text from PublicNav
-
-### Problem
-The nav shows both the Crisis-X logo image and a redundant "CRISIS-X" text label beside it.
+## Update Favicon to Crisis-X Logo
 
 ### Change
-**`src/components/PublicNav.tsx`** — Remove the `<span>` element with "Crisis-X" text from the logo link, keeping only the `<img>` logo.
+1. Copy `user-uploads://blue_logo_desing.png` to `public/favicon.png`
+2. Update `index.html` — change the `<link rel="icon">` from `/images/crisis-x-logo.jpeg` to `/favicon.png` with `type="image/png"`
 
