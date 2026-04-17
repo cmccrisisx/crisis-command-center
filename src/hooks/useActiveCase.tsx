@@ -10,6 +10,7 @@ const ALL = "__all__";
 
 interface ActiveCaseContextValue {
   cases: Crisis[];
+  signalCounts: Record<string, number>;
   activeCaseId: string | null; // null = "All cases"
   setActiveCaseId: (id: string | null) => void;
   activeCase: Crisis | null;
@@ -38,6 +39,20 @@ export function ActiveCaseProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const { data: signalCounts = {} } = useQuery({
+    queryKey: ["active-case-signal-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("signals").select("crisis_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      for (const row of data as { crisis_id: string | null }[]) {
+        if (!row.crisis_id) continue;
+        counts[row.crisis_id] = (counts[row.crisis_id] ?? 0) + 1;
+      }
+      return counts;
+    },
+  });
+
   const setActiveCaseId = useCallback((id: string | null) => {
     setActiveCaseIdState(id);
     if (typeof window !== "undefined") {
@@ -59,8 +74,8 @@ export function ActiveCaseProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<ActiveCaseContextValue>(
-    () => ({ cases, activeCaseId, setActiveCaseId, activeCase, isLoading }),
-    [cases, activeCaseId, setActiveCaseId, activeCase, isLoading]
+    () => ({ cases, signalCounts, activeCaseId, setActiveCaseId, activeCase, isLoading }),
+    [cases, signalCounts, activeCaseId, setActiveCaseId, activeCase, isLoading]
   );
 
   return <ActiveCaseContext.Provider value={value}>{children}</ActiveCaseContext.Provider>;
