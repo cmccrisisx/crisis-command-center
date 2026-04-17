@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -7,6 +8,7 @@ type Crisis = Tables<"crises">;
 
 const STORAGE_KEY = "crisis-x.activeCaseId";
 const ALL = "__all__";
+const URL_PARAM = "case";
 
 interface ActiveCaseContextValue {
   cases: Crisis[];
@@ -20,8 +22,13 @@ interface ActiveCaseContextValue {
 const ActiveCaseContext = createContext<ActiveCaseContextValue | undefined>(undefined);
 
 export function ActiveCaseProvider({ children }: { children: ReactNode }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [activeCaseId, setActiveCaseIdState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
+    // URL takes priority over localStorage on initial load
+    const urlValue = new URLSearchParams(window.location.search).get(URL_PARAM);
+    if (urlValue) return urlValue === ALL ? null : urlValue;
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw || raw === ALL) return null;
     return raw;
@@ -53,11 +60,51 @@ export function ActiveCaseProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const setActiveCaseId = useCallback((id: string | null) => {
-    setActiveCaseIdState(id);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, id ?? ALL);
+  const setActiveCaseId = useCallback(
+    (id: string | null) => {
+      setActiveCaseIdState(id);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, id ?? ALL);
+      }
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id) next.set(URL_PARAM, id);
+          else next.delete(URL_PARAM);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Keep state in sync when the URL changes (back/forward, manual edit, deep link).
+  useEffect(() => {
+    const urlValue = searchParams.get(URL_PARAM);
+    const normalized = !urlValue || urlValue === ALL ? null : urlValue;
+    if (normalized !== activeCaseId) {
+      setActiveCaseIdState(normalized);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(STORAGE_KEY, normalized ?? ALL);
+      }
     }
+  }, [searchParams, activeCaseId]);
+
+  // Ensure the URL reflects current state on mount (when loaded from localStorage only).
+  useEffect(() => {
+    const urlValue = searchParams.get(URL_PARAM);
+    if (activeCaseId && !urlValue) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set(URL_PARAM, activeCaseId);
+          return next;
+        },
+        { replace: true }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // If the persisted id no longer exists in the loaded set, fall back to All.
