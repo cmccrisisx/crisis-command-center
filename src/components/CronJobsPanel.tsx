@@ -24,6 +24,7 @@ interface CronJob {
   last_end: string | null;
   last_status: string | null;
   last_duration_ms: number | null;
+  last_return_message: string | null;
   avg_duration_ms_7d: number | null;
   history_7d: DayStat[] | null;
 }
