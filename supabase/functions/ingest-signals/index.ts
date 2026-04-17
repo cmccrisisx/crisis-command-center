@@ -7,16 +7,47 @@ const corsHeaders = {
 };
 
 const KADUNA_CRISIS_ID = "b1000000-0000-0000-0000-0000000ada00";
+const NPRW_CRISIS_ID   = "b2000000-0000-0000-0000-00000000abcd";
+const APC_CRISIS_ID    = "b3000000-0000-0000-0000-0000000000a0";
+const ADC_CRISIS_ID    = "b3000000-0000-0000-0000-0000000000ad";
+const PDP_CRISIS_ID    = "b3000000-0000-0000-0000-0000000000bd";
+const LP_CRISIS_ID     = "b3000000-0000-0000-0000-0000000000cd";
 
 const BRAND_QUERIES: { query: string; brandKey: string }[] = [
+  // Kaduna State Government
   { query: "Kaduna State governor Uba Sani policy OR security OR budget", brandKey: "kaduna" },
   { query: "Kaduna State protest OR attack OR bandit OR insecurity", brandKey: "kaduna" },
   { query: "Kaduna State infrastructure OR education OR healthcare OR IDP", brandKey: "kaduna" },
   { query: "Kaduna government KADIPA investment OR economy", brandKey: "kaduna" },
+
+  // Nigeria PR Week 2026
+  { query: "Nigeria PR Week 2026 NPRW NIPR speakers OR sponsors OR panel", brandKey: "nprw" },
+  { query: "#NPRW2026 OR \"Nigeria Public Relations Week\" 2026", brandKey: "nprw" },
+
+  // APC
+  { query: "APC All Progressives Congress Tinubu leadership OR convention OR 2027", brandKey: "apc" },
+  { query: "APC Nigeria internal crisis OR defection OR NEC", brandKey: "apc" },
+
+  // ADC
+  { query: "ADC African Democratic Congress coalition OR opposition Nigeria", brandKey: "adc" },
+  { query: "ADC Nigeria Atiku OR Obi OR coalition merger 2027", brandKey: "adc" },
+
+  // PDP
+  { query: "PDP Peoples Democratic Party Nigeria leadership OR defection OR NEC", brandKey: "pdp" },
+  { query: "PDP Nigeria 2027 presidential OR governor OR convention", brandKey: "pdp" },
+
+  // Labour Party
+  { query: "Labour Party Nigeria Peter Obi OR Alex Otti OR Abure", brandKey: "lp" },
+  { query: "Labour Party Nigeria NEC OR court ruling OR leadership crisis", brandKey: "lp" },
 ];
 
 const BRAND_CRISIS_MAP: Record<string, string> = {
   kaduna: KADUNA_CRISIS_ID,
+  nprw: NPRW_CRISIS_ID,
+  apc: APC_CRISIS_ID,
+  adc: ADC_CRISIS_ID,
+  pdp: PDP_CRISIS_ID,
+  lp: LP_CRISIS_ID,
 };
 
 const SOURCE_MAP: Record<string, string> = {
