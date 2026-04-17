@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { useActiveCase } from "@/hooks/useActiveCase";
 
 type Crisis = Tables<"crises">;
 
@@ -39,6 +40,7 @@ const approvalSteps = [
 export default function WarRoom() {
   usePageTitle("War Room");
   const { user, profile, roles } = useAuth();
+  const { activeCaseId } = useActiveCase();
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<WarRoomMsg[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,13 +61,18 @@ export default function WarRoom() {
     },
   });
 
-  // Auto-select first active crisis
+  // Sync local selection with global active case (top-bar switcher takes priority).
+  // When the global case changes, jump to it. When "All cases" is selected, fall back to first active.
   useEffect(() => {
+    if (activeCaseId) {
+      setSelectedCrisisId(activeCaseId);
+      return;
+    }
     if (!selectedCrisisId && crises.length > 0) {
       const active = crises.find((c) => ["active", "detected", "responding"].includes(c.status));
       setSelectedCrisisId(active?.id ?? crises[0].id);
     }
-  }, [crises, selectedCrisisId]);
+  }, [activeCaseId, crises, selectedCrisisId]);
 
   const selectedCrisis = crises.find((c) => c.id === selectedCrisisId);
 
