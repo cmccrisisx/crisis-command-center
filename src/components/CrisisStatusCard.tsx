@@ -60,7 +60,8 @@ export function CrisisStatusCard({ crisis, queryClient }: CrisisStatusCardProps)
       }
       const { error } = await supabase
         .from("crises")
-        .update(updateData)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .update(updateData as any)
         .eq("id", crisis.id);
       if (error) throw error;
       const label = field === "status" ? STATUS_LABELS[value] : RISK_LABELS[value];
