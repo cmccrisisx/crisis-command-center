@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
+import { useActiveCase } from "@/hooks/useActiveCase";
 
 type Signal = Tables<"signals">;
 
@@ -24,6 +25,7 @@ const SENTIMENT_OPTIONS = ["positive", "neutral", "negative"] as const;
 export default function Signals() {
   usePageTitle("Signals");
   const queryClient = useQueryClient();
+  const { activeCaseId, activeCase } = useActiveCase();
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
@@ -59,12 +61,11 @@ export default function Signals() {
   };
 
   const { data: signals = [], isLoading } = useQuery({
-    queryKey: ["signals"],
+    queryKey: ["signals", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("signals")
-        .select("*")
-        .order("detected_at", { ascending: false });
+      let q = supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       setRealtimeCount(0);
       return data as Signal[];
