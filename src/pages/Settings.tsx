@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Save, X, Shield, Loader2, Plus, Minus, PlayCircle, Inbox, Trash2, Mail } from "lucide-react";
+import { Save, X, Shield, Loader2, Plus, Minus, PlayCircle, Inbox, Trash2, Mail, Clock } from "lucide-react";
+import { CronJobsPanel } from "@/components/CronJobsPanel";
 import { useLaunchTour } from "@/components/DemoWalkthrough";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -388,6 +389,22 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         )}
+        {/* Scheduled Jobs — Admin Only */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-crisis-blue" />
+                <CardTitle className="text-sm font-mono uppercase tracking-wider">Scheduled Jobs</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Background cron jobs and their last run status. Refreshes every 30s.</p>
+            </CardHeader>
+            <CardContent>
+              <CronJobsPanel />
+            </CardContent>
+          </Card>
+        )}
+
 
         <Card>
           <CardHeader>
