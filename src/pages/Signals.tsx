@@ -275,33 +275,44 @@ export default function Signals() {
                 {signals.length === 0 ? "No signals detected yet." : "No signals match your filters."}
               </p>
             ) : (
-              filteredSignals.map((signal) => (
-                <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
-                  <div className="shrink-0 w-10 h-10 rounded-sm bg-secondary flex items-center justify-center text-sm font-mono font-bold">
-                    {getSourceIcon(signal.source)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-semibold">{signal.author}</span>
-                      {signal.is_influencer && (
-                        <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
-                          INFLUENCER
+              filteredSignals.map((signal) => {
+                const hasUrl = !!signal.source_url;
+                return (
+                  <button
+                    key={signal.id}
+                    type="button"
+                    disabled={!hasUrl}
+                    onClick={() => hasUrl && setReaderSignal(signal)}
+                    className={`w-full text-left flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border transition-colors ${
+                      hasUrl ? "hover:bg-secondary/40 hover:border-primary/40 cursor-pointer" : "cursor-default"
+                    }`}
+                  >
+                    <div className="shrink-0 w-10 h-10 rounded-sm bg-secondary flex items-center justify-center text-sm font-mono font-bold">
+                      {getSourceIcon(signal.source)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-semibold">{signal.author}</span>
+                        {signal.is_influencer && (
+                          <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
+                            INFLUENCER
+                          </span>
+                        )}
+                        <SentimentBadge sentiment={signal.sentiment} />
+                        <span className="text-xs font-mono text-muted-foreground ml-auto tabular-nums whitespace-nowrap">
+                          {formatNumber(signal.author_followers ?? 0)} followers
                         </span>
-                      )}
-                      <SentimentBadge sentiment={signal.sentiment} />
-                      <span className="text-xs font-mono text-muted-foreground ml-auto tabular-nums whitespace-nowrap">
-                        {formatNumber(signal.author_followers ?? 0)} followers
-                      </span>
+                      </div>
+                      <p className="text-sm text-foreground leading-relaxed">{signal.content}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground tabular-nums">
+                        <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
+                        <span>Keywords: {(signal.keywords ?? []).join(", ")}</span>
+                        <span className="ml-auto">{new Date(signal.detected_at).toLocaleString()}</span>
+                      </div>
                     </div>
-                    <p className="text-sm text-foreground leading-relaxed">{signal.content}</p>
-                    <div className="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground tabular-nums">
-                      <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
-                      <span>Keywords: {(signal.keywords ?? []).join(", ")}</span>
-                      <span className="ml-auto">{new Date(signal.detected_at).toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
+                  </button>
+                );
+              })
             )}
           </CardContent>
         </Card>
