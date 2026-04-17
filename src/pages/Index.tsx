@@ -56,6 +56,7 @@ export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [readerSignal, setReaderSignal] = useState<{ source_url: string | null; author: string; content: string } | null>(null);
 
   // Fetch latest signals from DB
   const { data: dbSignals = [] } = useQuery({
