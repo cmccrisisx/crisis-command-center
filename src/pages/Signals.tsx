@@ -317,6 +317,13 @@ export default function Signals() {
           </CardContent>
         </Card>
       </div>
+      <SignalReaderDrawer
+        open={!!readerSignal}
+        onOpenChange={(o) => !o && setReaderSignal(null)}
+        url={readerSignal?.source_url ?? null}
+        fallbackTitle={readerSignal?.author}
+        fallbackExcerpt={readerSignal?.content}
+      />
     </AppLayout>
   );
 }
