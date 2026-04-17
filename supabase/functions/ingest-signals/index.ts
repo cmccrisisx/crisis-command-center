@@ -280,8 +280,35 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Refresh signal counts for all known crises (authoritative count)
+    // Refresh signal counts + reputation snapshot for all known crises
     for (const [, crisisId] of Object.entries(BRAND_CRISIS_MAP)) {
+      // Aggregate sentiment for snapshot
+      const { data: sigRows } = await supabase
+        .from("signals")
+        .select("sentiment, reach")
+        .eq("crisis_id", crisisId);
+      const total = sigRows?.length || 0;
+      if (total > 0) {
+        const pos = sigRows!.filter((s) => s.sentiment === "positive").length;
+        const neg = sigRows!.filter((s) => s.sentiment === "negative").length;
+        const neu = total - pos - neg;
+        const reach = sigRows!.reduce((a, s) => a + (s.reach || 0), 0);
+        const sentiment_score = Number((((pos - neg) / total) * 100).toFixed(2));
+        const reputation_score = Math.max(0, Math.min(100, 50 + sentiment_score / 2));
+        await supabase.from("reputation_snapshots").insert({
+          crisis_id: crisisId,
+          sentiment_score,
+          positive_pct: Number(((pos / total) * 100).toFixed(2)),
+          neutral_pct: Number(((neu / total) * 100).toFixed(2)),
+          negative_pct: Number(((neg / total) * 100).toFixed(2)),
+          share_of_voice: 35,
+          reputation_score,
+          media_reach: reach,
+          signal_volume: total,
+          snapshot_at: new Date().toISOString(),
+        });
+      }
+
       const { count, error: countErr } = await supabase
         .from("signals")
         .select("*", { count: "exact", head: true })
