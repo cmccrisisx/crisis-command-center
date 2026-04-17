@@ -6,22 +6,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const KADUNA_CRISIS_ID = "b1000000-0000-0000-0000-0000000ada00";
+
 const BRAND_QUERIES: { query: string; brandKey: string }[] = [
-  { query: "MTN Nigeria network OR outage OR data breach OR NCC", brandKey: "mtn" },
-  { query: "Dangote refinery OR regulation OR environmental OR NESREA", brandKey: "dangote" },
-  { query: "Zenith Bank fraud OR customer OR CBN OR banking", brandKey: "zenith" },
-  { query: "Flutterwave regulation OR dispute OR frozen funds OR CBN", brandKey: "flutterwave" },
-  { query: "Opay fraud OR agent OR POS OR consumer protection Nigeria", brandKey: "opay" },
-  { query: "Paystack downtime OR security OR payment gateway OR Stripe", brandKey: "paystack" },
+  { query: "Kaduna State governor Uba Sani policy OR security OR budget", brandKey: "kaduna" },
+  { query: "Kaduna State protest OR attack OR bandit OR insecurity", brandKey: "kaduna" },
+  { query: "Kaduna State infrastructure OR education OR healthcare OR IDP", brandKey: "kaduna" },
+  { query: "Kaduna government KADIPA investment OR economy", brandKey: "kaduna" },
 ];
 
 const BRAND_CRISIS_MAP: Record<string, string> = {
-  mtn: "a1000000-0000-0000-0000-000000000001",
-  dangote: "a2000000-0000-0000-0000-000000000002",
-  zenith: "a3000000-0000-0000-0000-000000000003",
-  flutterwave: "a4000000-0000-0000-0000-000000000004",
-  opay: "a5000000-0000-0000-0000-000000000005",
-  paystack: "a6000000-0000-0000-0000-000000000006",
+  kaduna: KADUNA_CRISIS_ID,
 };
 
 const SOURCE_MAP: Record<string, string> = {
