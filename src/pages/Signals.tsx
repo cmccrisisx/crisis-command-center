@@ -15,6 +15,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
+import { useActiveCase } from "@/hooks/useActiveCase";
 
 type Signal = Tables<"signals">;
 
@@ -24,6 +25,7 @@ const SENTIMENT_OPTIONS = ["positive", "neutral", "negative"] as const;
 export default function Signals() {
   usePageTitle("Signals");
   const queryClient = useQueryClient();
+  const { activeCaseId, activeCase } = useActiveCase();
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
@@ -59,12 +61,11 @@ export default function Signals() {
   };
 
   const { data: signals = [], isLoading } = useQuery({
-    queryKey: ["signals"],
+    queryKey: ["signals", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("signals")
-        .select("*")
-        .order("detected_at", { ascending: false });
+      let q = supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       setRealtimeCount(0);
       return data as Signal[];
@@ -73,16 +74,21 @@ export default function Signals() {
 
   // Realtime subscription — new signals appear instantly
   useEffect(() => {
+    const queryKey = ["signals", activeCaseId ?? "all"] as const;
+    const matchesCase = (s: Signal) => !activeCaseId || s.crisis_id === activeCaseId;
+
     const channel = supabase
-      .channel("signals-realtime")
+      .channel(`signals-realtime-${activeCaseId ?? "all"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["signals"], (old) => {
-            if (!old) return [payload.new as Signal];
-            if (old.some((s) => s.id === (payload.new as Signal).id)) return old;
-            return [payload.new as Signal, ...old];
+          const next = payload.new as Signal;
+          if (!matchesCase(next)) return;
+          queryClient.setQueryData<Signal[]>(queryKey, (old) => {
+            if (!old) return [next];
+            if (old.some((s) => s.id === next.id)) return old;
+            return [next, ...old];
           });
           setRealtimeCount((c) => c + 1);
         }
@@ -91,8 +97,10 @@ export default function Signals() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["signals"], (old) =>
-            old?.map((s) => (s.id === (payload.new as Signal).id ? (payload.new as Signal) : s)) ?? []
+          const next = payload.new as Signal;
+          if (!matchesCase(next)) return;
+          queryClient.setQueryData<Signal[]>(queryKey, (old) =>
+            old?.map((s) => (s.id === next.id ? next : s)) ?? []
           );
         }
       )
@@ -100,7 +108,7 @@ export default function Signals() {
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["signals"], (old) =>
+          queryClient.setQueryData<Signal[]>(queryKey, (old) =>
             old?.filter((s) => s.id !== (payload.old as { id: string }).id) ?? []
           );
         }
@@ -110,7 +118,7 @@ export default function Signals() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, activeCaseId]);
 
   const filteredSignals = useMemo(() => {
     let result = signals;
@@ -156,7 +164,7 @@ export default function Signals() {
           <div>
             <h1 className="text-2xl font-mono font-bold tracking-tight">Signal Detection</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Real-time monitoring across all channels
+              {activeCase ? `Case: ${activeCase.title}` : "Real-time monitoring across all channels"}
               {realtimeCount > 0 && (
                 <Badge variant="outline" className="ml-2 text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green animate-pulse">
                   <Radio className="h-2.5 w-2.5 mr-1" />

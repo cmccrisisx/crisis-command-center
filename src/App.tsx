@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ActiveCaseProvider } from "@/hooks/useActiveCase";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 import Landing from "./pages/Landing.tsx";
@@ -51,6 +52,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ActiveCaseProvider>
           <div className="dark bg-background text-foreground min-h-screen">
             <ScrollToTop />
             <Routes>
@@ -71,6 +73,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
+          </ActiveCaseProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
