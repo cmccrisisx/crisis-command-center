@@ -280,13 +280,22 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update signal counts
+    // Refresh signal counts for all known crises (authoritative count)
     for (const [, crisisId] of Object.entries(BRAND_CRISIS_MAP)) {
-      const { count } = await supabase
+      const { count, error: countErr } = await supabase
         .from("signals")
         .select("*", { count: "exact", head: true })
         .eq("crisis_id", crisisId);
-      await supabase.from("crises").update({ signal_count: count || 0 }).eq("id", crisisId);
+      if (countErr) {
+        console.error(`Count error for ${crisisId}:`, countErr.message);
+        continue;
+      }
+      const { error: updErr } = await supabase
+        .from("crises")
+        .update({ signal_count: count ?? 0, updated_at: new Date().toISOString() })
+        .eq("id", crisisId);
+      if (updErr) console.error(`Crisis update error for ${crisisId}:`, updErr.message);
+      else console.log(`Updated crisis ${crisisId} signal_count = ${count ?? 0}`);
     }
 
     console.log(`Ingestion complete: ${totalInserted} new signals`);
