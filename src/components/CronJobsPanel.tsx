@@ -240,6 +240,12 @@ export function CronJobsPanel() {
                 Run now
               </Button>
             </div>
+            </div>
+            {failed && job.last_return_message && (
+              <pre className="mt-2 whitespace-pre-wrap break-words rounded border border-crisis-red/20 bg-background/40 p-2 font-mono text-[11px] leading-relaxed text-crisis-red/90 max-h-40 overflow-auto">
+                {job.last_return_message}
+              </pre>
+            )}
           </div>
         );
       })}
