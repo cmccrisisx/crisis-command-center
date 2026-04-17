@@ -162,11 +162,17 @@ export function CronJobsPanel() {
                 ? "text-crisis-blue animate-spin"
                 : "text-muted-foreground";
 
+        const failed = status === "failed";
         return (
           <div
             key={job.jobid}
-            className="flex items-start justify-between gap-3 rounded-md border border-border/50 bg-card/50 p-3"
+            className={`rounded-md border p-3 ${
+              failed
+                ? "border-crisis-red/30 bg-crisis-red/5"
+                : "border-border/50 bg-card/50"
+            }`}
           >
+            <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
