@@ -581,6 +581,7 @@ export type Database = {
           jobname: string
           last_duration_ms: number
           last_end: string
+          last_return_message: string
           last_start: string
           last_status: string
           schedule: string

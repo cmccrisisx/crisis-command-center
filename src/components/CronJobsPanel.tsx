@@ -24,6 +24,7 @@ interface CronJob {
   last_end: string | null;
   last_status: string | null;
   last_duration_ms: number | null;
+  last_return_message: string | null;
   avg_duration_ms_7d: number | null;
   history_7d: DayStat[] | null;
 }
@@ -161,11 +162,17 @@ export function CronJobsPanel() {
                 ? "text-crisis-blue animate-spin"
                 : "text-muted-foreground";
 
+        const failed = status === "failed";
         return (
           <div
             key={job.jobid}
-            className="flex items-start justify-between gap-3 rounded-md border border-border/50 bg-card/50 p-3"
+            className={`rounded-md border p-3 ${
+              failed
+                ? "border-crisis-red/30 bg-crisis-red/5"
+                : "border-border/50 bg-card/50"
+            }`}
           >
+            <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
@@ -233,6 +240,12 @@ export function CronJobsPanel() {
                 Run now
               </Button>
             </div>
+            </div>
+            {failed && job.last_return_message && (
+              <pre className="mt-2 whitespace-pre-wrap break-words rounded border border-crisis-red/20 bg-background/40 p-2 font-mono text-[11px] leading-relaxed text-crisis-red/90 max-h-40 overflow-auto">
+                {job.last_return_message}
+              </pre>
+            )}
           </div>
         );
       })}
