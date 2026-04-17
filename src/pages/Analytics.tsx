@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActiveCase } from "@/hooks/useActiveCase";
 
 type Signal = Tables<"signals">;
 type ReputationSnapshot = Tables<"reputation_snapshots">;
@@ -23,14 +24,18 @@ const chartStyle = {
 
 export default function Analytics() {
   usePageTitle("Analytics");
+  const { activeCaseId, activeCase } = useActiveCase();
+
   // Fetch reputation snapshots for sentiment timeline
   const { data: snapshots = [], isLoading: snapshotsLoading } = useQuery({
-    queryKey: ["analytics-snapshots"],
+    queryKey: ["analytics-snapshots", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("reputation_snapshots")
         .select("*")
         .order("snapshot_at", { ascending: true });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as ReputationSnapshot[];
     },
@@ -38,12 +43,14 @@ export default function Analytics() {
 
   // Fetch signals for volume-by-platform and influencer data
   const { data: signals = [], isLoading: signalsLoading } = useQuery({
-    queryKey: ["analytics-signals"],
+    queryKey: ["analytics-signals", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("signals")
         .select("*")
         .order("detected_at", { ascending: false });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as Signal[];
     },
@@ -90,7 +97,9 @@ export default function Analytics() {
       <div className="space-y-6">
         <div>
           <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">Deep-dive into crisis data & trends</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {activeCase ? `Case: ${activeCase.title}` : "Deep-dive into crisis data & trends"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
