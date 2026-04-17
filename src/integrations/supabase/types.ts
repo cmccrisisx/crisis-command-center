@@ -574,6 +574,7 @@ export type Database = {
         Args: never
         Returns: {
           active: boolean
+          avg_duration_ms_7d: number
           command: string
           history_7d: Json
           jobid: number
