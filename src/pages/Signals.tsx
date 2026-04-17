@@ -29,6 +29,7 @@ export default function Signals() {
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
   const [realtimeCount, setRealtimeCount] = useState(0);
   const [isIngesting, setIsIngesting] = useState(false);
+  const [readerSignal, setReaderSignal] = useState<Signal | null>(null);
 
   const handleRefreshSignals = async () => {
     setIsIngesting(true);
