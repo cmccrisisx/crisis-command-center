@@ -330,29 +330,46 @@ export default function Dashboard() {
             {dbSignals.length === 0 && (
               <p className="text-xs text-muted-foreground font-mono text-center py-4">No signals detected yet</p>
             )}
-            {dbSignals.map((signal) => (
-              <div key={signal.id} className="flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border">
-                <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
-                  {signal.source === "twitter" ? "𝕏" : signal.source === "news" ? "📰" : signal.source === "blog" ? "📝" : "in"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-semibold text-foreground">{signal.author}</span>
-                    {signal.is_influencer && (
-                      <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
-                        INFLUENCER
-                      </span>
-                    )}
-                    <SentimentBadge sentiment={signal.sentiment} />
+            {dbSignals.map((signal) => {
+              const hasUrl = !!signal.source_url;
+              return (
+                <button
+                  key={signal.id}
+                  type="button"
+                  disabled={!hasUrl}
+                  onClick={() =>
+                    hasUrl && setReaderSignal({
+                      source_url: signal.source_url,
+                      author: signal.author,
+                      content: signal.content,
+                    })
+                  }
+                  className={`w-full text-left flex items-start gap-3 p-3 rounded-sm bg-surface-elevated border border-border transition-colors ${
+                    hasUrl ? "hover:bg-secondary/40 hover:border-primary/40 cursor-pointer" : "cursor-default"
+                  }`}
+                >
+                  <div className="shrink-0 w-8 h-8 rounded-sm bg-secondary flex items-center justify-center text-xs font-mono font-bold">
+                    {signal.source === "twitter" ? "𝕏" : signal.source === "news" ? "📰" : signal.source === "blog" ? "📝" : "in"}
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed truncate">{signal.content}</p>
-                  <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
-                    <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
-                    <span>{new Date(signal.detected_at).toLocaleTimeString()}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-foreground">{signal.author}</span>
+                      {signal.is_influencer && (
+                        <span className="text-[9px] font-mono px-1 py-0 rounded-sm bg-crisis-purple/15 text-crisis-purple border border-crisis-purple/30">
+                          INFLUENCER
+                        </span>
+                      )}
+                      <SentimentBadge sentiment={signal.sentiment} />
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed truncate">{signal.content}</p>
+                    <div className="flex items-center gap-3 mt-1 text-[10px] font-mono text-muted-foreground tabular-nums">
+                      <span>Reach: {formatNumber(signal.reach ?? 0)}</span>
+                      <span>{new Date(signal.detected_at).toLocaleTimeString()}</span>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </CardContent>
         </Card>
       </div>
