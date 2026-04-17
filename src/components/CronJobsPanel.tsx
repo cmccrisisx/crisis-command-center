@@ -189,6 +189,9 @@ export function CronJobsPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {job.history_7d && job.history_7d.length > 0 && (
+                <HistorySparkline data={job.history_7d} />
+              )}
               <Badge
                 variant="outline"
                 className={`font-mono text-[10px] uppercase ${
