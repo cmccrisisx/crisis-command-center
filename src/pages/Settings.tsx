@@ -389,6 +389,22 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         )}
+        {/* Scheduled Jobs — Admin Only */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-crisis-blue" />
+                <CardTitle className="text-sm font-mono uppercase tracking-wider">Scheduled Jobs</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Background cron jobs and their last run status. Refreshes every 30s.</p>
+            </CardHeader>
+            <CardContent>
+              <CronJobsPanel />
+            </CardContent>
+          </Card>
+        )}
+
 
         <Card>
           <CardHeader>
