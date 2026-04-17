@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActiveCase } from "@/hooks/useActiveCase";
 
 interface Report {
   id: string;
@@ -73,16 +74,26 @@ const REPORT_TYPES = ["Post-Crisis", "Recurring", "Ad-hoc", "Incident", "Complia
 
 export default function Reports() {
   usePageTitle("Reports");
+  const { activeCaseId, activeCase } = useActiveCase();
   const [reports, setReports] = useState<Report[]>(defaultReports);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newType, setNewType] = useState("Post-Crisis");
   const [newSections, setNewSections] = useState<string[]>(["Executive Summary", "Timeline"]);
 
-  // Fetch live crisis data
+  // Fetch live crisis data (active case override otherwise latest)
   const { data: crisis } = useQuery({
-    queryKey: ["reports-crisis"],
+    queryKey: ["reports-crisis", activeCaseId ?? "auto"],
     queryFn: async () => {
+      if (activeCaseId) {
+        const { data, error } = await supabase
+          .from("crises")
+          .select("*")
+          .eq("id", activeCaseId)
+          .maybeSingle();
+        if (error) throw error;
+        return data;
+      }
       const { data, error } = await supabase
         .from("crises")
         .select("*")
@@ -96,12 +107,11 @@ export default function Reports() {
 
   // Fetch live narratives
   const { data: narratives = [] } = useQuery({
-    queryKey: ["reports-narratives"],
+    queryKey: ["reports-narratives", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("narratives")
-        .select("*")
-        .order("signal_count", { ascending: false });
+      let q = supabase.from("narratives").select("*").order("signal_count", { ascending: false });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
@@ -109,12 +119,11 @@ export default function Reports() {
 
   // Fetch live signals for stats
   const { data: signals = [] } = useQuery({
-    queryKey: ["reports-signals"],
+    queryKey: ["reports-signals", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("signals")
-        .select("*")
-        .order("detected_at", { ascending: false });
+      let q = supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
@@ -122,16 +131,17 @@ export default function Reports() {
 
   // Fetch latest reputation snapshot
   const { data: latestSnapshot } = useQuery({
-    queryKey: ["reports-snapshot"],
+    queryKey: ["reports-snapshot", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("reputation_snapshots")
         .select("*")
         .order("snapshot_at", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
-      return data;
+      return data?.[0] ?? null;
     },
   });
 
