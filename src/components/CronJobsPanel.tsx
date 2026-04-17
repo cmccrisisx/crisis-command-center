@@ -145,18 +145,34 @@ export function CronJobsPanel() {
                 )}
               </div>
             </div>
-            <Badge
-              variant="outline"
-              className={`font-mono text-[10px] uppercase shrink-0 ${
-                status === "succeeded"
-                  ? "border-crisis-green/30 text-crisis-green bg-crisis-green/5"
-                  : status === "failed"
-                    ? "border-crisis-red/30 text-crisis-red bg-crisis-red/5"
-                    : "border-border text-muted-foreground"
-              }`}
-            >
-              {job.last_status ?? "never run"}
-            </Badge>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge
+                variant="outline"
+                className={`font-mono text-[10px] uppercase ${
+                  status === "succeeded"
+                    ? "border-crisis-green/30 text-crisis-green bg-crisis-green/5"
+                    : status === "failed"
+                      ? "border-crisis-red/30 text-crisis-red bg-crisis-red/5"
+                      : "border-border text-muted-foreground"
+                }`}
+              >
+                {job.last_status ?? "never run"}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 font-mono text-[10px] uppercase gap-1"
+                disabled={runningId === job.jobid || !parseFunctionName(job.command)}
+                onClick={() => runNow(job)}
+              >
+                {runningId === job.jobid ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Play className="h-3 w-3" />
+                )}
+                Run now
+              </Button>
+            </div>
           </div>
         );
       })}
