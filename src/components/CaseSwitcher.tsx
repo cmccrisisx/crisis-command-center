@@ -107,9 +107,14 @@ export function CaseSwitcher() {
                       <span className="truncate text-foreground">{c.title}</span>
                       <RiskBadge level={c.risk_level} size="sm" />
                     </div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
-                      {c.status} · {c.type}
-                    </p>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                        {c.status} · {c.type}
+                      </p>
+                      <span className="text-[10px] font-mono tabular-nums text-muted-foreground shrink-0">
+                        {(signalCounts[c.id] ?? 0).toLocaleString()} signals
+                      </span>
+                    </div>
                   </div>
                 </CommandItem>
               ))}
