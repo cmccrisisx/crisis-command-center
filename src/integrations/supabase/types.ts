@@ -575,6 +575,7 @@ export type Database = {
         Returns: {
           active: boolean
           command: string
+          history_7d: Json
           jobid: number
           jobname: string
           last_duration_ms: number

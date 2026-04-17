@@ -8,6 +8,12 @@ import { Clock, CheckCircle2, AlertCircle, Loader2, Play } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
+interface DayStat {
+  day: string;
+  succeeded: number;
+  failed: number;
+}
+
 interface CronJob {
   jobid: number;
   jobname: string;
@@ -18,6 +24,43 @@ interface CronJob {
   last_end: string | null;
   last_status: string | null;
   last_duration_ms: number | null;
+  history_7d: DayStat[] | null;
+}
+
+function HistorySparkline({ data }: { data: DayStat[] }) {
+  const max = Math.max(1, ...data.map((d) => d.succeeded + d.failed));
+  return (
+    <div
+      className="flex items-end gap-0.5 h-8"
+      title="Last 7 days · green = succeeded, red = failed"
+      aria-label="7-day run history"
+    >
+      {data.map((d) => {
+        const total = d.succeeded + d.failed;
+        const heightPct = (total / max) * 100;
+        const successPct = total > 0 ? (d.succeeded / total) * 100 : 0;
+        const dayShort = new Date(d.day).toLocaleDateString(undefined, { weekday: "short" });
+        return (
+          <div
+            key={d.day}
+            className="w-1.5 flex flex-col justify-end rounded-sm overflow-hidden bg-muted/40"
+            style={{ height: "100%" }}
+            title={`${dayShort} ${d.day}: ${d.succeeded} ok, ${d.failed} failed`}
+          >
+            {total > 0 ? (
+              <div
+                className="flex flex-col w-full"
+                style={{ height: `${heightPct}%` }}
+              >
+                <div className="bg-crisis-red w-full" style={{ height: `${100 - successPct}%` }} />
+                <div className="bg-crisis-green w-full" style={{ height: `${successPct}%` }} />
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function parseFunctionName(command: string): string | null {
@@ -146,6 +189,9 @@ export function CronJobsPanel() {
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
+              {job.history_7d && job.history_7d.length > 0 && (
+                <HistorySparkline data={job.history_7d} />
+              )}
               <Badge
                 variant="outline"
                 className={`font-mono text-[10px] uppercase ${
