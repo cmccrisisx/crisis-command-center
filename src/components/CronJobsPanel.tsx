@@ -20,7 +20,30 @@ interface CronJob {
   last_duration_ms: number | null;
 }
 
+function parseFunctionName(command: string): string | null {
+  const m = command.match(/\/functions\/v1\/([a-zA-Z0-9_-]+)/);
+  return m?.[1] ?? null;
+}
+
+function parseBody(command: string): Record<string, unknown> | undefined {
+  const m = command.match(/jsonb_build_object\(([^)]*)\)/i);
+  if (!m) return undefined;
+  try {
+    const parts = m[1].split(",").map((p) => p.trim().replace(/^'/, "").replace(/'$/, ""));
+    const obj: Record<string, unknown> = {};
+    for (let i = 0; i + 1 < parts.length; i += 2) {
+      obj[parts[i]] = parts[i + 1];
+    }
+    return obj;
+  } catch {
+    return undefined;
+  }
+}
+
 export function CronJobsPanel() {
+  const queryClient = useQueryClient();
+  const [runningId, setRunningId] = useState<number | null>(null);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["cron-jobs-status"],
     refetchInterval: 30_000,
@@ -30,6 +53,26 @@ export function CronJobsPanel() {
       return (data ?? []) as CronJob[];
     },
   });
+
+  const runNow = async (job: CronJob) => {
+    const fnName = parseFunctionName(job.command);
+    if (!fnName) {
+      toast.error("Could not detect the edge function in this cron command.");
+      return;
+    }
+    setRunningId(job.jobid);
+    const body = parseBody(job.command);
+    try {
+      const { error } = await supabase.functions.invoke(fnName, { body: body ?? {} });
+      if (error) throw error;
+      toast.success(`Triggered ${fnName}`);
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ["cron-jobs-status"] }), 1500);
+    } catch (e) {
+      toast.error(`Failed to run ${fnName}: ${(e as Error).message}`);
+    } finally {
+      setRunningId(null);
+    }
+  };
 
   if (isLoading) {
     return (
