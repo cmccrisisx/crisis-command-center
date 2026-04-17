@@ -74,16 +74,21 @@ export default function Signals() {
 
   // Realtime subscription — new signals appear instantly
   useEffect(() => {
+    const queryKey = ["signals", activeCaseId ?? "all"] as const;
+    const matchesCase = (s: Signal) => !activeCaseId || s.crisis_id === activeCaseId;
+
     const channel = supabase
-      .channel("signals-realtime")
+      .channel(`signals-realtime-${activeCaseId ?? "all"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["signals"], (old) => {
-            if (!old) return [payload.new as Signal];
-            if (old.some((s) => s.id === (payload.new as Signal).id)) return old;
-            return [payload.new as Signal, ...old];
+          const next = payload.new as Signal;
+          if (!matchesCase(next)) return;
+          queryClient.setQueryData<Signal[]>(queryKey, (old) => {
+            if (!old) return [next];
+            if (old.some((s) => s.id === next.id)) return old;
+            return [next, ...old];
           });
           setRealtimeCount((c) => c + 1);
         }
@@ -92,8 +97,10 @@ export default function Signals() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["signals"], (old) =>
-            old?.map((s) => (s.id === (payload.new as Signal).id ? (payload.new as Signal) : s)) ?? []
+          const next = payload.new as Signal;
+          if (!matchesCase(next)) return;
+          queryClient.setQueryData<Signal[]>(queryKey, (old) =>
+            old?.map((s) => (s.id === next.id ? next : s)) ?? []
           );
         }
       )
@@ -101,7 +108,7 @@ export default function Signals() {
         "postgres_changes",
         { event: "DELETE", schema: "public", table: "signals" },
         (payload) => {
-          queryClient.setQueryData<Signal[]>(["signals"], (old) =>
+          queryClient.setQueryData<Signal[]>(queryKey, (old) =>
             old?.filter((s) => s.id !== (payload.old as { id: string }).id) ?? []
           );
         }
@@ -111,7 +118,7 @@ export default function Signals() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, activeCaseId]);
 
   const filteredSignals = useMemo(() => {
     let result = signals;
