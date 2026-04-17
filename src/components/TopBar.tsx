@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useActiveCase } from "@/hooks/useActiveCase";
 import type { RiskLevel } from "@/lib/crisis-helpers";
 
 const ROLE_STYLES: Record<string, string> = {
@@ -37,8 +38,9 @@ const SEVERITY_DOT: Record<string, string> = {
 export function TopBar() {
   const { profile, roles, signOut } = useAuth();
   const { notifications, unreadCount, markAllRead, clear } = useNotifications();
+  const { activeCase, activeCaseId } = useActiveCase();
 
-  const { data: crisis } = useQuery({
+  const { data: latestCrisis } = useQuery({
     queryKey: ["topbar-crisis"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -50,6 +52,7 @@ export function TopBar() {
       if (error) throw error;
       return data;
     },
+    enabled: !activeCaseId,
   });
 
   const { data: alertCount = 0 } = useQuery({
@@ -64,8 +67,8 @@ export function TopBar() {
     },
   });
 
-  const riskLevel = (crisis?.risk_level ?? "medium") as RiskLevel;
-  const totalSignals = crisis?.signal_count ?? 0;
+  const riskLevel = (activeCase?.risk_level ?? latestCrisis?.risk_level ?? "medium") as RiskLevel;
+  const totalSignals = activeCase?.signal_count ?? latestCrisis?.signal_count ?? 0;
 
   return (
     <header className="h-12 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm" data-tour="topbar">
