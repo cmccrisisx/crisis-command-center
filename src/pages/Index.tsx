@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
 import { CrisisAIPanel } from "@/components/CrisisAIPanel";
