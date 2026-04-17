@@ -325,6 +325,108 @@ Deno.serve(async (req) => {
       else console.log(`Updated crisis ${crisisId} signal_count = ${count ?? 0}`);
     }
 
+    // Regenerate AI narratives by clustering current signals into themes
+    for (const [, crisisId] of Object.entries(BRAND_CRISIS_MAP)) {
+      try {
+        const { data: recentSignals } = await supabase
+          .from("signals")
+          .select("content, sentiment, reach, keywords, source_url")
+          .eq("crisis_id", crisisId)
+          .order("detected_at", { ascending: false })
+          .limit(40);
+
+        if (!recentSignals || recentSignals.length === 0) continue;
+
+        const signalDigest = recentSignals
+          .map((s, i) => `[${i}] (${s.sentiment}) ${s.content.slice(0, 220)}`)
+          .join("\n");
+
+        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a media analyst for the Kaduna State Government. Cluster the provided news signals into 3-5 distinct trending narratives. Each narrative is a coherent theme (e.g. security/banditry, budget, infrastructure, KADIPA investment, education). Use the tool to return them.",
+              },
+              { role: "user", content: signalDigest },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "emit_narratives",
+                  description: "Emit 3-5 themed narratives clustering the signals.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      narratives: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            title: { type: "string", description: "Short headline (max 80 chars)" },
+                            summary: { type: "string", description: "2-3 sentence summary of the narrative" },
+                            sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+                            risk_level: { type: "string", enum: ["low", "medium", "high", "critical"] },
+                            top_keywords: { type: "array", items: { type: "string" } },
+                            signal_indices: { type: "array", items: { type: "number" }, description: "Indices of source signals" },
+                            trending: { type: "boolean" },
+                          },
+                          required: ["title", "summary", "sentiment", "risk_level", "top_keywords", "signal_indices", "trending"],
+                        },
+                      },
+                    },
+                    required: ["narratives"],
+                  },
+                },
+              },
+            ],
+            tool_choice: { type: "function", function: { name: "emit_narratives" } },
+          }),
+        });
+
+        if (!aiResp.ok) {
+          console.error(`Narrative AI failed for ${crisisId}: ${aiResp.status}`);
+          continue;
+        }
+
+        const aiData = await aiResp.json();
+        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+        if (!toolCall) continue;
+        const parsed = JSON.parse(toolCall.function.arguments);
+        const narratives = parsed.narratives || [];
+        if (narratives.length === 0) continue;
+
+        // Replace existing narratives for this crisis
+        await supabase.from("narratives").delete().eq("crisis_id", crisisId);
+
+        const rows = narratives.map((n: any) => ({
+          crisis_id: crisisId,
+          title: n.title.slice(0, 200),
+          summary: n.summary,
+          sentiment: n.sentiment,
+          risk_level: n.risk_level,
+          top_keywords: (n.top_keywords || []).slice(0, 8),
+          signal_count: Array.isArray(n.signal_indices) ? n.signal_indices.length : 0,
+          trending: !!n.trending,
+          ai_generated: true,
+        }));
+
+        const { error: narrErr } = await supabase.from("narratives").insert(rows);
+        if (narrErr) console.error(`Narrative insert error for ${crisisId}:`, narrErr.message);
+        else console.log(`Inserted ${rows.length} AI narratives for ${crisisId}`);
+      } catch (e) {
+        console.error(`Narrative clustering failed for ${crisisId}:`, e);
+      }
+    }
+
     console.log(`Ingestion complete: ${totalInserted} new signals`);
     return new Response(
       JSON.stringify({ success: true, inserted: totalInserted, errors }),
