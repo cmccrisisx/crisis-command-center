@@ -1,5 +1,6 @@
 import { Bell, LogOut, CheckCheck, Trash2 } from "lucide-react";
 import { RiskBadge } from "./RiskBadge";
+import { CaseSwitcher } from "./CaseSwitcher";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -68,11 +69,12 @@ export function TopBar() {
 
   return (
     <header className="h-12 flex items-center justify-between border-b border-border px-4 bg-card/50 backdrop-blur-sm" data-tour="topbar">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
         <div className="h-5 w-px bg-border" />
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-foreground/70 uppercase tracking-wider">Global Risk:</span>
+        <CaseSwitcher />
+        <div className="hidden lg:flex items-center gap-2 pl-1">
+          <span className="text-xs font-mono text-foreground/70 uppercase tracking-wider">Risk:</span>
           <RiskBadge level={riskLevel} pulse size="sm" />
         </div>
       </div>
