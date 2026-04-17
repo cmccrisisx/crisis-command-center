@@ -74,8 +74,8 @@ export function ActiveCaseProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<ActiveCaseContextValue>(
-    () => ({ cases, activeCaseId, setActiveCaseId, activeCase, isLoading }),
-    [cases, activeCaseId, setActiveCaseId, activeCase, isLoading]
+    () => ({ cases, signalCounts, activeCaseId, setActiveCaseId, activeCase, isLoading }),
+    [cases, signalCounts, activeCaseId, setActiveCaseId, activeCase, isLoading]
   );
 
   return <ActiveCaseContext.Provider value={value}>{children}</ActiveCaseContext.Provider>;

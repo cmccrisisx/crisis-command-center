@@ -27,7 +27,7 @@ const RISK_DOT: Record<string, string> = {
 };
 
 export function CaseSwitcher() {
-  const { cases, activeCaseId, activeCase, setActiveCaseId, isLoading } = useActiveCase();
+  const { cases, signalCounts, activeCaseId, activeCase, setActiveCaseId, isLoading } = useActiveCase();
   const [open, setOpen] = useState(false);
 
   const label = activeCase?.title ?? "All cases";
