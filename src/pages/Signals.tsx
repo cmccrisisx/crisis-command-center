@@ -164,7 +164,7 @@ export default function Signals() {
           <div>
             <h1 className="text-2xl font-mono font-bold tracking-tight">Signal Detection</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Real-time monitoring across all channels
+              {activeCase ? `Case: ${activeCase.title}` : "Real-time monitoring across all channels"}
               {realtimeCount > 0 && (
                 <Badge variant="outline" className="ml-2 text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green animate-pulse">
                   <Radio className="h-2.5 w-2.5 mr-1" />

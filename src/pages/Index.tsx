@@ -26,6 +26,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActiveCase } from "@/hooks/useActiveCase";
 
 type Signal = Tables<"signals">;
 type Crisis = Tables<"crises">;
@@ -56,17 +57,16 @@ export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { activeCaseId, activeCase } = useActiveCase();
   const [readerSignal, setReaderSignal] = useState<{ source_url: string | null; author: string; content: string } | null>(null);
 
   // Fetch latest signals from DB
   const { data: dbSignals = [] } = useQuery({
-    queryKey: ["dashboard-signals"],
+    queryKey: ["dashboard-signals", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("signals")
-        .select("*")
-        .order("detected_at", { ascending: false })
-        .limit(5);
+      let q = supabase.from("signals").select("*").order("detected_at", { ascending: false }).limit(5);
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as Signal[];
     },
@@ -74,11 +74,11 @@ export default function Dashboard() {
 
   // Fetch signal stats from DB
   const { data: signalStats, isLoading: statsLoading } = useQuery({
-    queryKey: ["dashboard-signal-stats"],
+    queryKey: ["dashboard-signal-stats", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("signals")
-        .select("id, sentiment");
+      let q = supabase.from("signals").select("id, sentiment");
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       const total = data.length;
       const negative = data.filter((s) => s.sentiment === "negative").length;
@@ -88,10 +88,19 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch active crisis from DB
+  // Fetch active crisis from DB (or the selected case)
   const { data: activeCrisis, isLoading: crisisLoading } = useQuery({
-    queryKey: ["dashboard-crisis"],
+    queryKey: ["dashboard-crisis", activeCaseId ?? "auto"],
     queryFn: async () => {
+      if (activeCaseId) {
+        const { data, error } = await supabase
+          .from("crises")
+          .select("*")
+          .eq("id", activeCaseId)
+          .maybeSingle();
+        if (error) throw error;
+        return (data ?? null) as Crisis | null;
+      }
       const { data, error } = await supabase
         .from("crises")
         .select("*")
@@ -105,14 +114,16 @@ export default function Dashboard() {
 
   // Fetch trending narratives from DB
   const { data: narratives = [] } = useQuery({
-    queryKey: ["dashboard-narratives"],
+    queryKey: ["dashboard-narratives", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("narratives")
         .select("*")
         .eq("trending", true)
         .order("created_at", { ascending: false })
         .limit(5);
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as Narrative[];
     },
@@ -120,13 +131,15 @@ export default function Dashboard() {
 
   // Fetch reputation snapshots for sentiment timeline
   const { data: snapshots = [] } = useQuery({
-    queryKey: ["dashboard-snapshots"],
+    queryKey: ["dashboard-snapshots", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("reputation_snapshots")
         .select("*")
         .order("snapshot_at", { ascending: true })
         .limit(24);
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as ReputationSnapshot[];
     },
@@ -213,7 +226,9 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Command Center</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Real-time crisis monitoring & response</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+              {activeCase ? `Case: ${activeCase.title}` : "Real-time crisis monitoring & response"}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <CreateCrisisDialog />
