@@ -191,7 +191,20 @@ export function CronJobsPanel() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {job.history_7d && job.history_7d.length > 0 && (
-                <HistorySparkline data={job.history_7d} />
+                <div className="flex flex-col items-end gap-0.5">
+                  <HistorySparkline data={job.history_7d} />
+                  <span
+                    className="text-[10px] font-mono text-muted-foreground"
+                    title="Average run duration over the last 7 days"
+                  >
+                    avg 7d:{" "}
+                    {job.avg_duration_ms_7d != null
+                      ? job.avg_duration_ms_7d >= 1000
+                        ? `${(job.avg_duration_ms_7d / 1000).toFixed(2)}s`
+                        : `${Math.round(job.avg_duration_ms_7d)}ms`
+                      : "—"}
+                  </span>
+                </div>
               )}
               <Badge
                 variant="outline"
