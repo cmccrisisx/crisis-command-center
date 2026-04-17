@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useActiveCase } from "@/hooks/useActiveCase";
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -61,11 +62,17 @@ const chartStyle = {
 export default function Stabilize() {
   usePageTitle("Stabilize");
   const postCrisis = useCrisisAI();
+  const { activeCaseId, activeCase } = useActiveCase();
   const currentRep = recoveryData[recoveryData.length - 1];
 
   const { data: crisis } = useQuery({
-    queryKey: ["stabilize-crisis"],
+    queryKey: ["stabilize-crisis", activeCaseId ?? "auto"],
     queryFn: async () => {
+      if (activeCaseId) {
+        const { data, error } = await supabase.from("crises").select("*").eq("id", activeCaseId).maybeSingle();
+        if (error) throw error;
+        return data;
+      }
       const { data, error } = await supabase.from("crises").select("*").order("created_at", { ascending: false }).limit(1).single();
       if (error) throw error;
       return data;
@@ -73,9 +80,11 @@ export default function Stabilize() {
   });
 
   const { data: signals = [] } = useQuery({
-    queryKey: ["stabilize-signals"],
+    queryKey: ["stabilize-signals", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      let q = supabase.from("signals").select("*").order("detected_at", { ascending: false });
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data;
     },
@@ -98,7 +107,9 @@ export default function Stabilize() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">STABILIZE — Recovery</h1>
-            <p className="text-sm text-muted-foreground mt-1">Track reputation recovery & post-crisis analysis</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {activeCase ? `Case: ${activeCase.title}` : "Track reputation recovery & post-crisis analysis"}
+            </p>
           </div>
           <Button onClick={generateReport} variant="outline" className="text-xs font-mono uppercase tracking-wider shrink-0" disabled={postCrisis.loading}>
             {postCrisis.loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Brain className="h-3.5 w-3.5 mr-1.5" />}
