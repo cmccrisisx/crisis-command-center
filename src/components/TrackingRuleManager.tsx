@@ -511,6 +511,7 @@ export function TrackingRuleManager({
           descriptionParts.push("Select 2–5 saved keyword rows in the table, then click Compare selected.");
         }
 
+        const description = descriptionParts.length > 0 ? descriptionParts.join(" ") : undefined;
         toast.success(`${result.addedCount} keyword${result.addedCount === 1 ? "" : "s"} added`, { description });
       } else {
         toast.success(editingRule ? "Tracking rule updated" : "Tracking rule created");
