@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
 import { useActiveCase } from "@/hooks/useActiveCase";
+import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 
 type Signal = Tables<"signals">;
 
@@ -36,6 +38,7 @@ export default function Signals() {
   usePageTitle("Signals");
   const queryClient = useQueryClient();
   const { activeCaseId, activeCase } = useActiveCase();
+  const { hasRole } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [sourceFilters, setSourceFilters] = useState<string[]>([]);
   const [sentimentFilters, setSentimentFilters] = useState<string[]>([]);
@@ -146,6 +149,7 @@ export default function Signals() {
 
   const activeFilterCount = sourceFilters.length + sentimentFilters.length;
   const latestSignalAt = signals[0]?.detected_at ?? null;
+  const isAdmin = hasRole("admin");
 
   return (
     <AppLayout>
@@ -168,6 +172,12 @@ export default function Signals() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button asChild variant="outline" size="sm" className="h-8 text-xs font-mono">
+                <Link to="/tracking-manager">Open Tracking Manager</Link>
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="sm"

@@ -21,12 +21,13 @@ import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "l
 import { Button } from "@/components/ui/button";
 import { CreateCrisisDialog } from "@/components/CreateCrisisDialog";
 import { CrisisStatusCard } from "@/components/CrisisStatusCard";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveCase } from "@/hooks/useActiveCase";
+import { useAuth } from "@/hooks/useAuth";
 
 type Signal = Tables<"signals">;
 type Crisis = Tables<"crises">;
@@ -68,7 +69,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeCaseId, activeCase } = useActiveCase();
+  const { hasRole } = useAuth();
   const [readerSignal, setReaderSignal] = useState<{ source_url: string | null; author: string; content: string } | null>(null);
+  const isAdmin = hasRole("admin");
 
   const { data: dbSignals = [] } = useQuery({
     queryKey: ["dashboard-signals", activeCaseId ?? "all"],
@@ -277,6 +280,20 @@ export default function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          {isAdmin && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-mono uppercase tracking-wider">Tracking Manager</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">Add monitored names and queries without digging through Settings.</p>
+                <Button asChild variant="outline" size="sm" className="font-mono text-xs uppercase tracking-wider">
+                  <Link to="/tracking-manager">Open Tracking Manager</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="xl:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-mono uppercase tracking-wider">Sentiment Timeline</CardTitle>
