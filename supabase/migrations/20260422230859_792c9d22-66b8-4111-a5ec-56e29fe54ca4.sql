@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Authenticated can insert signals" ON public.signals;
