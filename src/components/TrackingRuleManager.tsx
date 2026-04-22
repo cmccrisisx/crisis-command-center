@@ -421,7 +421,7 @@ export function TrackingRuleManager({
           throw new Error("These keywords already exist for this case and platform");
         }
 
-        const parsedPriority = trackingRuleSchema.shape.priority.safeParse(payload.priority);
+        const parsedPriority = z.coerce.number().int().min(0).max(9999).safeParse(payload.priority);
         if (!parsedPriority.success) {
           throw new Error(parsedPriority.error.flatten().formErrors[0] ?? "Invalid priority");
         }

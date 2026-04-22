@@ -30,6 +30,30 @@ const chartStyle = {
 
 const normalizeKeyword = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
 
+const HOUR_IN_MS = 1000 * 60 * 60;
+
+const getSpikeScore = (timestamps: string[]) => {
+  if (timestamps.length === 0) return 0;
+
+  const parsedTimes = timestamps
+    .map((timestamp) => new Date(timestamp).getTime())
+    .filter((time) => Number.isFinite(time))
+    .sort((a, b) => b - a);
+
+  if (parsedTimes.length === 0) return 0;
+
+  const latest = parsedTimes[0];
+  const recentWindowStart = latest - 24 * HOUR_IN_MS;
+  const baselineWindowStart = latest - 96 * HOUR_IN_MS;
+
+  const recentCount = parsedTimes.filter((time) => time >= recentWindowStart).length;
+  const baselineCount = parsedTimes.filter((time) => time < recentWindowStart && time >= baselineWindowStart).length;
+  const baselineDailyRate = baselineCount / 3;
+
+  if (baselineDailyRate <= 0) return recentCount > 0 ? Number(recentCount.toFixed(1)) : 0;
+  return Number((recentCount / baselineDailyRate).toFixed(1));
+};
+
 const getTopPlatforms = (signals: Signal[]) => {
   const counts = signals.reduce<Record<string, number>>((acc, signal) => {
     const platform = signal.source === "twitter" ? "Twitter/X" : signal.source === "news" ? "News" : signal.source === "blog" ? "Blogs" : "LinkedIn";
@@ -133,9 +157,13 @@ export function KeywordComparisonPanel({ activeCaseId, activeCaseTitle, signals,
         positive: sentiment.positive,
         neutral: sentiment.neutral,
         negative: sentiment.negative,
+        positivePct: matchedSignals.length ? Math.round((sentiment.positive / matchedSignals.length) * 100) : 0,
+        neutralPct: matchedSignals.length ? Math.round((sentiment.neutral / matchedSignals.length) * 100) : 0,
+        negativePct: matchedSignals.length ? Math.round((sentiment.negative / matchedSignals.length) * 100) : 0,
         latestMention: matchedSignals[0]?.detected_at ?? null,
         reach: matchedSignals.reduce((sum, signal) => sum + (signal.reach ?? 0), 0),
         topPlatforms: getTopPlatforms(matchedSignals),
+        spikeScore: getSpikeScore(matchedSignals.map((signal) => signal.detected_at)),
       };
     });
   }, [selectedKeywords, signals]);
@@ -217,22 +245,43 @@ export function KeywordComparisonPanel({ activeCaseId, activeCaseTitle, signals,
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-foreground">{entry.keyword}</p>
-                      <p className="mt-1 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">{entry.mentions} mentions</p>
+                      <p className="mt-1 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">Active case comparison</p>
                     </div>
                     <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">Reach {formatNumber(entry.reach)}</Badge>
                   </div>
-                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                     <div className="rounded-sm border border-border bg-card px-2 py-2">
-                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Positive</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">{entry.positive}</p>
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Mentions</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{entry.mentions}</p>
                     </div>
                     <div className="rounded-sm border border-border bg-card px-2 py-2">
-                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Neutral</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">{entry.neutral}</p>
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Spike score</p>
+                      <p className="mt-1 text-sm font-semibold text-foreground">{entry.spikeScore.toFixed(1)}x</p>
                     </div>
-                    <div className="rounded-sm border border-border bg-card px-2 py-2">
-                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Negative</p>
-                      <p className="mt-1 text-sm font-semibold text-foreground">{entry.negative}</p>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Sentiment mix</p>
+                      <p className="text-[11px] text-muted-foreground">P {entry.positivePct}% · N {entry.neutralPct}% · Neg {entry.negativePct}%</p>
+                    </div>
+                    <div className="flex h-2 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-primary" style={{ width: `${entry.positivePct}%` }} />
+                      <div className="h-full bg-secondary" style={{ width: `${entry.neutralPct}%` }} />
+                      <div className="h-full bg-destructive" style={{ width: `${entry.negativePct}%` }} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-sm border border-border bg-card px-2 py-2">
+                        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Positive</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{entry.positive}</p>
+                      </div>
+                      <div className="rounded-sm border border-border bg-card px-2 py-2">
+                        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Neutral</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{entry.neutral}</p>
+                      </div>
+                      <div className="rounded-sm border border-border bg-card px-2 py-2">
+                        <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Negative</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground">{entry.negative}</p>
+                      </div>
                     </div>
                   </div>
                   <div className="mt-4 space-y-2">
