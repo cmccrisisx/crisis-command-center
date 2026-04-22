@@ -50,6 +50,7 @@ type RuleType = "keyword" | "query";
 type RuleStatusFilter = "all" | "active" | "paused";
 type RuleTypeFilter = "all" | RuleType;
 type TrackingPlatform = "all" | "twitter" | "news" | "blog" | "linkedin";
+type KeywordSegment = "brand" | "competitor";
 
 interface CrisisOption {
   id: string;
@@ -129,6 +130,14 @@ const dedupeKeywords = (values: string[]) => {
   });
 };
 
+const getKeywordSegmentLabel = (segment: KeywordSegment) =>
+  segment === "brand" ? "Brand keyword" : "Competitor keyword";
+
+const buildBatchRuleLabel = (baseLabel: string, segment: KeywordSegment) => {
+  const segmentLabel = getKeywordSegmentLabel(segment);
+  return baseLabel.trim() ? `${baseLabel.trim()} · ${segmentLabel}` : segmentLabel;
+};
+
 const trackingRuleSchema = z
   .object({
     crisis_id: z.string().uuid({ message: "Select a case" }),
@@ -153,6 +162,103 @@ function StatPill({ label, value, helper }: { label: string; value: string; help
       <p className="mt-1 text-lg font-mono font-semibold tabular-nums text-foreground">{value}</p>
       {helper ? <p className="mt-1 text-[11px] text-muted-foreground">{helper}</p> : null}
     </div>
+  );
+}
+
+function KeywordWorkspace({
+  title,
+  description,
+  hint,
+  required,
+  countLabel,
+  entries,
+  draft,
+  placeholder,
+  accent,
+  inputRef,
+  onDraftChange,
+  onCommit,
+  onPasteBatch,
+  onRemove,
+}: {
+  title: string;
+  description: string;
+  hint: string;
+  required?: boolean;
+  countLabel: string;
+  entries: string[];
+  draft: string;
+  placeholder: string;
+  accent: "primary" | "muted";
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  onDraftChange: (value: string) => void;
+  onCommit: () => void;
+  onPasteBatch: (value: string) => void;
+  onRemove: (keyword: string) => void;
+}) {
+  const accentClasses =
+    accent === "primary"
+      ? "border-primary/40 bg-card shadow-sm focus-within:border-primary"
+      : "border-border bg-surface-elevated/40 shadow-sm focus-within:border-ring";
+
+  return (
+    <section className="space-y-2.5 rounded-sm border border-border bg-background p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label className="text-xs font-mono uppercase tracking-wider text-foreground">{title}</Label>
+            <Badge variant={required ? "default" : "secondary"} className="rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide">
+              {required ? "Required" : "Optional"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Badge variant="outline" className="rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide">
+          {countLabel}
+        </Badge>
+      </div>
+
+      <div className={cn("rounded-md border p-2 transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2", accentClasses)}>
+        <div className="flex min-h-28 flex-wrap content-start gap-2">
+          {entries.length > 0 ? (
+            entries.map((keyword) => (
+              <Badge key={keyword} variant={accent === "primary" ? "default" : "secondary"} className="gap-1 rounded-sm px-2 py-1 font-mono text-xs">
+                <span>{keyword}</span>
+                <button type="button" onClick={() => onRemove(keyword)} className="rounded-sm p-0.5 text-current/70 transition-colors hover:text-current">
+                  <X className="h-3 w-3" />
+                  <span className="sr-only">Remove {keyword}</span>
+                </button>
+              </Badge>
+            ))
+          ) : (
+            <p className="self-center px-1 py-1.5 text-sm text-muted-foreground">{placeholder}</p>
+          )}
+
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            onBlur={onCommit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                onCommit();
+              }
+            }}
+            onPaste={(e) => {
+              const pastedText = e.clipboardData.getData("text");
+              if (!/[\n,]/.test(pastedText)) return;
+              e.preventDefault();
+              onPasteBatch(pastedText);
+            }}
+            placeholder={entries.length > 0 ? "Add another keyword" : ""}
+            className="min-w-[220px] flex-1 bg-transparent px-1 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">{hint}</p>
+    </section>
   );
 }
 
@@ -188,8 +294,10 @@ export function TrackingRuleManager({
   const [editingRule, setEditingRule] = useState<TrackingRuleRow | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [formState, setFormState] = useState<TrackingRuleFormState>(DEFAULT_TRACKING_RULE_FORM);
-  const [keywordDraft, setKeywordDraft] = useState("");
-  const [keywordEntries, setKeywordEntries] = useState<string[]>([]);
+  const [brandKeywordDraft, setBrandKeywordDraft] = useState("");
+  const [brandKeywordEntries, setBrandKeywordEntries] = useState<string[]>([]);
+  const [competitorKeywordDraft, setCompetitorKeywordDraft] = useState("");
+  const [competitorKeywordEntries, setCompetitorKeywordEntries] = useState<string[]>([]);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
   const [compareCaseId, setCompareCaseId] = useState<string | null>(null);
   const autoOpenedEmptyRef = useRef(false);
@@ -272,8 +380,10 @@ export function TrackingRuleManager({
   const resetForm = (preferredRuleType: RuleType = initialRuleType) => {
     setEditingRule(null);
     setAdvancedOpen(false);
-    setKeywordDraft("");
-    setKeywordEntries([]);
+    setBrandKeywordDraft("");
+    setBrandKeywordEntries([]);
+    setCompetitorKeywordDraft("");
+    setCompetitorKeywordEntries([]);
     setFormState({
       ...DEFAULT_TRACKING_RULE_FORM,
       crisis_id: caseFilter !== "all" ? caseFilter : crises[0]?.id ?? "",
@@ -295,8 +405,10 @@ export function TrackingRuleManager({
   const openEditSheet = (rule: TrackingRuleRow) => {
     setEditingRule(rule);
     setAdvancedOpen(true);
-    setKeywordDraft("");
-    setKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setBrandKeywordDraft("");
+    setBrandKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setCompetitorKeywordDraft("");
+    setCompetitorKeywordEntries([]);
     setFormState({
       crisis_id: rule.crisis_id,
       platform: rule.platform,
@@ -313,8 +425,10 @@ export function TrackingRuleManager({
   const openDuplicateSheet = (rule: TrackingRuleRow) => {
     setEditingRule(null);
     setAdvancedOpen(true);
-    setKeywordDraft("");
-    setKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setBrandKeywordDraft("");
+    setBrandKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setCompetitorKeywordDraft("");
+    setCompetitorKeywordEntries([]);
     setFormState({
       crisis_id: rule.crisis_id,
       platform: rule.platform,
