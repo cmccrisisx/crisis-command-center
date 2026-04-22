@@ -148,7 +148,7 @@ const trackingRuleSchema = z.object({
 });
 
 const MANAGE_ROLES_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-roles`;
-const TRACKING_RULES_TABLE = "tracking_rules" as never;
+const TRACKING_RULES_TABLE = "tracking_rules" as const;
 
 async function callManageRoles(action: string, payload: Record<string, string> = {}) {
   const {

@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveCase } from "@/hooks/useActiveCase";
 import {
   LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
+} from "@/lib/recharts";
 
 // Generate recovery timeline data
 function generateRecoveryData() {

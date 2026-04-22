@@ -16,7 +16,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from "recharts";
+} from "@/lib/recharts";
 import { AlertTriangle, TrendingDown, Radio, MessageSquare, Clock, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateCrisisDialog } from "@/components/CreateCrisisDialog";
