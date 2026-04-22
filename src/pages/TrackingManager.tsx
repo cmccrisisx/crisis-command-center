@@ -64,7 +64,8 @@ export default function TrackingManagerPage() {
             <div className="space-y-2">
               <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">Critical workflow</p>
               <h2 className="text-xl font-mono font-bold tracking-tight text-foreground sm:text-2xl">Add tracked keywords and queries first</h2>
-              <p className="max-w-3xl text-sm text-muted-foreground">Add names, brands, executives, and search queries here so monitoring and analysis stay focused on the right live conversations.</p>
+              <p className="max-w-3xl text-sm text-muted-foreground">Paste names, brands, executives, or search phrases here so monitoring and analytics stay focused on the right live conversations.</p>
+             <p className="text-xs text-muted-foreground">Tip: add multiple keywords at once with commas or new lines.</p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
