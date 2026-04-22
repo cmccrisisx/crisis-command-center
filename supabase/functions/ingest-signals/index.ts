@@ -214,7 +214,7 @@ async function batchEnrichWithAI(
   return results;
 }
 
-async function fetchTrackingRules(supabase: ReturnType<typeof createClient>, requestedCrisisId?: string | null) {
+async function fetchTrackingRules(supabase: any, requestedCrisisId?: string | null) {
   let query = supabase
     .from("tracking_rules")
     .select("id, crisis_id, platform, rule_type, rule_text, is_active, priority, crises(id, title, description, type, risk_level, status)")
@@ -301,13 +301,14 @@ function buildSignalContent(result: FirecrawlSearchResult) {
   return normalizeWhitespace(result.markdown?.slice(0, 600) || result.title || result.description || "");
 }
 
-async function upsertSnapshotsAndCounts(supabase: ReturnType<typeof createClient>, crisisIds: string[]) {
+async function upsertSnapshotsAndCounts(supabase: any, crisisIds: string[]) {
   for (const crisisId of crisisIds) {
-    const { data: sigRows } = await supabase
+    const { data } = await supabase
       .from("signals")
       .select("sentiment, reach")
       .eq("crisis_id", crisisId)
       .gte("detected_at", new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString());
+    const sigRows = (data ?? []) as Array<{ sentiment: string; reach: number | null }>;
 
     const total = sigRows?.length || 0;
     if (total > 0) {
@@ -349,7 +350,7 @@ async function upsertSnapshotsAndCounts(supabase: ReturnType<typeof createClient
 }
 
 async function regenerateNarratives(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   crisisTasks: SearchTask[],
   apiKey: string
 ) {
@@ -360,12 +361,13 @@ async function regenerateNarratives(
 
   for (const [crisisId, task] of crisisMap.entries()) {
     try {
-      const { data: recentSignals } = await supabase
+      const { data } = await supabase
         .from("signals")
         .select("content, sentiment, reach, keywords, source_url")
         .eq("crisis_id", crisisId)
         .order("detected_at", { ascending: false })
         .limit(40);
+      const recentSignals = (data ?? []) as Array<{ content: string; sentiment: string; reach: number | null; keywords: string[] | null; source_url: string | null }>;
 
       if (!recentSignals || recentSignals.length === 0) continue;
 
