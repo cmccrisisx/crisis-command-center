@@ -1,103 +1,69 @@
 
 Goal
-- Make “Add Keyword” feel immediately usable by fixing the confusing input state, allowing admins to add multiple keywords in one action, and adding keyword-level analytics comparison.
+- Fix the misleading “Compare after save” block in the Add Keyword sheet so it no longer looks disabled and clearly explains how keyword comparison actually works.
 
-What is happening now
-- In `src/components/TrackingRuleManager.tsx`, the form only supports one `rule_text` value at a time.
-- The rule text field is a plain textarea, so it can look inactive or secondary even though it is not intentionally disabled.
-- The dialog depends on selecting a case first, but there is no strong inline guidance when the case is blank.
-- There is no existing keyword comparison feature anywhere in the app (`compare` search returned no implementation).
-- Analytics today is case-level in `src/pages/Analytics.tsx`, not keyword-level.
+What is causing the confusion
+- In `src/components/TrackingRuleManager.tsx`, the current “Compare after save” area is a plain informational box with muted styling (`bg-surface-elevated`, muted text), so it visually resembles a disabled control.
+- It is not interactive inside the sheet, but its label reads like an action.
+- The real comparison action already lives in the rules table header as `Compare selected`, which creates a mismatch between what the sheet implies and what the page actually supports.
 
-What to build
-1. Make the keyword input obviously active
-- Update the add dialog in `src/components/TrackingRuleManager.tsx` so the keyword entry control is the primary field:
-  - autofocus it when the sheet opens
-  - stronger background/border contrast
-  - clearer label like “Keywords”
-  - helper text explaining separators: comma, Enter, or new line
-- Add inline empty/error state near the case selector:
-  - “Select a case first”
-- Keep the typing field enabled at all times, but disable only the final save action if required fields are missing.
+What to change
+1. Replace the disabled-looking box with a clearer helper panel
+- Update the block around lines ~902–905 in `src/components/TrackingRuleManager.tsx`.
+- Change the title from action-like wording (“Compare after save”) to explanatory wording such as:
+  - “How comparison works”
+  - or “Compare keywords in Analytics”
+- Use normal helper-card styling rather than disabled-looking styling:
+  - stronger contrast
+  - optional icon
+  - normal foreground text
+  - no appearance of a form field/button
 
-2. Replace single-keyword entry with multi-keyword chip input
-- Change the form from a single `rule_text` textarea into a compact multi-entry experience:
-  - text input / combobox-style entry field
-  - pressing Enter, comma, or pasting a comma/newline list creates chips
-  - chips can be removed before saving
-- For query mode, keep a separate single text area because search queries are usually one expression, not many chips.
-- Internally, convert keyword chips into multiple tracking rule inserts when saving.
-
-3. Support batch save of multiple keywords
-- Extend the save logic in `src/components/TrackingRuleManager.tsx` to:
-  - normalize every keyword
-  - deduplicate within the current batch
-  - compare against existing rules for the same case/platform/type
-  - insert only new keywords, with a clear summary toast:
-    - “5 keywords added”
-    - “2 skipped because they already exist”
-- Keep the existing duplicate protection semantics aligned with the normalized rule text logic already in place.
-
-4. Simplify the dialog for the common workflow
-- Reorganize the sheet to this order:
-  - Case
-  - Platform
-  - Keywords
-  - optional “Compare after save” shortcut or hint
-  - Advanced options
-- Hide rule type in keyword flow when launched from “Add Keyword”.
-- Keep advanced options collapsed by default.
-
-5. Add keyword comparison for analytics
-- Add a lightweight comparison flow for saved tracking keywords:
-  - allow selecting 2–5 keywords from the current case
-  - show comparison in Analytics, driven from existing `signals` and `reputation_snapshots` data where possible
-- Recommended UI:
-  - a comparison selector card near the top of `src/pages/Analytics.tsx`
-  - compare metrics per selected keyword:
-    - mention volume
-    - sentiment breakdown
-    - most recent mention time
-    - top sources/platforms
-- Use `signals.keywords` and signal content matching as the first data source so this can ship without a schema change.
-
-6. Add comparison entry points
-- In `src/components/TrackingRuleManager.tsx`, add row-level selection controls or a “Compare” action for keyword rules.
-- Deep-link from Tracking Manager to Analytics with selected keywords in the URL, for example:
+2. Make the message reflect the real workflow
+- Rewrite the copy so it describes the actual steps:
+  - save keywords first
+  - select 2–5 saved keywords in the table
+  - click `Compare selected`
+  - open Analytics side-by-side comparison
+- Example structure:
 ```text
-/analytics?compare=keyword-a,keyword-b
+Compare keywords in Analytics
+1. Save your keywords.
+2. Select 2–5 keyword rows in the table.
+3. Click Compare selected.
 ```
-- Keep comparison scoped to the active case to avoid mixing unrelated data.
 
-Implementation details
+3. Add an optional inline shortcut after save
+- Improve the save success flow in `src/components/TrackingRuleManager.tsx`:
+  - if multiple keywords were just added, show a toast or lightweight hint telling the user to select them in the table and use `Compare selected`
+- This keeps the dialog simple while still guiding the next step.
+
+4. Make the table comparison action easier to notice
+- Slightly strengthen the existing `Compare selected` button in the table header:
+  - clearer helper copy nearby when 0 or 1 keywords are selected
+  - dynamic state such as:
+    - “Select 2–5 keywords to compare”
+    - “Ready to compare 2 keywords”
+- Keep selection scoped to one case, as already implemented.
+
+Files to update
 - `src/components/TrackingRuleManager.tsx`
-  - replace single keyword textarea flow with chip-based batch entry for keyword mode
-  - preserve single-field query mode
-  - add clearer validation and disabled-save logic
-  - update insert mutation to support multiple inserts in one action
-- `src/pages/Analytics.tsx`
-  - read selected comparison keywords from URL/search params or local component state
-  - derive per-keyword metrics from case-filtered signals
-  - render compact comparison cards/charts
-- `src/pages/TrackingManager.tsx`
-  - keep the hero CTA, but optionally add a small hint under it:
-    - “Paste multiple keywords separated by commas or new lines”
-- Optional shared UI
-  - create a reusable chip input component if needed, likely under `src/components/ui/`
+  - replace the misleading helper block
+  - improve messaging/state around comparison workflow
+  - optionally enhance the success toast/hint after save
 
-Database / backend impact
-- No schema change is required for the initial fix.
-- Existing `tracking_rules` can remain one row per keyword/query.
-- Existing RLS is already admin-protected for tracking rules, which matches this workflow.
-- If later needed, comparison presets could be persisted, but that should be a second phase.
+No backend changes
+- No database or backend changes are needed.
+- This is a UI/UX clarification only.
 
 Expected outcome
-- The keyword field no longer feels disabled or confusing.
-- Admin can paste or type multiple names in one go, such as:
-  - Mohamad Darwish
-  - El-Rufai
-  - IHS Nigeria
-  - Dapo Otunla
-  - Mrs Oyinkansola Badejo Okusanya
-- Saving becomes faster and cleaner because duplicates are skipped automatically.
-- Users can compare tracked keywords in analytics instead of only viewing case-level aggregates.
+- The sheet no longer contains a box that looks disabled.
+- Users understand that comparison happens after saving, from the table, not inside the dialog.
+- The comparison workflow feels intentional and easier to follow:
+```text
+Add keywords
+  -> Save
+  -> Select 2–5 saved keyword rows
+  -> Click Compare selected
+  -> View side-by-side analytics
+```
