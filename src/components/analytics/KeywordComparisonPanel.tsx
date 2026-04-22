@@ -96,6 +96,8 @@ const getTopPlatforms = (signals: Signal[]) => {
 
 const signalMatchesKeyword = (signal: Signal, keyword: string) => {
   const normalized = normalizeKeyword(keyword);
+  const matchedKeyword = signal.matched_keyword ? normalizeKeyword(signal.matched_keyword) : null;
+  if (matchedKeyword === normalized) return true;
   const keywordMatch = signal.keywords?.some((entry) => normalizeKeyword(entry) === normalized) ?? false;
   if (keywordMatch) return true;
   return signal.content.toLowerCase().includes(normalized);
@@ -271,7 +273,7 @@ export function KeywordComparisonPanel({ activeCaseId, activeCaseTitle, signals,
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-foreground">{entry.keyword}</p>
-                      <p className="mt-1 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">Active case comparison</p>
+                       <p className="mt-1 text-[11px] font-mono uppercase tracking-wider text-muted-foreground">Matched rule comparison</p>
                     </div>
                     <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">Reach {formatNumber(entry.reach)}</Badge>
                   </div>
