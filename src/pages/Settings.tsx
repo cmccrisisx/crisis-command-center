@@ -231,6 +231,7 @@ function TrackingRuleManager() {
         return {
           id: String(row.id),
           crisis_id: String(row.crisis_id),
+          platform: ((row.platform as TrackingPlatform | null) ?? "all"),
           rule_type: row.rule_type as RuleType,
           rule_text: String(row.rule_text ?? ""),
           label: (row.label as string | null) ?? null,
@@ -290,6 +291,7 @@ function TrackingRuleManager() {
     setEditingRule(rule);
     setFormState({
       crisis_id: rule.crisis_id,
+      platform: rule.platform,
       rule_type: rule.rule_type,
       rule_text: rule.rule_text,
       label: rule.label ?? "",
@@ -304,6 +306,7 @@ function TrackingRuleManager() {
     setEditingRule(null);
     setFormState({
       crisis_id: rule.crisis_id,
+      platform: rule.platform,
       rule_type: rule.rule_type,
       rule_text: rule.rule_text,
       label: rule.label ? `${rule.label} copy` : "",
@@ -318,6 +321,7 @@ function TrackingRuleManager() {
     mutationFn: async (payload: TrackingRuleFormState) => {
       const parsed = trackingRuleSchema.safeParse({
         ...payload,
+        rule_text: payload.rule_text.trim(),
         label: payload.label.trim() || undefined,
         notes: payload.notes.trim() || undefined,
       });
@@ -329,9 +333,23 @@ function TrackingRuleManager() {
 
       const dbPayload = {
         crisis_id: parsed.data.crisis_id,
+        platform: parsed.data.platform,
         rule_type: parsed.data.rule_type,
         rule_text: parsed.data.rule_text,
         label: parsed.data.label ?? null,
+      const normalizedCandidate = normalizeRuleText(parsed.data.rule_text);
+      const duplicateRule = rules.find((rule) =>
+        rule.id !== editingRule?.id &&
+        rule.crisis_id === parsed.data.crisis_id &&
+        rule.platform === parsed.data.platform &&
+        rule.rule_type === parsed.data.rule_type &&
+        normalizeRuleText(rule.rule_text) === normalizedCandidate
+      );
+
+      if (duplicateRule) {
+        throw new Error("That rule already exists for this case, platform, and type");
+      }
+
         notes: parsed.data.notes ?? null,
         is_active: parsed.data.is_active,
         priority: parsed.data.priority,
@@ -468,6 +486,7 @@ function TrackingRuleManager() {
             <TableRow>
               <TableHead className="w-[22%]">Case</TableHead>
               <TableHead className="w-[10%]">Type</TableHead>
+              <TableHead className="w-[12%]">Platform</TableHead>
               <TableHead>Rule</TableHead>
               <TableHead className="w-[10%] text-right">Priority</TableHead>
               <TableHead className="w-[12%]">Status</TableHead>
@@ -487,6 +506,11 @@ function TrackingRuleManager() {
                   </TableCell>
                   <TableCell className="align-top">
                     <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">{rule.rule_type}</Badge>
+                  </TableCell>
+                  <TableCell className="align-top">
+                    <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
+                      {PLATFORM_OPTIONS.find((option) => option.value === rule.platform)?.label ?? rule.platform}
+                    </Badge>
                   </TableCell>
                   <TableCell className="align-top">
                     <div className="space-y-1">
@@ -522,7 +546,7 @@ function TrackingRuleManager() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
+                  <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -570,6 +594,22 @@ function TrackingRuleManager() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-mono uppercase tracking-wider">Platform</Label>
+                <Select value={formState.platform} onValueChange={(value: TrackingPlatform) => setFormState((prev) => ({ ...prev, platform: value }))}>
+                  <SelectTrigger className="font-mono text-sm bg-card">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORM_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value} className="font-mono text-xs">{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-xs font-mono uppercase tracking-wider">Priority</Label>
                 <Input type="number" inputMode="numeric" min={0} max={9999} value={formState.priority} onChange={(e) => setFormState((prev) => ({ ...prev, priority: e.target.value }))} className="font-mono text-sm bg-card" />
