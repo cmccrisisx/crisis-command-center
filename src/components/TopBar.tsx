@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveCase } from "@/hooks/useActiveCase";
 import type { RiskLevel } from "@/lib/crisis-helpers";
+import { Link } from "react-router-dom";
 
 const ROLE_STYLES: Record<string, string> = {
   admin: "bg-crisis-red/15 text-crisis-red border-crisis-red/30",
@@ -83,6 +84,12 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-2">
+          {roles.includes("admin") && (
+            <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex font-mono text-xs uppercase tracking-wider">
+              <Link to="/tracking-manager">Manage Tracking</Link>
+            </Button>
+          )}
+
         <div className="hidden sm:flex items-center gap-4 mr-4 font-mono text-xs tabular-nums">
           <div className="flex items-center gap-1.5">
             <span className="text-foreground/70">Signals</span>
