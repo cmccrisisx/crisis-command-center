@@ -1014,43 +1014,56 @@ export function TrackingRuleManager({
             </div>
 
             {formState.rule_type === "keyword" && !editingRule ? (
-              <div className="space-y-2">
-                <Label className="text-xs font-mono uppercase tracking-wider">Keywords</Label>
-                <div className="rounded-md border border-border bg-card shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                  <div className="flex min-h-24 flex-wrap gap-2 p-2">
-                    {keywordEntries.map((keyword) => (
-                      <Badge key={keyword} variant="secondary" className="gap-1 rounded-sm px-2 py-1 font-mono text-xs">
-                        <span>{keyword}</span>
-                        <button type="button" onClick={() => removeKeyword(keyword)} className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground">
-                          <X className="h-3 w-3" />
-                          <span className="sr-only">Remove {keyword}</span>
-                        </button>
-                      </Badge>
-                    ))}
-                    <input
-                      ref={keywordInputRef}
-                      value={keywordDraft}
-                      onChange={(e) => setKeywordDraft(e.target.value)}
-                      onBlur={commitKeywordDraft}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === ",") {
-                          e.preventDefault();
-                          commitKeywordDraft();
-                        }
-                      }}
-                      onPaste={(e) => {
-                        const pastedText = e.clipboardData.getData("text");
-                        if (!/[\n,]/.test(pastedText)) return;
-                        e.preventDefault();
-                        addKeywords(parseKeywordBatch(pastedText));
-                        setKeywordDraft("");
-                      }}
-                      placeholder={formCopy.placeholder}
-                      className="min-w-[220px] flex-1 bg-transparent px-1 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                    />
+              <div className="space-y-3">
+                <div className="rounded-sm border border-border bg-surface-elevated/50 px-3 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-mono uppercase tracking-wider text-foreground">Keyword strategy</p>
+                      <p className="text-xs text-muted-foreground">Separate your owned brand terms from optional competitors so comparison stays clean in analytics.</p>
+                    </div>
+                    <Badge variant="outline" className="rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide">
+                      {totalPendingKeywordCount} ready
+                    </Badge>
                   </div>
                 </div>
-                <p className={cn("text-[11px]", hasInlineCaseError ? "text-destructive" : "text-muted-foreground")}>{keywordHelperText}</p>
+
+                <KeywordWorkspace
+                  title="Brand keywords"
+                  description="Track brand, product, executive, and campaign names that define this case."
+                  hint={keywordHelperText}
+                  required
+                  countLabel={`${pendingBrandEntries.length} ${pendingBrandEntries.length === 1 ? "keyword" : "keywords"}`}
+                  entries={brandKeywordEntries}
+                  draft={brandKeywordDraft}
+                  placeholder="Add brand, product, executive, or campaign names"
+                  accent="primary"
+                  inputRef={keywordInputRef}
+                  onDraftChange={setBrandKeywordDraft}
+                  onCommit={() => commitKeywordDraft("brand")}
+                  onPasteBatch={(value) => {
+                    addKeywords("brand", parseKeywordBatch(value));
+                    setBrandKeywordDraft("");
+                  }}
+                  onRemove={(keyword) => removeKeyword("brand", keyword)}
+                />
+
+                <KeywordWorkspace
+                  title="Competitor keywords"
+                  description="Optionally add rival brands, comparison entities, or adjacent players to monitor side-by-side movement."
+                  hint="Optional. Use the same Enter, comma, or multi-line paste flow to build a comparison set."
+                  countLabel={`${pendingCompetitorEntries.length} ${pendingCompetitorEntries.length === 1 ? "keyword" : "keywords"}`}
+                  entries={competitorKeywordEntries}
+                  draft={competitorKeywordDraft}
+                  placeholder="Add competitor brands or comparison entities"
+                  accent="muted"
+                  onDraftChange={setCompetitorKeywordDraft}
+                  onCommit={() => commitKeywordDraft("competitor")}
+                  onPasteBatch={(value) => {
+                    addKeywords("competitor", parseKeywordBatch(value));
+                    setCompetitorKeywordDraft("");
+                  }}
+                  onRemove={(keyword) => removeKeyword("competitor", keyword)}
+                />
               </div>
             ) : (
               <div className="space-y-2">
@@ -1145,16 +1158,18 @@ export function TrackingRuleManager({
             <Button
               type="button"
               onClick={() => {
-                const keywords = isKeywordCreateMode ? pendingKeywordEntries : [];
-                const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && keywordEntries[0]
-                  ? keywordEntries[0]
+                const brandKeywords = isKeywordCreateMode ? pendingBrandEntries : [];
+                const competitorKeywords = isKeywordCreateMode ? pendingCompetitorEntries : [];
+                const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && brandKeywordEntries[0]
+                  ? brandKeywordEntries[0]
                   : formState.rule_text;
                 saveRuleMutation.mutate({
                   payload: {
                     ...formState,
                     rule_text: nextRuleText,
                   },
-                  keywords,
+                  brandKeywords,
+                  competitorKeywords,
                 });
               }}
               disabled={saveRuleMutation.isPending || !formState.crisis_id || !hasPrimaryValue}
