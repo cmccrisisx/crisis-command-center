@@ -1,69 +1,111 @@
 
 Goal
-- Fix the misleading “Compare after save” block in the Add Keyword sheet so it no longer looks disabled and clearly explains how keyword comparison actually works.
+- Redesign the Tracking Manager add-rule sheet so it feels enterprise-grade, interactive, and easier to complete by separating primary brand keywords from optional competitor tracking.
 
-What is causing the confusion
-- In `src/components/TrackingRuleManager.tsx`, the current “Compare after save” area is a plain informational box with muted styling (`bg-surface-elevated`, muted text), so it visually resembles a disabled control.
-- It is not interactive inside the sheet, but its label reads like an action.
-- The real comparison action already lives in the rules table header as `Compare selected`, which creates a mismatch between what the sheet implies and what the page actually supports.
+What to build
+1. Restructure the sheet into two clear sections
+- In `src/components/TrackingRuleManager.tsx`, replace the current single keyword-entry block with a guided two-part layout:
+  - Brand keywords (primary, required for keyword flow)
+  - Competitor keywords (optional)
+- Keep case and platform at the top so the scope is obvious before users start typing.
+- Preserve query mode as a separate simpler path.
 
-What to change
-1. Replace the disabled-looking box with a clearer helper panel
-- Update the block around lines ~902–905 in `src/components/TrackingRuleManager.tsx`.
-- Change the title from action-like wording (“Compare after save”) to explanatory wording such as:
-  - “How comparison works”
-  - or “Compare keywords in Analytics”
-- Use normal helper-card styling rather than disabled-looking styling:
-  - stronger contrast
-  - optional icon
-  - normal foreground text
-  - no appearance of a form field/button
+2. Make brand keywords the primary interactive workspace
+- Turn the brand keyword area into the main active input region with:
+  - stronger focus styling
+  - larger click target
+  - helper text for comma / Enter / newline paste
+  - chip-based entry for multiple terms
+- Add lightweight interaction helpers:
+  - live count of keywords added
+  - paste-to-import behavior
+  - remove/edit chips before saving
+  - empty-state guidance such as “Add brand, product, executive, or campaign names”
 
-2. Make the message reflect the real workflow
-- Rewrite the copy so it describes the actual steps:
-  - save keywords first
-  - select 2–5 saved keywords in the table
-  - click `Compare selected`
-  - open Analytics side-by-side comparison
-- Example structure:
+3. Add a separate competitor section that is clearly optional
+- Introduce a second chip-input block labeled something like:
+  - “Competitor keywords (optional)”
+- Style it as secondary but still fully interactive, not disabled.
+- Support the same multi-entry behavior as brand keywords:
+  - comma / Enter / newline parsing
+  - dedupe within the section
+  - removable chips
+- Include helper copy explaining use cases, for example monitoring rival brands or comparison entities.
+
+4. Improve the information architecture of the dialog
+- Recommended order:
 ```text
-Compare keywords in Analytics
-1. Save your keywords.
-2. Select 2–5 keyword rows in the table.
-3. Click Compare selected.
+Case
+Platform
+Brand keywords
+Competitor keywords (optional)
+Comparison guidance
+Advanced options
+Save
 ```
+- Replace any passive-looking informational boxes with cleaner enterprise UI patterns:
+  - section headers
+  - concise helper copy
+  - badges/counters
+  - clear required vs optional distinction
+- Keep advanced options collapsed by default.
 
-3. Add an optional inline shortcut after save
-- Improve the save success flow in `src/components/TrackingRuleManager.tsx`:
-  - if multiple keywords were just added, show a toast or lightweight hint telling the user to select them in the table and use `Compare selected`
-- This keeps the dialog simple while still guiding the next step.
+5. Make the workflow feel smarter and more guided
+- Add inline validations instead of confusing disabled-feeling inputs:
+  - case required
+  - at least one brand keyword required for save
+- Keep typing enabled at all times; only disable the final save button when required fields are missing.
+- Add contextual hints such as:
+  - “3 brand keywords ready”
+  - “2 competitor keywords added”
+- If useful, add quick suggestion rows for common keyword types:
+  - Brand
+  - Product
+  - Executive
+  - Competitor
+  - Campaign
 
-4. Make the table comparison action easier to notice
-- Slightly strengthen the existing `Compare selected` button in the table header:
-  - clearer helper copy nearby when 0 or 1 keywords are selected
-  - dynamic state such as:
-    - “Select 2–5 keywords to compare”
-    - “Ready to compare 2 keywords”
-- Keep selection scoped to one case, as already implemented.
+6. Keep save behavior simple and compatible with the existing data model
+- Continue saving one tracking rule per keyword in `tracking_rules`.
+- Batch insert brand and competitor keywords in one submit flow.
+- Use labels/notes or a lightweight metadata convention in the saved payload to distinguish:
+  - brand keyword
+  - competitor keyword
+- Keep duplicate detection aligned with the current normalized keyword logic.
+
+7. Improve comparison readiness inside the same flow
+- Update the comparison guidance so it matches the new structure:
+  - save keywords first
+  - select 2–5 saved rows in the table
+  - compare in Analytics
+- Optionally bias the saved toast and follow-up hint toward competitor use cases, e.g. brand vs competitor comparison.
 
 Files to update
 - `src/components/TrackingRuleManager.tsx`
-  - replace the misleading helper block
-  - improve messaging/state around comparison workflow
-  - optionally enhance the success toast/hint after save
+  - primary redesign of the sheet
+  - dual keyword sections
+  - updated validation, save, and helper states
+- `src/components/ui/`
+  - optionally add a reusable chip-input / keyword-section component if the logic should be shared or simplified
+- `src/pages/TrackingManager.tsx`
+  - optionally refresh hero/helper copy so the page matches the new brand vs competitor workflow
 
-No backend changes
-- No database or backend changes are needed.
-- This is a UI/UX clarification only.
+Technical details
+- No backend schema change is required for the initial version.
+- Existing `tracking_rules` rows can still represent each keyword individually.
+- The implementation should reuse the current normalization, deduplication, and batch-save patterns.
+- Query mode should remain available, but the keyword flow should become the polished, default enterprise experience.
 
 Expected outcome
-- The sheet no longer contains a box that looks disabled.
-- Users understand that comparison happens after saving, from the table, not inside the dialog.
-- The comparison workflow feels intentional and easier to follow:
+- The sheet becomes clearer, faster to scan, and more professional.
+- Users immediately understand the difference between their core tracked brand terms and optional competitor terms.
+- Multi-keyword entry feels interactive instead of form-heavy.
+- The comparison workflow becomes more natural for enterprise monitoring:
 ```text
-Add keywords
+Select case
+  -> Add brand keywords
+  -> Optionally add competitor keywords
   -> Save
-  -> Select 2–5 saved keyword rows
-  -> Click Compare selected
-  -> View side-by-side analytics
+  -> Select 2–5 saved rows
+  -> Compare in Analytics
 ```
