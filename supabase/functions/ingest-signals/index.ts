@@ -565,8 +565,10 @@ Deno.serve(async (req) => {
       });
 
       if (insertErr) {
-        console.error("Insert error:", insertErr.message);
-        errors.push(`${item.task.crisisTitle}: ${insertErr.message}`);
+        if (!insertErr.message?.includes("signals_source_url_unique")) {
+          console.error("Insert error:", insertErr.message);
+          errors.push(`${item.task.crisisTitle}: ${insertErr.message}`);
+        }
       } else {
         totalInserted += 1;
         crisisIdsTouched.add(item.task.crisisId);
