@@ -191,6 +191,9 @@ export function CronJobsPanel() {
                     {formatDistanceToNow(new Date(job.last_start), { addSuffix: true })}
                   </span>
                 )}
+                {parseFunctionName(job.command) === "ingest-signals" && (
+                  <span className="text-primary">freshness monitor</span>
+                )}
                 {job.last_duration_ms != null && (
                   <span>took: {Math.round(job.last_duration_ms)}ms</span>
                 )}
