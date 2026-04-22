@@ -331,12 +331,6 @@ function TrackingRuleManager() {
         throw new Error(firstMessage);
       }
 
-      const dbPayload = {
-        crisis_id: parsed.data.crisis_id,
-        platform: parsed.data.platform,
-        rule_type: parsed.data.rule_type,
-        rule_text: parsed.data.rule_text,
-        label: parsed.data.label ?? null,
       const normalizedCandidate = normalizeRuleText(parsed.data.rule_text);
       const duplicateRule = rules.find((rule) =>
         rule.id !== editingRule?.id &&
@@ -350,6 +344,12 @@ function TrackingRuleManager() {
         throw new Error("That rule already exists for this case, platform, and type");
       }
 
+      const dbPayload = {
+        crisis_id: parsed.data.crisis_id,
+        platform: parsed.data.platform,
+        rule_type: parsed.data.rule_type,
+        rule_text: parsed.data.rule_text,
+        label: parsed.data.label ?? null,
         notes: parsed.data.notes ?? null,
         is_active: parsed.data.is_active,
         priority: parsed.data.priority,
