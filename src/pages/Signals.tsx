@@ -174,7 +174,7 @@ export default function Signals() {
           <div className="flex items-center gap-2">
             {isAdmin && (
               <Button asChild variant="outline" size="sm" className="h-8 text-xs font-mono">
-                <Link to="/tracking-manager">Open Tracking Manager</Link>
+                <Link to="/tracking-manager?create=keyword">Add Keyword</Link>
               </Button>
             )}
 

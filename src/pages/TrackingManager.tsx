@@ -1,5 +1,6 @@
-import { Navigate, Link } from "react-router-dom";
-import { Radar, Target } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
+import { Plus, Radar, Search, Target } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
 import { TrackingRuleManager } from "@/components/TrackingRuleManager";
@@ -11,6 +12,27 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 export default function TrackingManagerPage() {
   usePageTitle("Tracking Manager");
   const { hasRole } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [openSignal, setOpenSignal] = useState(0);
+
+  const createParam = searchParams.get("create");
+  const requestedRuleType = createParam === "keyword" || createParam === "query" ? createParam : null;
+
+  useEffect(() => {
+    if (requestedRuleType) {
+      setOpenSignal((value) => value + 1);
+    }
+  }, [requestedRuleType]);
+
+  const triggerCreate = (ruleType: "keyword" | "query") => {
+    setSearchParams({ create: ruleType });
+    setOpenSignal((value) => value + 1);
+  };
+
+  const clearCreateIntent = () => {
+    if (!requestedRuleType) return;
+    setSearchParams({});
+  };
 
   if (!hasRole("admin")) {
     return <Navigate to="/" replace />;
@@ -38,15 +60,38 @@ export default function TrackingManagerPage() {
         </div>
 
         <Card>
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-foreground">This is now the fastest place to add tracked names.</p>
-              <p className="text-xs text-muted-foreground">Rules saved here directly power monitoring ingestion and case-specific analysis.</p>
+          <CardContent className="space-y-4 p-5 sm:p-6">
+            <div className="space-y-2">
+              <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">Critical workflow</p>
+              <h2 className="text-xl font-mono font-bold tracking-tight text-foreground sm:text-2xl">Add tracked keywords and queries first</h2>
+              <p className="max-w-3xl text-sm text-muted-foreground">Add names, brands, executives, and search queries here so monitoring and analysis stay focused on the right live conversations.</p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Button onClick={() => triggerCreate("keyword")} size="lg" className="font-mono text-xs uppercase tracking-wider">
+                <Plus className="h-4 w-4" />
+                Add Keyword
+              </Button>
+              <Button onClick={() => triggerCreate("query")} size="lg" variant="outline" className="font-mono text-xs uppercase tracking-wider">
+                <Search className="h-4 w-4" />
+                Add Search Query
+              </Button>
+              <Button asChild variant="ghost" className="justify-start font-mono text-xs uppercase tracking-wider sm:ml-auto">
+                <Link to="/settings">
+                  <Radar className="h-3.5 w-3.5" />
+                  System Settings
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <TrackingRuleManager />
+        <TrackingRuleManager
+          initialOpen={Boolean(requestedRuleType)}
+          initialRuleType={requestedRuleType ?? "keyword"}
+          openSignal={openSignal}
+          onInitialOpenHandled={clearCreateIntent}
+        />
       </div>
     </AppLayout>
   );
