@@ -29,7 +29,7 @@ function parseScheduleIntervalMinutes(schedule?: string | null) {
 function buildSignalsQuery(activeCaseId: string | null, windowStart: string, source: SignalSourceFilter, sentiment: SentimentFilter) {
   let query = supabase
     .from("signals")
-    .select("id, crisis_id, source, author, content, sentiment, reach, is_influencer, matched_keyword, tracking_rule_id, detected_at, ingested_at, source_url")
+    .select("id, crisis_id, source, author, author_followers, content, created_at, sentiment, reach, is_influencer, keywords, matched_keyword, tracking_rule_id, detected_at, ingested_at, source_url")
     .gte("detected_at", windowStart)
     .order("detected_at", { ascending: false });
 
