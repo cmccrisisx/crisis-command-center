@@ -293,6 +293,7 @@ export function TrackingRuleManager({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TrackingRuleRow | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [formState, setFormState] = useState<TrackingRuleFormState>(DEFAULT_TRACKING_RULE_FORM);
   const [brandKeywordDraft, setBrandKeywordDraft] = useState("");
   const [brandKeywordEntries, setBrandKeywordEntries] = useState<string[]>([]);
@@ -380,6 +381,7 @@ export function TrackingRuleManager({
   const resetForm = (preferredRuleType: RuleType = initialRuleType) => {
     setEditingRule(null);
     setAdvancedOpen(false);
+    setSubmitAttempted(false);
     setBrandKeywordDraft("");
     setBrandKeywordEntries([]);
     setCompetitorKeywordDraft("");
@@ -511,6 +513,7 @@ export function TrackingRuleManager({
   const activeComparableCaseId = compareRules[0]?.crisis_id ?? compareCaseId;
   const hasInlineCaseError = !formState.crisis_id;
   const isKeywordCreateMode = formState.rule_type === "keyword" && !editingRule;
+  const showBrandKeywordError = isKeywordCreateMode && submitAttempted && pendingBrandEntries.length === 0;
   const keywordHelperText = hasInlineCaseError ? "Select a case first, then add keywords." : "Press Enter, comma, or paste a newline list.";
   const pendingBrandEntries = dedupeKeywords([
     ...brandKeywordEntries,
@@ -1030,7 +1033,7 @@ export function TrackingRuleManager({
                 <KeywordWorkspace
                   title="Brand keywords"
                   description="Track brand, product, executive, and campaign names that define this case."
-                  hint={keywordHelperText}
+                  hint={showBrandKeywordError ? "Add at least one brand keyword before saving." : keywordHelperText}
                   required
                   countLabel={`${pendingBrandEntries.length} ${pendingBrandEntries.length === 1 ? "keyword" : "keywords"}`}
                   entries={brandKeywordEntries}
@@ -1046,6 +1049,8 @@ export function TrackingRuleManager({
                   }}
                   onRemove={(keyword) => removeKeyword("brand", keyword)}
                 />
+
+                {showBrandKeywordError ? <p className="-mt-1 text-[11px] text-destructive">Add at least one brand keyword before saving.</p> : null}
 
                 <KeywordWorkspace
                   title="Competitor keywords"
@@ -1158,6 +1163,8 @@ export function TrackingRuleManager({
             <Button
               type="button"
               onClick={() => {
+                setSubmitAttempted(true);
+                if (isKeywordCreateMode && pendingBrandEntries.length === 0) return;
                 const brandKeywords = isKeywordCreateMode ? pendingBrandEntries : [];
                 const competitorKeywords = isKeywordCreateMode ? pendingCompetitorEntries : [];
                 const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && brandKeywordEntries[0]
@@ -1172,7 +1179,7 @@ export function TrackingRuleManager({
                   competitorKeywords,
                 });
               }}
-              disabled={saveRuleMutation.isPending || !formState.crisis_id || !hasPrimaryValue}
+              disabled={saveRuleMutation.isPending || !formState.crisis_id || (!isKeywordCreateMode && !hasPrimaryValue)}
               className="font-mono text-xs uppercase tracking-wider"
             >
               {saveRuleMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
