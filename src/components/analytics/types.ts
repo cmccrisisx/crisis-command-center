@@ -3,10 +3,13 @@ export type AnalyticsSignal = {
   crisis_id: string | null;
   source: "twitter" | "news" | "blog" | "linkedin";
   author: string;
+  author_followers: number | null;
   content: string;
+  created_at: string;
   sentiment: "positive" | "neutral" | "negative";
   reach: number | null;
   is_influencer: boolean | null;
+  keywords: string[] | null;
   matched_keyword: string | null;
   tracking_rule_id: string | null;
   detected_at: string;
