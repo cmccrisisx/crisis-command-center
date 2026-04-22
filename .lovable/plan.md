@@ -1,95 +1,142 @@
 
 Goal
-- Verify whether the new IHS Nigeria keywords are already producing live alerts, and define the work needed to guarantee near-zero-delay alerting if the current pipeline is not fast enough.
+- Turn Analytics into a production-ready module with trustworthy case-level metrics, keyword attribution, live freshness visibility, and validation checks so the numbers shown in the UI match what the monitoring pipeline is actually producing.
 
-What I verified
-- The IHS Nigeria case exists with ID `5a16248d-ebaf-4547-94f6-1197c5836ace`.
-- The requested keywords are active in `tracking_rules` for that case, including:
-  - Mohamad Darwish
-  - El-Rufai
-  - IHS Nigeria
-  - Dapo Otunla
-  - Mrs Oyinkansola Badejo-Okusanya / Mrs oyinkansola badejo okusanya
-  - Mohamad Darwish (CEO IHS Nigeria)
-- The ingestion function logs show those terms being searched:
-  - `Searching: IHS Nigeria :: "Mohamad Darwish"`
-  - `Searching: IHS Nigeria :: "El-Rufai"`
-  - `Searching: IHS Nigeria :: "IHS Nigeria"`
-  - `Searching: IHS Nigeria :: "Dapo Otunla"`
-  - `Searching: IHS Nigeria :: "Mrs Oyinkansola Badejo-Okusanya"`
-- Recent `signals` rows were inserted for the IHS Nigeria case for those terms.
-- Recent `notifications` rows were also created immediately after those signals, which means the in-app alert path is working.
-
-Important conclusion
-- Live alerts are working.
-- Near-zero delay is not guaranteed by the current architecture.
-- Right now alerts appear only after the ingestion job discovers new results, inserts them into `signals`, and the subscribed client receives the realtime insert.
-- So the true delay depends on:
-  1. how often `ingest-signals` runs,
-  2. Firecrawl/API response time,
-  3. deduping and DB insert completion,
-  4. whether the user is actively logged in with `NotificationListener` mounted.
-
-Why near-zero delay is not guaranteed today
-- `NotificationListener` only reacts to database inserts on `signals`; it does not independently poll or stream external sources.
-- `ingest-signals` processes rules in batches of 3 and waits on external search results before inserts happen.
-- I found UI support for manual “Run now” from Settings, but I did not find code in the repo that clearly shows the actual cron schedule being created for `ingest-signals`.
-- That means current “live” behavior is effectively “near-real-time after the next ingestion run,” not true instant streaming.
+What needs improvement today
+- The current Analytics page only shows four basic panels plus keyword comparison.
+- It pulls full table datasets client-side and computes metrics in the browser, which will not scale well.
+- Keyword comparison currently falls back to text matching in signal content instead of using reliable matched-keyword attribution.
+- Recent database rows show `matched_keyword` and `tracking_rule_id` are still null on live signals, so traceable keyword analytics is not yet dependable.
+- Snapshot fields such as `share_of_voice` are currently synthetic/hardcoded, which makes some analytics look complete without being production-accurate.
+- There is no date-range control, no export-ready analytics summary, and no production QA flow for validating ingestion-to-chart correctness.
 
 Implementation plan
-1. Surface and verify the actual ingestion cadence
-- Inspect the backend job configuration and confirm how often `ingest-signals` is scheduled.
-- If it is slower than expected, tighten the schedule to an enterprise-friendly interval.
-- Expose the current schedule and last successful run more prominently in the admin freshness monitor so operators can validate alert latency quickly.
 
-2. Add explicit keyword-to-signal traceability
-- Extend ingestion so each inserted signal stores the matched tracking rule ID and/or matched keyword text.
-- This makes it possible to verify that each alert came from one of the requested IHS Nigeria keywords instead of just inferring from content.
-- Use that traceability in the UI and future diagnostics.
+1. Rework the Analytics page into a real module
+- Replace the current single-grid layout with a structured analytics dashboard:
+  - KPI header row
+  - trend charts
+  - keyword intelligence
+  - source / sentiment / influencer sections
+  - live freshness + data quality status
+- Add clear loading, empty, and error states for every section.
+- Keep the current visual system: dark terminal aesthetic, mono labels, sharp cards, compact data-heavy layout.
 
-3. Add case-scoped live alert verification in the product
-- Add an IHS Nigeria-specific “recent matches” or “live alert stream” panel showing:
+2. Add production-grade filtering and scoping
+- Add analytics controls for:
+  - case selector support via existing active-case context
+  - date range presets (24h, 7d, 30d, custom-ready structure)
+  - source filter
+  - sentiment filter
+- Make all widgets respond to the same filter state so charts, KPIs, and tables stay consistent.
+
+3. Replace client-heavy calculations with reliable aggregated queries
+- Move core metrics away from “fetch everything and reduce in React” toward targeted queries and grouped data retrieval.
+- Build analytics data loaders for:
+  - KPI totals
+  - sentiment-over-time series
+  - platform/source distribution
+  - keyword performance
+  - influencer leaderboard
+  - recent matched alerts / freshness
+- Keep React Query, but split large page queries into stable, reusable hooks so the page remains responsive.
+
+4. Fix keyword attribution before expanding keyword analytics
+- Update the ingestion pipeline so every new signal consistently stores:
+  - `matched_keyword`
+  - `tracking_rule_id`
+  - `ingested_at`
+- Verify the insertion path is actually writing those fields in production, since current live rows show they are null.
+- Add a backfill strategy for recent signals where attribution can be deterministically recovered from tracking rules and URLs/content.
+- Update Analytics to prioritize these fields instead of content substring matching.
+
+5. Expand the analytics feature set
+- Add KPI cards for:
+  - total mentions
+  - negative share
+  - positive share
+  - estimated reach
+  - active tracked keywords
+  - last ingest freshness
+  - median pipeline latency
+- Add richer charting:
+  - sentiment trend over time
+  - mention volume over time
+  - source mix
+  - top matched keywords
+  - keyword spike / momentum view
+  - influencer impact with sentiment and reach
+- Add a recent matched-signals table showing:
   - matched keyword
   - source
+  - sentiment
+  - author
   - detected time
-  - alert time
-  - computed latency
-- This makes “are these terms alerting fast enough?” visible without needing backend inspection.
+  - ingest latency
+  - source link
 
-4. Reduce alert latency in the ingestion pipeline
-- Optimize the search/insertion loop so newly discovered signals are inserted sooner instead of only after larger batches finish.
-- If needed, insert per-task/per-result earlier, then do enrichment in smaller chunks so alerts can fire faster.
-- Keep dedupe behavior intact to avoid duplicate toast storms.
+6. Make “analytics truthfulness” visible in the UI
+- Add a small data-quality/status strip showing:
+  - scheduler cadence
+  - last successful ingest
+  - freshness health
+  - whether keyword attribution is complete or partial
+- Reuse the existing live monitoring concepts already present in Tracking Manager, but adapt them for analytics operators.
+- If a metric is derived from placeholder logic, label it clearly until replaced with production-grade computation.
 
-5. Strengthen realtime UX for operators
-- Add a visible “live monitoring active” state on Signals / Tracking Manager for the selected case.
-- Show a freshness SLA indicator such as:
-  - healthy: seen within X min
-  - delayed: no new ingestion for Y min
-- If the job stalls, show an actionable warning instead of silently appearing idle.
+7. Correct incomplete or placeholder metric logic
+- Replace hardcoded / pseudo values where possible, especially:
+  - `share_of_voice`
+  - overly heuristic reach-only summaries
+  - keyword comparison based on plain content matching
+- Tighten how influencer ranking, sentiment mix, and spike score are computed so they are case-aware and time-range-aware.
+- Ensure charts use consistent timestamps (`detected_at` vs `ingested_at`) depending on the metric purpose.
 
-6. Validate end-to-end latency after implementation
-- Trigger ingestion for the IHS Nigeria case only.
-- Confirm that:
-  - matching `signals` rows are inserted,
-  - notifications are created,
-  - toast alerts appear in-session,
-  - measured latency stays within the target threshold.
+8. Add analytics export/readout support
+- Add a compact “export analytics snapshot” or “send to reports” flow so a filtered analytics view can become a report section.
+- Reuse the existing report/PDF pattern, but feed it real analytics summaries instead of generic text.
+- Include selected filters in the exported output so results are auditable.
 
-Expected outcome
-- The IHS Nigeria keywords remain active and continue producing alerts.
-- Operators can clearly see which keyword triggered each alert.
-- Alerting becomes measurably faster and easier to trust.
-- “Live” changes from best-effort near-real-time to a monitored, enterprise-grade workflow with visible latency and freshness indicators.
+9. Production testing and verification
+- Validate end-to-end for at least one live case, especially IHS Nigeria:
+  - tracking rules exist
+  - ingest job runs on cadence
+  - signals are inserted
+  - keyword attribution fields populate
+  - snapshots update
+  - analytics widgets reflect the same counts as the database
+- Test edge cases:
+  - no case selected
+  - no signals in range
+  - only one source
+  - no influencer rows
+  - delayed ingest / stale freshness
+- Perform UI QA across dashboard, analytics, signals, and tracking-manager handoff so filters and compare links stay aligned.
+
+Files likely involved
+- `src/pages/Analytics.tsx`
+- `src/components/analytics/KeywordComparisonPanel.tsx`
+- new analytics-specific components/hooks for KPI cards, filters, charts, tables
+- `src/components/LiveMonitoringPanel.tsx` for shared freshness/status patterns
+- `supabase/functions/ingest-signals/index.ts`
+- one or more migrations only if needed for backfill helpers, indexes, or analytics-oriented DB functions/views
 
 Technical notes
-- Existing realtime alert path:
+- Existing ingestion logs confirm live searches are running for the new IHS Nigeria keywords.
+- Existing signals table schema already supports `matched_keyword`, `tracking_rule_id`, and `ingested_at`, but current live rows still show null values, so implementation must verify and repair the write path and/or historical data.
+- Current analytics accuracy is limited more by data quality and aggregation strategy than by chart components.
+- The safest production path is:
 ```text
 tracking_rules
-  -> ingest-signals edge function
-  -> insert into signals
-  -> NotificationListener subscribes to signals INSERT
-  -> toast + notifications row
+  -> ingest-signals
+  -> signals with keyword attribution
+  -> snapshots / aggregates
+  -> analytics queries
+  -> reports/export
 ```
-- Existing evidence already confirms the path is working for the new IHS Nigeria terms.
-- The likely missing piece for “near-zero delay” is cadence + ingestion pipeline speed, not the realtime subscription itself.
+
+Expected outcome
+- Analytics becomes a trustworthy, operator-ready module rather than a basic chart page.
+- Keyword comparison becomes traceable to actual matched rules.
+- Freshness and latency are visible inside analytics.
+- The module is validated against real live data and ready for production use.
