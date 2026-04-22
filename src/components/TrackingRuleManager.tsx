@@ -1164,7 +1164,10 @@ export function TrackingRuleManager({
               type="button"
               onClick={() => {
                 setSubmitAttempted(true);
-                if (isKeywordCreateMode && pendingBrandEntries.length === 0) return;
+                if (isKeywordCreateMode && pendingBrandEntries.length === 0) {
+                  keywordInputRef.current?.focus();
+                  return;
+                }
                 const brandKeywords = isKeywordCreateMode ? pendingBrandEntries : [];
                 const competitorKeywords = isKeywordCreateMode ? pendingCompetitorEntries : [];
                 const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && brandKeywordEntries[0]
