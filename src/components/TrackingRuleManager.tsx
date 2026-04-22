@@ -171,6 +171,7 @@ function KeywordWorkspace({
   hint,
   required,
   emphasized,
+  suggestions,
   countLabel,
   entries,
   draft,
@@ -187,6 +188,7 @@ function KeywordWorkspace({
   hint: string;
   required?: boolean;
   emphasized?: boolean;
+  suggestions?: string[];
   countLabel: string;
   entries: string[];
   draft: string;
@@ -263,6 +265,26 @@ function KeywordWorkspace({
           />
         </div>
       </div>
+
+      {suggestions && suggestions.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {suggestions.map((suggestion) => (
+            <Button
+              key={suggestion}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                onPasteBatch(suggestion);
+                inputRef?.current?.focus();
+              }}
+              className="h-8 rounded-sm px-2.5 font-mono text-[11px]"
+            >
+              {suggestion}
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
       <p className="text-[11px] text-muted-foreground">{hint}</p>
     </section>
@@ -1043,6 +1065,7 @@ export function TrackingRuleManager({
                   hint={showBrandKeywordError ? "Add 1 brand keyword to save." : `${keywordHelperText} Add 1 brand keyword to save.`}
                   required
                   emphasized={pendingBrandEntries.length === 0}
+                  suggestions={["CrisisX", "CEO name", "Campaign name"]}
                   countLabel={`${pendingBrandEntries.length} ${pendingBrandEntries.length === 1 ? "keyword" : "keywords"}`}
                   entries={brandKeywordEntries}
                   draft={brandKeywordDraft}
