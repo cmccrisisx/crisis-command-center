@@ -1033,7 +1033,7 @@ export function TrackingRuleManager({
                 <KeywordWorkspace
                   title="Brand keywords"
                   description="Track brand, product, executive, and campaign names that define this case."
-                  hint={showBrandKeywordError ? "Add at least one brand keyword before saving." : keywordHelperText}
+                  hint={showBrandKeywordError ? "Add at least one brand keyword before saving." : `${keywordHelperText} At least one brand keyword is required before you can save.`}
                   required
                   countLabel={`${pendingBrandEntries.length} ${pendingBrandEntries.length === 1 ? "keyword" : "keywords"}`}
                   entries={brandKeywordEntries}
