@@ -54,6 +54,33 @@ const getSpikeScore = (timestamps: string[]) => {
   return Number((recentCount / baselineDailyRate).toFixed(1));
 };
 
+const getNormalizedSentimentMix = (counts: { positive: number; neutral: number; negative: number }) => {
+  const total = counts.positive + counts.neutral + counts.negative;
+  if (total === 0) return { positivePct: 0, neutralPct: 0, negativePct: 0 };
+
+  const raw = [
+    { key: "positivePct" as const, value: (counts.positive / total) * 100 },
+    { key: "neutralPct" as const, value: (counts.neutral / total) * 100 },
+    { key: "negativePct" as const, value: (counts.negative / total) * 100 },
+  ];
+
+  const floored = raw.map((entry) => ({ ...entry, value: Math.floor(entry.value), remainder: entry.value - Math.floor(entry.value) }));
+  let remaining = 100 - floored.reduce((sum, entry) => sum + entry.value, 0);
+
+  floored
+    .sort((a, b) => b.remainder - a.remainder)
+    .forEach((entry, index, arr) => {
+      if (remaining <= 0) return;
+      arr[index].value += 1;
+      remaining -= 1;
+    });
+
+  return floored.reduce(
+    (acc, entry) => ({ ...acc, [entry.key]: entry.value }),
+    { positivePct: 0, neutralPct: 0, negativePct: 0 }
+  );
+};
+
 const getTopPlatforms = (signals: Signal[]) => {
   const counts = signals.reduce<Record<string, number>>((acc, signal) => {
     const platform = signal.source === "twitter" ? "Twitter/X" : signal.source === "news" ? "News" : signal.source === "blog" ? "Blogs" : "LinkedIn";
@@ -150,6 +177,7 @@ export function KeywordComparisonPanel({ activeCaseId, activeCaseTitle, signals,
         },
         { positive: 0, neutral: 0, negative: 0 }
       );
+      const sentimentMix = getNormalizedSentimentMix(sentiment);
 
       return {
         keyword,
@@ -157,9 +185,7 @@ export function KeywordComparisonPanel({ activeCaseId, activeCaseTitle, signals,
         positive: sentiment.positive,
         neutral: sentiment.neutral,
         negative: sentiment.negative,
-        positivePct: matchedSignals.length ? Math.round((sentiment.positive / matchedSignals.length) * 100) : 0,
-        neutralPct: matchedSignals.length ? Math.round((sentiment.neutral / matchedSignals.length) * 100) : 0,
-        negativePct: matchedSignals.length ? Math.round((sentiment.negative / matchedSignals.length) * 100) : 0,
+        ...sentimentMix,
         latestMention: matchedSignals[0]?.detected_at ?? null,
         reach: matchedSignals.reduce((sum, signal) => sum + (signal.reach ?? 0), 0),
         topPlatforms: getTopPlatforms(matchedSignals),
