@@ -44,6 +44,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { LiveMonitoringPanel } from "@/components/LiveMonitoringPanel";
 import { cn } from "@/lib/utils";
 
 type RuleType = "keyword" | "query";
@@ -786,6 +787,8 @@ export function TrackingRuleManager({
 
   return (
     <div className="space-y-4">
+      <LiveMonitoringPanel crises={crises} selectedCaseId={caseFilter} rules={rules} />
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatPill label="Total rules" value={String(rules.length)} helper="All monitoring entries" />
         <StatPill label="Active now" value={String(activeRuleCount)} helper="Currently used by ingestion" />
