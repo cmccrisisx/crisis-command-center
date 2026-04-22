@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search, Filter, Loader2, Radio, RefreshCw } from "lucide-react";
+import { Search, Filter, Loader2, Radio, RefreshCw, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,16 @@ type Signal = Tables<"signals">;
 
 const SOURCE_OPTIONS = ["twitter", "news", "blog", "linkedin"] as const;
 const SENTIMENT_OPTIONS = ["positive", "neutral", "negative"] as const;
+
+function freshnessLabel(dateString?: string | null) {
+  if (!dateString) return "No signals yet";
+  const deltaMinutes = Math.max(0, Math.round((Date.now() - new Date(dateString).getTime()) / 60000));
+  if (deltaMinutes < 1) return "Updated just now";
+  if (deltaMinutes < 60) return `Updated ${deltaMinutes}m ago`;
+  const hours = Math.round(deltaMinutes / 60);
+  if (hours < 24) return `Updated ${hours}h ago`;
+  return `Updated ${Math.round(hours / 24)}d ago`;
+}
 
 export default function Signals() {
   usePageTitle("Signals");
@@ -36,24 +46,22 @@ export default function Signals() {
   const handleRefreshSignals = async () => {
     setIsIngesting(true);
     try {
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-signals`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
-      );
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ingest-signals`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify(activeCaseId ? { crisisId: activeCaseId } : {}),
+      });
       const data = await resp.json();
       if (data.success) {
         toast.success(`Ingested ${data.inserted} new signals`);
-        queryClient.invalidateQueries({ queryKey: ["signals"] });
+        queryClient.invalidateQueries({ queryKey: ["signals", activeCaseId ?? "all"] });
       } else {
         toast.error(data.error || "Ingestion failed");
       }
-    } catch (e) {
+    } catch {
       toast.error("Failed to refresh signals");
     } finally {
       setIsIngesting(false);
@@ -72,47 +80,30 @@ export default function Signals() {
     },
   });
 
-  // Realtime subscription — new signals appear instantly
   useEffect(() => {
     const queryKey = ["signals", activeCaseId ?? "all"] as const;
     const matchesCase = (s: Signal) => !activeCaseId || s.crisis_id === activeCaseId;
 
     const channel = supabase
       .channel(`signals-realtime-${activeCaseId ?? "all"}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "signals" },
-        (payload) => {
-          const next = payload.new as Signal;
-          if (!matchesCase(next)) return;
-          queryClient.setQueryData<Signal[]>(queryKey, (old) => {
-            if (!old) return [next];
-            if (old.some((s) => s.id === next.id)) return old;
-            return [next, ...old];
-          });
-          setRealtimeCount((c) => c + 1);
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "signals" },
-        (payload) => {
-          const next = payload.new as Signal;
-          if (!matchesCase(next)) return;
-          queryClient.setQueryData<Signal[]>(queryKey, (old) =>
-            old?.map((s) => (s.id === next.id ? next : s)) ?? []
-          );
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "signals" },
-        (payload) => {
-          queryClient.setQueryData<Signal[]>(queryKey, (old) =>
-            old?.filter((s) => s.id !== (payload.old as { id: string }).id) ?? []
-          );
-        }
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "signals" }, (payload) => {
+        const next = payload.new as Signal;
+        if (!matchesCase(next)) return;
+        queryClient.setQueryData<Signal[]>(queryKey, (old) => {
+          if (!old) return [next];
+          if (old.some((s) => s.id === next.id)) return old;
+          return [next, ...old];
+        });
+        setRealtimeCount((c) => c + 1);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "signals" }, (payload) => {
+        const next = payload.new as Signal;
+        if (!matchesCase(next)) return;
+        queryClient.setQueryData<Signal[]>(queryKey, (old) => old?.map((s) => (s.id === next.id ? next : s)) ?? []);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "signals" }, (payload) => {
+        queryClient.setQueryData<Signal[]>(queryKey, (old) => old?.filter((s) => s.id !== (payload.old as { id: string }).id) ?? []);
+      })
       .subscribe();
 
     return () => {
@@ -150,12 +141,11 @@ export default function Signals() {
     current: string[],
     setter: React.Dispatch<React.SetStateAction<string[]>>
   ) => {
-    setter((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    );
+    setter((prev) => (prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]));
   };
 
   const activeFilterCount = sourceFilters.length + sentimentFilters.length;
+  const latestSignalAt = signals[0]?.detected_at ?? null;
 
   return (
     <AppLayout>
@@ -163,15 +153,19 @@ export default function Signals() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-mono font-bold tracking-tight">Signal Detection</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {activeCase ? `Case: ${activeCase.title}` : "Real-time monitoring across all channels"}
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{activeCase ? `Case: ${activeCase.title}` : "Real-time monitoring across all channels"}</span>
+              <Badge variant="outline" className="text-[10px] font-mono h-5 px-1.5">
+                <Clock3 className="mr-1 h-3 w-3" />
+                {freshnessLabel(latestSignalAt)}
+              </Badge>
               {realtimeCount > 0 && (
-                <Badge variant="outline" className="ml-2 text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green animate-pulse">
+                <Badge variant="outline" className="text-xs font-mono h-5 px-1.5 border-crisis-green/30 text-crisis-green animate-pulse">
                   <Radio className="h-2.5 w-2.5 mr-1" />
                   {realtimeCount} new
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -236,12 +230,7 @@ export default function Signals() {
                     </div>
                   </div>
                   {activeFilterCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs font-mono h-7"
-                      onClick={() => { setSourceFilters([]); setSentimentFilters([]); }}
-                    >
+                    <Button variant="ghost" size="sm" className="w-full text-xs font-mono h-7" onClick={() => { setSourceFilters([]); setSentimentFilters([]); }}>
                       Clear all filters
                     </Button>
                   )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { AppLayout } from "@/components/AppLayout";
@@ -53,6 +53,16 @@ function StatCard({ label, value, icon: Icon, accent, loading }: { label: string
   );
 }
 
+function freshnessText(dateString?: string | null) {
+  if (!dateString) return "No signals yet";
+  const deltaMinutes = Math.max(0, Math.round((Date.now() - new Date(dateString).getTime()) / 60000));
+  if (deltaMinutes < 1) return "Just updated";
+  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
+  const hours = Math.round(deltaMinutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
 export default function Dashboard() {
   usePageTitle("Dashboard");
   const navigate = useNavigate();
@@ -60,7 +70,6 @@ export default function Dashboard() {
   const { activeCaseId, activeCase } = useActiveCase();
   const [readerSignal, setReaderSignal] = useState<{ source_url: string | null; author: string; content: string } | null>(null);
 
-  // Fetch latest signals from DB
   const { data: dbSignals = [] } = useQuery({
     queryKey: ["dashboard-signals", activeCaseId ?? "all"],
     queryFn: async () => {
@@ -72,23 +81,22 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch signal stats from DB
   const { data: signalStats, isLoading: statsLoading } = useQuery({
     queryKey: ["dashboard-signal-stats", activeCaseId ?? "all"],
     queryFn: async () => {
-      let q = supabase.from("signals").select("id, sentiment");
+      let q = supabase.from("signals").select("id, sentiment, detected_at");
       if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
       const { data, error } = await q;
       if (error) throw error;
       const total = data.length;
       const negative = data.filter((s) => s.sentiment === "negative").length;
       const positive = data.filter((s) => s.sentiment === "positive").length;
+      const latestDetectedAt = data[0]?.detected_at ?? null;
       const sentimentScore = total > 0 ? (positive - negative) / total : 0;
-      return { total, sentimentScore };
+      return { total, sentimentScore, latestDetectedAt };
     },
   });
 
-  // Fetch active crisis from DB (or the selected case)
   const { data: activeCrisis, isLoading: crisisLoading } = useQuery({
     queryKey: ["dashboard-crisis", activeCaseId ?? "auto"],
     queryFn: async () => {
@@ -112,7 +120,6 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch trending narratives from DB
   const { data: narratives = [] } = useQuery({
     queryKey: ["dashboard-narratives", activeCaseId ?? "all"],
     queryFn: async () => {
@@ -129,7 +136,6 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch reputation snapshots for sentiment timeline
   const { data: snapshots = [] } = useQuery({
     queryKey: ["dashboard-snapshots", activeCaseId ?? "all"],
     queryFn: async () => {
@@ -145,19 +151,17 @@ export default function Dashboard() {
     },
   });
 
-  // Fetch response count
   const { data: responseCount = 0, isLoading: responsesLoading } = useQuery({
-    queryKey: ["dashboard-response-count"],
+    queryKey: ["dashboard-response-count", activeCaseId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("response_log")
-        .select("id");
+      let q = supabase.from("response_log").select("id");
+      if (activeCaseId) q = q.eq("crisis_id", activeCaseId);
+      const { data, error } = await q;
       if (error) throw error;
       return data.length;
     },
   });
 
-  // Build sentiment timeline from snapshots
   const sentimentTimeline = snapshots.map((s) => ({
     time: new Date(s.snapshot_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     negative: Number(s.negative_pct ?? 0),
@@ -166,50 +170,58 @@ export default function Dashboard() {
     volume: s.signal_volume ?? 0,
   }));
 
-  // Real-time subscriptions for all dashboard data
+  const latestSignalTime = useMemo(() => dbSignals[0]?.detected_at ?? signalStats?.latestDetectedAt ?? null, [dbSignals, signalStats?.latestDetectedAt]);
+
   useEffect(() => {
+    const caseQueryKey = activeCaseId ?? "all";
+    const matchesCase = (crisisId?: string | null) => !activeCaseId || crisisId === activeCaseId;
+
     const channel = supabase
-      .channel("dashboard-realtime")
+      .channel(`dashboard-realtime-${caseQueryKey}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "signals" },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            queryClient.setQueryData<Signal[]>(["dashboard-signals"], (old) => {
-              const newSignal = payload.new as Signal;
-              const updated = old ? [newSignal, ...old] : [newSignal];
-              return updated.slice(0, 5);
-            });
-          }
-          queryClient.invalidateQueries({ queryKey: ["dashboard-signal-stats"] });
+          const row = (payload.new || payload.old) as Partial<Signal>;
+          if (!matchesCase(row.crisis_id ?? null)) return;
+          queryClient.invalidateQueries({ queryKey: ["dashboard-signals", caseQueryKey] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-signal-stats", caseQueryKey] });
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "crises" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-crisis"] });
+        (payload) => {
+          const row = (payload.new || payload.old) as Partial<Crisis>;
+          if (!matchesCase(row.id ?? null)) return;
+          queryClient.invalidateQueries({ queryKey: ["dashboard-crisis", activeCaseId ?? "auto"] });
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "narratives" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-narratives"] });
+        (payload) => {
+          const row = (payload.new || payload.old) as Partial<Narrative>;
+          if (!matchesCase(row.crisis_id ?? null)) return;
+          queryClient.invalidateQueries({ queryKey: ["dashboard-narratives", caseQueryKey] });
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "reputation_snapshots" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-snapshots"] });
+        (payload) => {
+          const row = (payload.new || payload.old) as Partial<ReputationSnapshot>;
+          if (!matchesCase(row.crisis_id ?? null)) return;
+          queryClient.invalidateQueries({ queryKey: ["dashboard-snapshots", caseQueryKey] });
         }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "response_log" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-response-count"] });
+        (payload) => {
+          const row = payload.new as { crisis_id?: string | null };
+          if (payload.eventType !== "DELETE" && !matchesCase(row?.crisis_id ?? null)) return;
+          queryClient.invalidateQueries({ queryKey: ["dashboard-response-count", caseQueryKey] });
         }
       )
       .subscribe();
@@ -217,18 +229,21 @@ export default function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [activeCaseId, queryClient]);
 
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl sm:text-2xl font-mono font-bold tracking-tight">Command Center</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-              {activeCase ? `Case: ${activeCase.title}` : "Real-time crisis monitoring & response"}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+              <span>{activeCase ? `Case: ${activeCase.title}` : "Real-time crisis monitoring & response"}</span>
+              <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">
+                <Clock className="mr-1 h-3 w-3" />
+                {freshnessText(latestSignalTime)}
+              </Badge>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <CreateCrisisDialog />
@@ -242,17 +257,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 sm:gap-3">
           <StatCard label="Total Signals" value={formatNumber(signalStats?.total ?? 0)} icon={Radio} loading={statsLoading} />
           <StatCard label="Active Crises" value={activeCrisis ? "1" : "0"} icon={AlertTriangle} accent="text-crisis-red" loading={crisisLoading} />
           <StatCard label="Sentiment" value={((signalStats?.sentimentScore ?? 0) * 100).toFixed(0) + "%"} icon={TrendingDown} accent="text-crisis-red" loading={statsLoading} />
           <StatCard label="Media Reach" value={formatNumber(snapshots.reduce((sum, s) => sum + (s.media_reach ?? 0), 0))} icon={MessageSquare} />
           <StatCard label="Responses Sent" value={responseCount.toString()} icon={MessageSquare} loading={responsesLoading} />
-          <StatCard label="Avg Response" value="—" icon={Clock} />
+          <StatCard label="Last Signal" value={latestSignalTime ? freshnessText(latestSignalTime) : "—"} icon={Clock} />
         </div>
 
-        {/* Active Crisis Alert */}
         {activeCrisis ? (
           <CrisisStatusCard crisis={activeCrisis} queryClient={queryClient} />
         ) : (
@@ -264,7 +277,6 @@ export default function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {/* Sentiment Chart */}
           <Card className="xl:col-span-2">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-mono uppercase tracking-wider">Sentiment Timeline</CardTitle>
@@ -300,7 +312,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Trending Narratives */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-mono uppercase tracking-wider">Trending Narratives</CardTitle>
@@ -328,10 +339,8 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* AI Analysis Panel */}
         <CrisisAIPanel />
 
-        {/* Recent Signals */}
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
