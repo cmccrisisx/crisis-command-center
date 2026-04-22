@@ -82,7 +82,6 @@ interface TrackingRuleManagerProps {
   initialRuleType?: RuleType;
   openSignal?: number;
   onInitialOpenHandled?: () => void;
-  showHeroActions?: boolean;
 }
 
 const TRACKING_RULES_TABLE = "tracking_rules" as const;
@@ -156,7 +155,6 @@ export function TrackingRuleManager({
   initialRuleType = "keyword",
   openSignal = 0,
   onInitialOpenHandled,
-  showHeroActions = true,
 }: TrackingRuleManagerProps) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
