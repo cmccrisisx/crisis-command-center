@@ -1,90 +1,123 @@
 
 Goal
-- Make keyword management clear and move monitoring/analysis to case-specific, near-real-time data so the AI stops pulling stale or unrelated context.
+- Make the admin keyword entry point obvious and one-click accessible, instead of hiding it inside the long Settings page.
 
-What exists right now
-- Keywords/queries are added in Settings under the admin-only “Keyword & Queries Manager”.
-- Personal keywords also exist lower in Settings, but those are only workspace preferences and do not drive ingestion.
-- The current ingestion function still uses hardcoded `BRAND_QUERIES` and `BRAND_CRISIS_MAP` inside `supabase/functions/ingest-signals/index.ts`.
-- The dashboard AI panel is not scoped correctly:
-  - it loads the latest crisis overall, not the active case
-  - it loads all signals overall, not the active case
-- The AI prompts in `supabase/functions/crisis-ai/index.ts` are partly hardcoded to Kaduna State Government, which can bias outputs like reputation/emotional analysis.
+What is happening now
+- Admin tracking keywords are currently added in Settings under the admin-only “Keyword & Queries Manager”.
+- That section exists, but it is easy to miss because:
+  - it is nested inside a multi-section Settings page
+  - the sidebar only labels the route as “Settings”
+  - there is no dedicated shortcut from the dashboard, signals page, or top bar
+  - there is also a separate personal “Keyword Tracking” card lower on the page, which can create confusion
 
-Why you are seeing stale / wrong analysis
-- New rules added in the Keyword & Queries Manager are not yet powering ingestion because `ingest-signals` still reads hardcoded queries.
-- Emotional/reputation analysis is being run on broad or mixed signal sets instead of the selected case.
-- Reputation snapshots are historical aggregates, so if the active case scoping is wrong, the charts and summaries can reflect older unrelated entities like Airtel Nigeria.
+Recommended organization
+1. Promote it to a first-class admin destination
+- Add a dedicated admin-only navigation item called “Tracking Manager” or “Keywords & Queries”.
+- Keep the route either:
+  - as a new standalone page, or
+  - as `/settings?tab=tracking`
+- Best UX: create a dedicated page so admins do not need to scan the rest of Settings.
 
-Recommended implementation
-1. Wire the manager to real ingestion
-- Refactor `ingest-signals` to fetch active rules from `tracking_rules` instead of `BRAND_QUERIES`.
-- Join each rule to its mapped crisis/case.
-- Respect platform selection (`all`, `twitter`, `news`, `blog`, `linkedin`) when building searches.
-- Keep server-side duplicate protection already added.
+2. Keep Settings for secondary controls only
+- Leave personal workspace keyword preferences in Settings.
+- Move the ingestion-driving admin manager out of the main Settings flow.
+- Add a short note in Settings:
+  - “Monitoring keywords are managed in Tracking Manager.”
 
-2. Add your new tracked names as tracking rules
-- Insert admin rules mapped to the correct IHS Nigeria crisis/case:
-  - Mohamad Darwish (CEO IHS Nigeria)
-  - El-Rufai
-  - IHS Nigeria
-  - Dapo Otunla
-  - Mrs Oyinkansola Badejo-Okusanya
-- Store them as keywords or query rules depending on how broad you want matching.
-- If the IHS Nigeria case does not yet exist, create/select that crisis first so the rules map to the right case.
+3. Add fast entry points
+- Add a top-right action button for admins:
+  - “Manage Tracking”
+- Add a shortcut card on the dashboard and Signals page:
+  - “Open Tracking Manager”
+- Keep sidebar access as the primary route and quick actions as secondary entry points.
 
-3. Fix AI analysis scoping
-- Update `src/components/CrisisAIPanel.tsx` to use `useActiveCase()`.
-- Query only the selected case’s crisis record and signals.
-- Pass active case metadata into the AI call so emotional and reputation analysis are case-specific.
-- Update empty/loading states so the panel clearly says when no case is selected or no recent signals exist.
+4. Make the page simple on first load
+- Top section:
+  - search
+  - case filter
+  - platform filter
+  - status filter
+  - prominent “Add Rule” button
+- First thing visible:
+  - active rule counts by case
+  - recent updates
+- Main content:
+  - single table grouped/filterable by case
 
-4. Remove brand-biased prompts
-- Update `supabase/functions/crisis-ai/index.ts` so prompts are generic and driven by `crisisContext`.
-- Remove the hardcoded “Kaduna State Government” framing from narrative generation and any other case-specific prompt text.
-- Ensure reputation analysis speaks about the current organization/case only.
+Recommended UX flow
+```text
+Sidebar
+  -> Tracking Manager
+       -> Search / Filter / Add Rule
+       -> Table of all active rules
+       -> Drawer: Create/Edit rule
+```
 
-5. Improve “real-time” behavior
-- Keep the existing live subscriptions for new `signals`.
-- Make analysis prefer a recent window for fast-changing views:
-  - emotional analysis: recent signals first (for example last 24–72 hours, case-scoped)
-  - reputation analysis: latest case-scoped snapshots and/or rolling recent signals
-- After each ingestion run, continue updating:
-  - `signals`
-  - `reputation_snapshots`
-  - `narratives`
-  - crisis signal counts
-- Ensure those updates are filtered per crisis so dashboards refresh with the active case only.
+Implementation plan
+1. Create a dedicated admin page
+- Add a new page such as `src/pages/TrackingManager.tsx`.
+- Move or reuse the existing `TrackingRuleManager` UI from `src/pages/Settings.tsx`.
+- Keep all current validation, duplicate checks, and platform selection.
 
-6. Make ingestion cadence more reliable
-- Review how ingestion is being triggered now.
-- If it is only manual from the Signals page, add or verify a scheduled backend job to run automatically on a short interval.
-- Expose the latest run time / last successful ingest in the admin area or cron panel so you can confirm freshness.
+2. Add route wiring
+- Add a protected route in `src/App.tsx` for the new admin page.
+- Restrict access in the page itself using the existing auth role check so only admins can use it.
 
-7. Improve freshness signals in the UI
-- Show “last updated” / “latest signal time” in the AI panel and analytics views.
-- Warn when analysis is based on stale data or too few recent signals.
-- Optionally add a “Use recent signals only” mode for emotional and reputation tabs.
+3. Update sidebar navigation
+- Edit `src/components/AppSidebar.tsx`.
+- Add a new admin-only nav item:
+  - title: “Tracking Manager”
+  - icon: target/search/filter style icon
+  - route: `/tracking-manager`
+- Keep “Settings” for system/admin settings, but no longer make it the only place admins can manage tracking.
 
-Where you will add keywords after this
-- Settings → Keyword & Queries Manager (admin-only), not the personal keyword card.
-- That manager will be the source of truth for tracked names and case mapping.
+4. Add admin quick actions
+- In `src/components/TopBar.tsx`, add an admin-only button linking to the tracking manager.
+- In `src/pages/Index.tsx`, add a small admin card/button near monitoring controls.
+- Optionally add the same shortcut on `src/pages/Signals.tsx`.
 
-Technical details
-- Frontend files to update:
-  - `src/components/CrisisAIPanel.tsx`
-  - optionally `src/pages/Signals.tsx` / dashboard labels for freshness indicators
-- Backend files to update:
-  - `supabase/functions/ingest-signals/index.ts`
-  - `supabase/functions/crisis-ai/index.ts`
-- Database/data work:
-  - use existing `tracking_rules` table as source of truth
-  - add the five IHS-related names as rules mapped to the appropriate crisis
-  - no new roles model needed; current admin-only rule management already fits
+5. Reduce confusion inside Settings
+- In `src/pages/Settings.tsx`:
+  - replace the large embedded manager with either:
+    - a compact summary card and “Open Tracking Manager” button, or
+    - a lightweight preview of counts only
+  - keep the personal “Keyword Tracking” section, but rename it more clearly:
+    - “Personal Workspace Keywords”
+  - add helper text that these do not drive monitoring ingestion
+
+6. Improve discoverability on mobile and desktop
+- Desktop:
+  - sidebar item visible for admins
+  - top bar shortcut visible on larger screens
+- Mobile:
+  - dedicated route still accessible from menu/sidebar
+  - primary CTA at top of page: “Add Rule”
+- Ensure the add/edit action stays above the fold.
+
+7. Preserve the current backend model
+- Continue using `tracking_rules` as the source of truth.
+- No schema change is required for this access improvement unless you also want:
+  - pinned/favorite cases
+  - last edited by
+  - rule usage stats
+
+Recommended labels
+- Sidebar: “Tracking Manager”
+- Page title: “Keyword & Queries Manager”
+- Add button: “Add Tracking Rule”
+- Settings summary note: “Monitoring rules have moved to Tracking Manager.”
+
+Files to update
+- `src/App.tsx`
+- `src/components/AppSidebar.tsx`
+- `src/components/TopBar.tsx`
+- `src/pages/Settings.tsx`
+- `src/pages/Index.tsx`
+- optionally `src/pages/Signals.tsx`
+- new page: `src/pages/TrackingManager.tsx`
 
 Expected outcome
-- Admin adds tracked names in one place.
-- Ingestion actually uses those rules.
-- Emotional and reputation analysis follow the active case only.
-- Dashboards stop surfacing outdated October 2023 / Airtel Nigeria context unless that is truly the selected case’s current data.
-- Monitoring becomes much closer to real time, with clear freshness indicators and scheduled ingestion support.
+- Admin can find keyword management immediately from the main navigation.
+- Adding tracked names becomes a one-click action.
+- There is less confusion between personal keywords and monitoring keywords.
+- The system feels simpler because the tracking tool is treated as a core workflow, not a buried settings subsection.
