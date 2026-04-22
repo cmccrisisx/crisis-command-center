@@ -50,6 +50,7 @@ type RuleType = "keyword" | "query";
 type RuleStatusFilter = "all" | "active" | "paused";
 type RuleTypeFilter = "all" | RuleType;
 type TrackingPlatform = "all" | "twitter" | "news" | "blog" | "linkedin";
+type KeywordSegment = "brand" | "competitor";
 
 interface CrisisOption {
   id: string;
@@ -129,6 +130,14 @@ const dedupeKeywords = (values: string[]) => {
   });
 };
 
+const getKeywordSegmentLabel = (segment: KeywordSegment) =>
+  segment === "brand" ? "Brand keyword" : "Competitor keyword";
+
+const buildBatchRuleLabel = (baseLabel: string, segment: KeywordSegment) => {
+  const segmentLabel = getKeywordSegmentLabel(segment);
+  return baseLabel.trim() ? `${baseLabel.trim()} · ${segmentLabel}` : segmentLabel;
+};
+
 const trackingRuleSchema = z
   .object({
     crisis_id: z.string().uuid({ message: "Select a case" }),
@@ -153,6 +162,103 @@ function StatPill({ label, value, helper }: { label: string; value: string; help
       <p className="mt-1 text-lg font-mono font-semibold tabular-nums text-foreground">{value}</p>
       {helper ? <p className="mt-1 text-[11px] text-muted-foreground">{helper}</p> : null}
     </div>
+  );
+}
+
+function KeywordWorkspace({
+  title,
+  description,
+  hint,
+  required,
+  countLabel,
+  entries,
+  draft,
+  placeholder,
+  accent,
+  inputRef,
+  onDraftChange,
+  onCommit,
+  onPasteBatch,
+  onRemove,
+}: {
+  title: string;
+  description: string;
+  hint: string;
+  required?: boolean;
+  countLabel: string;
+  entries: string[];
+  draft: string;
+  placeholder: string;
+  accent: "primary" | "muted";
+  inputRef?: React.RefObject<HTMLInputElement | null>;
+  onDraftChange: (value: string) => void;
+  onCommit: () => void;
+  onPasteBatch: (value: string) => void;
+  onRemove: (keyword: string) => void;
+}) {
+  const accentClasses =
+    accent === "primary"
+      ? "border-primary/40 bg-card shadow-sm focus-within:border-primary"
+      : "border-border bg-surface-elevated/40 shadow-sm focus-within:border-ring";
+
+  return (
+    <section className="space-y-2.5 rounded-sm border border-border bg-background p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label className="text-xs font-mono uppercase tracking-wider text-foreground">{title}</Label>
+            <Badge variant={required ? "default" : "secondary"} className="rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide">
+              {required ? "Required" : "Optional"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <Badge variant="outline" className="rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide">
+          {countLabel}
+        </Badge>
+      </div>
+
+      <div className={cn("rounded-md border p-2 transition-colors focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2", accentClasses)}>
+        <div className="flex min-h-28 flex-wrap content-start gap-2">
+          {entries.length > 0 ? (
+            entries.map((keyword) => (
+              <Badge key={keyword} variant={accent === "primary" ? "default" : "secondary"} className="gap-1 rounded-sm px-2 py-1 font-mono text-xs">
+                <span>{keyword}</span>
+                <button type="button" onClick={() => onRemove(keyword)} className="rounded-sm p-0.5 text-current/70 transition-colors hover:text-current">
+                  <X className="h-3 w-3" />
+                  <span className="sr-only">Remove {keyword}</span>
+                </button>
+              </Badge>
+            ))
+          ) : (
+            <p className="self-center px-1 py-1.5 text-sm text-muted-foreground">{placeholder}</p>
+          )}
+
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            onBlur={onCommit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === ",") {
+                e.preventDefault();
+                onCommit();
+              }
+            }}
+            onPaste={(e) => {
+              const pastedText = e.clipboardData.getData("text");
+              if (!/[\n,]/.test(pastedText)) return;
+              e.preventDefault();
+              onPasteBatch(pastedText);
+            }}
+            placeholder={entries.length > 0 ? "Add another keyword" : ""}
+            className="min-w-[220px] flex-1 bg-transparent px-1 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </div>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground">{hint}</p>
+    </section>
   );
 }
 
@@ -188,8 +294,10 @@ export function TrackingRuleManager({
   const [editingRule, setEditingRule] = useState<TrackingRuleRow | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [formState, setFormState] = useState<TrackingRuleFormState>(DEFAULT_TRACKING_RULE_FORM);
-  const [keywordDraft, setKeywordDraft] = useState("");
-  const [keywordEntries, setKeywordEntries] = useState<string[]>([]);
+  const [brandKeywordDraft, setBrandKeywordDraft] = useState("");
+  const [brandKeywordEntries, setBrandKeywordEntries] = useState<string[]>([]);
+  const [competitorKeywordDraft, setCompetitorKeywordDraft] = useState("");
+  const [competitorKeywordEntries, setCompetitorKeywordEntries] = useState<string[]>([]);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
   const [compareCaseId, setCompareCaseId] = useState<string | null>(null);
   const autoOpenedEmptyRef = useRef(false);
@@ -272,8 +380,10 @@ export function TrackingRuleManager({
   const resetForm = (preferredRuleType: RuleType = initialRuleType) => {
     setEditingRule(null);
     setAdvancedOpen(false);
-    setKeywordDraft("");
-    setKeywordEntries([]);
+    setBrandKeywordDraft("");
+    setBrandKeywordEntries([]);
+    setCompetitorKeywordDraft("");
+    setCompetitorKeywordEntries([]);
     setFormState({
       ...DEFAULT_TRACKING_RULE_FORM,
       crisis_id: caseFilter !== "all" ? caseFilter : crises[0]?.id ?? "",
@@ -295,8 +405,10 @@ export function TrackingRuleManager({
   const openEditSheet = (rule: TrackingRuleRow) => {
     setEditingRule(rule);
     setAdvancedOpen(true);
-    setKeywordDraft("");
-    setKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setBrandKeywordDraft("");
+    setBrandKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setCompetitorKeywordDraft("");
+    setCompetitorKeywordEntries([]);
     setFormState({
       crisis_id: rule.crisis_id,
       platform: rule.platform,
@@ -313,8 +425,10 @@ export function TrackingRuleManager({
   const openDuplicateSheet = (rule: TrackingRuleRow) => {
     setEditingRule(null);
     setAdvancedOpen(true);
-    setKeywordDraft("");
-    setKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setBrandKeywordDraft("");
+    setBrandKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
+    setCompetitorKeywordDraft("");
+    setCompetitorKeywordEntries([]);
     setFormState({
       crisis_id: rule.crisis_id,
       platform: rule.platform,
@@ -358,11 +472,12 @@ export function TrackingRuleManager({
     setCompareSelection((current) => current.filter((id) => validIds.has(id)));
   }, [rules]);
 
-  const addKeywords = (values: string[]) => {
+  const addKeywords = (segment: KeywordSegment, values: string[]) => {
     const incoming = dedupeKeywords(values);
     if (!incoming.length) return;
 
-    setKeywordEntries((current) => {
+    const apply = segment === "brand" ? setBrandKeywordEntries : setCompetitorKeywordEntries;
+    apply((current) => {
       const merged = dedupeKeywords([...current, ...incoming]);
       if (merged.length === current.length) {
         toast.message("These keywords are already in the list");
@@ -371,14 +486,20 @@ export function TrackingRuleManager({
     });
   };
 
-  const commitKeywordDraft = () => {
-    if (!keywordDraft.trim()) return;
-    addKeywords(parseKeywordBatch(keywordDraft));
-    setKeywordDraft("");
+  const commitKeywordDraft = (segment: KeywordSegment) => {
+    const draft = segment === "brand" ? brandKeywordDraft : competitorKeywordDraft;
+    if (!draft.trim()) return;
+    addKeywords(segment, parseKeywordBatch(draft));
+    if (segment === "brand") {
+      setBrandKeywordDraft("");
+      return;
+    }
+    setCompetitorKeywordDraft("");
   };
 
-  const removeKeyword = (keyword: string) => {
-    setKeywordEntries((current) => current.filter((entry) => normalizeRuleText(entry) !== normalizeRuleText(keyword)));
+  const removeKeyword = (segment: KeywordSegment, keyword: string) => {
+    const apply = segment === "brand" ? setBrandKeywordEntries : setCompetitorKeywordEntries;
+    apply((current) => current.filter((entry) => normalizeRuleText(entry) !== normalizeRuleText(keyword)));
   };
 
   const compareRules = useMemo(
@@ -391,10 +512,17 @@ export function TrackingRuleManager({
   const hasInlineCaseError = !formState.crisis_id;
   const isKeywordCreateMode = formState.rule_type === "keyword" && !editingRule;
   const keywordHelperText = hasInlineCaseError ? "Select a case first, then add keywords." : "Press Enter, comma, or paste a newline list.";
-  const draftKeywords = keywordDraft.trim() ? parseKeywordBatch(keywordDraft) : [];
-  const pendingKeywordEntries = dedupeKeywords([...keywordEntries, ...draftKeywords]);
-  const currentRuleText = isKeywordCreateMode ? pendingKeywordEntries[0] ?? "" : formState.rule_text;
-  const hasPrimaryValue = isKeywordCreateMode ? pendingKeywordEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
+  const pendingBrandEntries = dedupeKeywords([
+    ...brandKeywordEntries,
+    ...(brandKeywordDraft.trim() ? parseKeywordBatch(brandKeywordDraft) : []),
+  ]);
+  const pendingCompetitorEntries = dedupeKeywords([
+    ...competitorKeywordEntries,
+    ...(competitorKeywordDraft.trim() ? parseKeywordBatch(competitorKeywordDraft) : []),
+  ]).filter((keyword) => !pendingBrandEntries.some((brandKeyword) => normalizeRuleText(brandKeyword) === normalizeRuleText(keyword)));
+  const currentRuleText = isKeywordCreateMode ? pendingBrandEntries[0] ?? "" : formState.rule_text;
+  const hasPrimaryValue = isKeywordCreateMode ? pendingBrandEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
+  const totalPendingKeywordCount = pendingBrandEntries.length + pendingCompetitorEntries.length;
   const compareSummaryText =
     compareRules.length === 0
       ? "Select 2–5 saved keywords to enable comparison."
@@ -407,12 +535,20 @@ export function TrackingRuleManager({
       : "Comparison opens side-by-side analytics for the active case.";
 
   const saveRuleMutation = useMutation({
-    mutationFn: async ({ payload, keywords }: { payload: TrackingRuleFormState; keywords: string[] }) => {
+    mutationFn: async ({ payload, brandKeywords, competitorKeywords }: { payload: TrackingRuleFormState; brandKeywords: string[]; competitorKeywords: string[] }) => {
       if (payload.rule_type === "keyword" && !editingRule) {
-        const normalizedBatch = dedupeKeywords(keywords);
-        if (!normalizedBatch.length) {
+        const normalizedBrandKeywords = dedupeKeywords(brandKeywords);
+        const normalizedCompetitorKeywords = dedupeKeywords(competitorKeywords).filter(
+          (keyword) => !normalizedBrandKeywords.some((brandKeyword) => normalizeRuleText(brandKeyword) === normalizeRuleText(keyword))
+        );
+        if (!normalizedBrandKeywords.length) {
           throw new Error("Add at least one keyword");
         }
+
+        const normalizedBatch = [
+          ...normalizedBrandKeywords.map((keyword) => ({ keyword, segment: "brand" as const })),
+          ...normalizedCompetitorKeywords.map((keyword) => ({ keyword, segment: "competitor" as const })),
+        ];
 
         const existingNormalized = new Set(
           rules
@@ -425,7 +561,7 @@ export function TrackingRuleManager({
             .map((rule) => normalizeRuleText(rule.rule_text))
         );
 
-        const uniqueKeywords = normalizedBatch.filter((keyword) => !existingNormalized.has(normalizeRuleText(keyword)));
+        const uniqueKeywords = normalizedBatch.filter(({ keyword }) => !existingNormalized.has(normalizeRuleText(keyword)));
         const skippedCount = normalizedBatch.length - uniqueKeywords.length;
 
         if (!uniqueKeywords.length) {
@@ -437,12 +573,12 @@ export function TrackingRuleManager({
           throw new Error(parsedPriority.error.flatten().formErrors[0] ?? "Invalid priority");
         }
 
-        const insertRows = uniqueKeywords.map((keyword) => ({
+        const insertRows = uniqueKeywords.map(({ keyword, segment }) => ({
           crisis_id: payload.crisis_id,
           platform: payload.platform,
           rule_type: "keyword" as const,
           rule_text: keyword,
-          label: payload.label.trim() || null,
+          label: buildBatchRuleLabel(payload.label, segment),
           notes: payload.notes.trim() || null,
           is_active: payload.is_active,
           priority: parsedPriority.data,
@@ -451,7 +587,13 @@ export function TrackingRuleManager({
         const { error } = await supabase.from(TRACKING_RULES_TABLE).insert(insertRows);
         if (error) throw error;
 
-        return { mode: "batch" as const, addedCount: uniqueKeywords.length, skippedCount };
+        return {
+          mode: "batch" as const,
+          addedCount: uniqueKeywords.length,
+          brandAddedCount: uniqueKeywords.filter((entry) => entry.segment === "brand").length,
+          competitorAddedCount: uniqueKeywords.filter((entry) => entry.segment === "competitor").length,
+          skippedCount,
+        };
       }
 
       const parsed = trackingRuleSchema.safeParse({
@@ -506,6 +648,11 @@ export function TrackingRuleManager({
         const descriptionParts = [];
         if (result.skippedCount > 0) {
           descriptionParts.push(`${result.skippedCount} skipped because they already exist.`);
+        }
+        if (result.brandAddedCount > 0 && result.competitorAddedCount > 0) {
+          descriptionParts.unshift(`${result.brandAddedCount} brand and ${result.competitorAddedCount} competitor keywords are ready.`);
+        } else if (result.brandAddedCount > 0) {
+          descriptionParts.unshift(`${result.brandAddedCount} brand keyword${result.brandAddedCount === 1 ? "" : "s"} ready.`);
         }
         if (result.addedCount > 1) {
           descriptionParts.push("Select 2–5 saved keyword rows in the table, then click Compare selected.");
@@ -867,43 +1014,56 @@ export function TrackingRuleManager({
             </div>
 
             {formState.rule_type === "keyword" && !editingRule ? (
-              <div className="space-y-2">
-                <Label className="text-xs font-mono uppercase tracking-wider">Keywords</Label>
-                <div className="rounded-md border border-border bg-card shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                  <div className="flex min-h-24 flex-wrap gap-2 p-2">
-                    {keywordEntries.map((keyword) => (
-                      <Badge key={keyword} variant="secondary" className="gap-1 rounded-sm px-2 py-1 font-mono text-xs">
-                        <span>{keyword}</span>
-                        <button type="button" onClick={() => removeKeyword(keyword)} className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground">
-                          <X className="h-3 w-3" />
-                          <span className="sr-only">Remove {keyword}</span>
-                        </button>
-                      </Badge>
-                    ))}
-                    <input
-                      ref={keywordInputRef}
-                      value={keywordDraft}
-                      onChange={(e) => setKeywordDraft(e.target.value)}
-                      onBlur={commitKeywordDraft}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === ",") {
-                          e.preventDefault();
-                          commitKeywordDraft();
-                        }
-                      }}
-                      onPaste={(e) => {
-                        const pastedText = e.clipboardData.getData("text");
-                        if (!/[\n,]/.test(pastedText)) return;
-                        e.preventDefault();
-                        addKeywords(parseKeywordBatch(pastedText));
-                        setKeywordDraft("");
-                      }}
-                      placeholder={formCopy.placeholder}
-                      className="min-w-[220px] flex-1 bg-transparent px-1 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                    />
+              <div className="space-y-3">
+                <div className="rounded-sm border border-border bg-surface-elevated/50 px-3 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-mono uppercase tracking-wider text-foreground">Keyword strategy</p>
+                      <p className="text-xs text-muted-foreground">Separate your owned brand terms from optional competitors so comparison stays clean in analytics.</p>
+                    </div>
+                    <Badge variant="outline" className="rounded-sm px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide">
+                      {totalPendingKeywordCount} ready
+                    </Badge>
                   </div>
                 </div>
-                <p className={cn("text-[11px]", hasInlineCaseError ? "text-destructive" : "text-muted-foreground")}>{keywordHelperText}</p>
+
+                <KeywordWorkspace
+                  title="Brand keywords"
+                  description="Track brand, product, executive, and campaign names that define this case."
+                  hint={keywordHelperText}
+                  required
+                  countLabel={`${pendingBrandEntries.length} ${pendingBrandEntries.length === 1 ? "keyword" : "keywords"}`}
+                  entries={brandKeywordEntries}
+                  draft={brandKeywordDraft}
+                  placeholder="Add brand, product, executive, or campaign names"
+                  accent="primary"
+                  inputRef={keywordInputRef}
+                  onDraftChange={setBrandKeywordDraft}
+                  onCommit={() => commitKeywordDraft("brand")}
+                  onPasteBatch={(value) => {
+                    addKeywords("brand", parseKeywordBatch(value));
+                    setBrandKeywordDraft("");
+                  }}
+                  onRemove={(keyword) => removeKeyword("brand", keyword)}
+                />
+
+                <KeywordWorkspace
+                  title="Competitor keywords"
+                  description="Optionally add rival brands, comparison entities, or adjacent players to monitor side-by-side movement."
+                  hint="Optional. Use the same Enter, comma, or multi-line paste flow to build a comparison set."
+                  countLabel={`${pendingCompetitorEntries.length} ${pendingCompetitorEntries.length === 1 ? "keyword" : "keywords"}`}
+                  entries={competitorKeywordEntries}
+                  draft={competitorKeywordDraft}
+                  placeholder="Add competitor brands or comparison entities"
+                  accent="muted"
+                  onDraftChange={setCompetitorKeywordDraft}
+                  onCommit={() => commitKeywordDraft("competitor")}
+                  onPasteBatch={(value) => {
+                    addKeywords("competitor", parseKeywordBatch(value));
+                    setCompetitorKeywordDraft("");
+                  }}
+                  onRemove={(keyword) => removeKeyword("competitor", keyword)}
+                />
               </div>
             ) : (
               <div className="space-y-2">
@@ -998,16 +1158,18 @@ export function TrackingRuleManager({
             <Button
               type="button"
               onClick={() => {
-                const keywords = isKeywordCreateMode ? pendingKeywordEntries : [];
-                const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && keywordEntries[0]
-                  ? keywordEntries[0]
+                const brandKeywords = isKeywordCreateMode ? pendingBrandEntries : [];
+                const competitorKeywords = isKeywordCreateMode ? pendingCompetitorEntries : [];
+                const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && brandKeywordEntries[0]
+                  ? brandKeywordEntries[0]
                   : formState.rule_text;
                 saveRuleMutation.mutate({
                   payload: {
                     ...formState,
                     rule_text: nextRuleText,
                   },
-                  keywords,
+                  brandKeywords,
+                  competitorKeywords,
                 });
               }}
               disabled={saveRuleMutation.isPending || !formState.crisis_id || !hasPrimaryValue}
