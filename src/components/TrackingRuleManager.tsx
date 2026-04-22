@@ -472,11 +472,12 @@ export function TrackingRuleManager({
     setCompareSelection((current) => current.filter((id) => validIds.has(id)));
   }, [rules]);
 
-  const addKeywords = (values: string[]) => {
+  const addKeywords = (segment: KeywordSegment, values: string[]) => {
     const incoming = dedupeKeywords(values);
     if (!incoming.length) return;
 
-    setKeywordEntries((current) => {
+    const apply = segment === "brand" ? setBrandKeywordEntries : setCompetitorKeywordEntries;
+    apply((current) => {
       const merged = dedupeKeywords([...current, ...incoming]);
       if (merged.length === current.length) {
         toast.message("These keywords are already in the list");
@@ -485,14 +486,20 @@ export function TrackingRuleManager({
     });
   };
 
-  const commitKeywordDraft = () => {
-    if (!keywordDraft.trim()) return;
-    addKeywords(parseKeywordBatch(keywordDraft));
-    setKeywordDraft("");
+  const commitKeywordDraft = (segment: KeywordSegment) => {
+    const draft = segment === "brand" ? brandKeywordDraft : competitorKeywordDraft;
+    if (!draft.trim()) return;
+    addKeywords(segment, parseKeywordBatch(draft));
+    if (segment === "brand") {
+      setBrandKeywordDraft("");
+      return;
+    }
+    setCompetitorKeywordDraft("");
   };
 
-  const removeKeyword = (keyword: string) => {
-    setKeywordEntries((current) => current.filter((entry) => normalizeRuleText(entry) !== normalizeRuleText(keyword)));
+  const removeKeyword = (segment: KeywordSegment, keyword: string) => {
+    const apply = segment === "brand" ? setBrandKeywordEntries : setCompetitorKeywordEntries;
+    apply((current) => current.filter((entry) => normalizeRuleText(entry) !== normalizeRuleText(keyword)));
   };
 
   const compareRules = useMemo(
@@ -505,10 +512,17 @@ export function TrackingRuleManager({
   const hasInlineCaseError = !formState.crisis_id;
   const isKeywordCreateMode = formState.rule_type === "keyword" && !editingRule;
   const keywordHelperText = hasInlineCaseError ? "Select a case first, then add keywords." : "Press Enter, comma, or paste a newline list.";
-  const draftKeywords = keywordDraft.trim() ? parseKeywordBatch(keywordDraft) : [];
-  const pendingKeywordEntries = dedupeKeywords([...keywordEntries, ...draftKeywords]);
-  const currentRuleText = isKeywordCreateMode ? pendingKeywordEntries[0] ?? "" : formState.rule_text;
-  const hasPrimaryValue = isKeywordCreateMode ? pendingKeywordEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
+  const pendingBrandEntries = dedupeKeywords([
+    ...brandKeywordEntries,
+    ...(brandKeywordDraft.trim() ? parseKeywordBatch(brandKeywordDraft) : []),
+  ]);
+  const pendingCompetitorEntries = dedupeKeywords([
+    ...competitorKeywordEntries,
+    ...(competitorKeywordDraft.trim() ? parseKeywordBatch(competitorKeywordDraft) : []),
+  ]).filter((keyword) => !pendingBrandEntries.some((brandKeyword) => normalizeRuleText(brandKeyword) === normalizeRuleText(keyword)));
+  const currentRuleText = isKeywordCreateMode ? pendingBrandEntries[0] ?? "" : formState.rule_text;
+  const hasPrimaryValue = isKeywordCreateMode ? pendingBrandEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
+  const totalPendingKeywordCount = pendingBrandEntries.length + pendingCompetitorEntries.length;
   const compareSummaryText =
     compareRules.length === 0
       ? "Select 2–5 saved keywords to enable comparison."
@@ -521,12 +535,20 @@ export function TrackingRuleManager({
       : "Comparison opens side-by-side analytics for the active case.";
 
   const saveRuleMutation = useMutation({
-    mutationFn: async ({ payload, keywords }: { payload: TrackingRuleFormState; keywords: string[] }) => {
+    mutationFn: async ({ payload, brandKeywords, competitorKeywords }: { payload: TrackingRuleFormState; brandKeywords: string[]; competitorKeywords: string[] }) => {
       if (payload.rule_type === "keyword" && !editingRule) {
-        const normalizedBatch = dedupeKeywords(keywords);
-        if (!normalizedBatch.length) {
+        const normalizedBrandKeywords = dedupeKeywords(brandKeywords);
+        const normalizedCompetitorKeywords = dedupeKeywords(competitorKeywords).filter(
+          (keyword) => !normalizedBrandKeywords.some((brandKeyword) => normalizeRuleText(brandKeyword) === normalizeRuleText(keyword))
+        );
+        if (!normalizedBrandKeywords.length) {
           throw new Error("Add at least one keyword");
         }
+
+        const normalizedBatch = [
+          ...normalizedBrandKeywords.map((keyword) => ({ keyword, segment: "brand" as const })),
+          ...normalizedCompetitorKeywords.map((keyword) => ({ keyword, segment: "competitor" as const })),
+        ];
 
         const existingNormalized = new Set(
           rules
@@ -539,7 +561,7 @@ export function TrackingRuleManager({
             .map((rule) => normalizeRuleText(rule.rule_text))
         );
 
-        const uniqueKeywords = normalizedBatch.filter((keyword) => !existingNormalized.has(normalizeRuleText(keyword)));
+        const uniqueKeywords = normalizedBatch.filter(({ keyword }) => !existingNormalized.has(normalizeRuleText(keyword)));
         const skippedCount = normalizedBatch.length - uniqueKeywords.length;
 
         if (!uniqueKeywords.length) {
@@ -551,12 +573,12 @@ export function TrackingRuleManager({
           throw new Error(parsedPriority.error.flatten().formErrors[0] ?? "Invalid priority");
         }
 
-        const insertRows = uniqueKeywords.map((keyword) => ({
+        const insertRows = uniqueKeywords.map(({ keyword, segment }) => ({
           crisis_id: payload.crisis_id,
           platform: payload.platform,
           rule_type: "keyword" as const,
           rule_text: keyword,
-          label: payload.label.trim() || null,
+          label: buildBatchRuleLabel(payload.label, segment),
           notes: payload.notes.trim() || null,
           is_active: payload.is_active,
           priority: parsedPriority.data,
@@ -565,7 +587,13 @@ export function TrackingRuleManager({
         const { error } = await supabase.from(TRACKING_RULES_TABLE).insert(insertRows);
         if (error) throw error;
 
-        return { mode: "batch" as const, addedCount: uniqueKeywords.length, skippedCount };
+        return {
+          mode: "batch" as const,
+          addedCount: uniqueKeywords.length,
+          brandAddedCount: uniqueKeywords.filter((entry) => entry.segment === "brand").length,
+          competitorAddedCount: uniqueKeywords.filter((entry) => entry.segment === "competitor").length,
+          skippedCount,
+        };
       }
 
       const parsed = trackingRuleSchema.safeParse({
@@ -620,6 +648,11 @@ export function TrackingRuleManager({
         const descriptionParts = [];
         if (result.skippedCount > 0) {
           descriptionParts.push(`${result.skippedCount} skipped because they already exist.`);
+        }
+        if (result.brandAddedCount > 0 && result.competitorAddedCount > 0) {
+          descriptionParts.unshift(`${result.brandAddedCount} brand and ${result.competitorAddedCount} competitor keywords are ready.`);
+        } else if (result.brandAddedCount > 0) {
+          descriptionParts.unshift(`${result.brandAddedCount} brand keyword${result.brandAddedCount === 1 ? "" : "s"} ready.`);
         }
         if (result.addedCount > 1) {
           descriptionParts.push("Select 2–5 saved keyword rows in the table, then click Compare selected.");
