@@ -408,12 +408,15 @@ export type Database = {
           crisis_id: string | null
           detected_at: string
           id: string
+          ingested_at: string
           is_influencer: boolean | null
           keywords: string[] | null
+          matched_keyword: string | null
           reach: number | null
           sentiment: Database["public"]["Enums"]["sentiment_type"]
           source: Database["public"]["Enums"]["signal_source"]
           source_url: string | null
+          tracking_rule_id: string | null
         }
         Insert: {
           author: string
@@ -423,12 +426,15 @@ export type Database = {
           crisis_id?: string | null
           detected_at?: string
           id?: string
+          ingested_at?: string
           is_influencer?: boolean | null
           keywords?: string[] | null
+          matched_keyword?: string | null
           reach?: number | null
           sentiment?: Database["public"]["Enums"]["sentiment_type"]
           source: Database["public"]["Enums"]["signal_source"]
           source_url?: string | null
+          tracking_rule_id?: string | null
         }
         Update: {
           author?: string
@@ -438,12 +444,15 @@ export type Database = {
           crisis_id?: string | null
           detected_at?: string
           id?: string
+          ingested_at?: string
           is_influencer?: boolean | null
           keywords?: string[] | null
+          matched_keyword?: string | null
           reach?: number | null
           sentiment?: Database["public"]["Enums"]["sentiment_type"]
           source?: Database["public"]["Enums"]["signal_source"]
           source_url?: string | null
+          tracking_rule_id?: string | null
         }
         Relationships: [
           {
@@ -451,6 +460,13 @@ export type Database = {
             columns: ["crisis_id"]
             isOneToOne: false
             referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signals_tracking_rule_id_fkey"
+            columns: ["tracking_rule_id"]
+            isOneToOne: false
+            referencedRelation: "tracking_rules"
             referencedColumns: ["id"]
           },
         ]

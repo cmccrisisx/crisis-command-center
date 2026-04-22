@@ -24,6 +24,7 @@ interface TrackingRule {
 
 interface SearchTask {
   query: string;
+  ruleText: string;
   platform: RulePlatform;
   ruleType: RuleType;
   ruleId: string;
@@ -47,6 +48,7 @@ interface CandidateSignal {
   url: string;
   title: string;
   content: string;
+  detectedAt: string;
 }
 
 const corsHeaders = {
@@ -259,6 +261,7 @@ function buildSearchTasks(rules: TrackingRule[]) {
 
     dedupe.set(key, {
       query,
+      ruleText: rule.rule_text,
       platform: rule.platform,
       ruleType: rule.rule_type,
       ruleId: rule.id,
@@ -503,7 +506,7 @@ Deno.serve(async (req) => {
     const errors: string[] = [];
     let totalInserted = 0;
     const crisisIdsTouched = new Set<string>();
-    const dedupeCandidates = new Map<string, CandidateSignal>();
+    const seenCandidateKeys = new Set<string>();
 
     for (let i = 0; i < tasks.length; i += 3) {
       const batch = tasks.slice(i, i + 3);
@@ -520,6 +523,8 @@ Deno.serve(async (req) => {
         })
       );
 
+      const batchCandidates: CandidateSignal[] = [];
+
       for (const { task, results } of searchResults) {
         for (const result of results) {
           if (!result.url) continue;
@@ -529,49 +534,69 @@ Deno.serve(async (req) => {
           if (content.length < 20) continue;
           const title = normalizeWhitespace(result.title || result.description || content.slice(0, 160));
           const key = `${task.crisisId}:${result.url.toLowerCase()}`;
-          if (!dedupeCandidates.has(key)) {
-            dedupeCandidates.set(key, { task, url: result.url, title, content });
-          }
+          if (seenCandidateKeys.has(key)) continue;
+          seenCandidateKeys.add(key);
+          batchCandidates.push({
+            task,
+            url: result.url,
+            title,
+            content,
+            detectedAt: new Date().toISOString(),
+          });
         }
       }
-    }
 
-    const candidates = [...dedupeCandidates.values()];
-    const enrichments = await batchEnrichWithAI(
-      candidates.map((item, idx) => ({ content: item.content, idx })),
-      LOVABLE_API_KEY
-    );
+      const enrichments = await batchEnrichWithAI(
+        batchCandidates.map((item, idx) => ({ content: item.content, idx })),
+        LOVABLE_API_KEY
+      );
 
-    for (let idx = 0; idx < candidates.length; idx++) {
-      const item = candidates[idx];
-      const source = classifySource(item.url);
-      const hostname = new URL(item.url).hostname.replace("www.", "").split(".")[0] || "Unknown";
-      const author = hostname.charAt(0).toUpperCase() + hostname.slice(1);
-      const enrichment = enrichments.get(idx);
-      const keywords = Array.from(new Set([...(enrichment?.keywords || []), ...item.task.query.split(/\s+/).filter((part) => part.length > 4).slice(0, 3).map((part) => part.toLowerCase().replace(/[^a-z0-9-]/g, ""))].filter(Boolean))).slice(0, 8);
+      for (let idx = 0; idx < batchCandidates.length; idx++) {
+        const item = batchCandidates[idx];
+        const source = classifySource(item.url);
+        const hostname = new URL(item.url).hostname.replace("www.", "").split(".")[0] || "Unknown";
+        const author = hostname.charAt(0).toUpperCase() + hostname.slice(1);
+        const enrichment = enrichments.get(idx);
+        const keywords = Array.from(
+          new Set(
+            [
+              ...(enrichment?.keywords || []),
+              ...item.task.ruleText
+                .split(/\s+/)
+                .filter((part) => part.length > 2)
+                .slice(0, 4)
+                .map((part) => part.toLowerCase().replace(/[^a-z0-9-]/g, "")),
+            ].filter(Boolean)
+          )
+        ).slice(0, 8);
 
-      const { error: insertErr } = await supabase.from("signals").insert({
-        crisis_id: item.task.crisisId,
-        source,
-        author,
-        content: item.title.slice(0, 500),
-        sentiment: enrichment?.sentiment || "neutral",
-        keywords,
-        reach: estimateReach(item.url),
-        author_followers: isInfluencerSource(item.url) ? 100000 + Math.floor(Math.random() * 900000) : 1000 + Math.floor(Math.random() * 50000),
-        is_influencer: isInfluencerSource(item.url),
-        source_url: item.url,
-        detected_at: new Date().toISOString(),
-      });
+        const ingestedAt = new Date().toISOString();
+        const { error: insertErr } = await supabase.from("signals").insert({
+          crisis_id: item.task.crisisId,
+          tracking_rule_id: item.task.ruleId,
+          matched_keyword: item.task.ruleText,
+          source,
+          author,
+          content: item.title.slice(0, 500),
+          sentiment: enrichment?.sentiment || "neutral",
+          keywords,
+          reach: estimateReach(item.url),
+          author_followers: isInfluencerSource(item.url) ? 100000 + Math.floor(Math.random() * 900000) : 1000 + Math.floor(Math.random() * 50000),
+          is_influencer: isInfluencerSource(item.url),
+          source_url: item.url,
+          detected_at: item.detectedAt,
+          ingested_at: ingestedAt,
+        });
 
-      if (insertErr) {
-        if (!insertErr.message?.includes("signals_source_url_unique")) {
-          console.error("Insert error:", insertErr.message);
-          errors.push(`${item.task.crisisTitle}: ${insertErr.message}`);
+        if (insertErr) {
+          if (!insertErr.message?.includes("signals_source_url_unique")) {
+            console.error("Insert error:", insertErr.message);
+            errors.push(`${item.task.crisisTitle}: ${insertErr.message}`);
+          }
+        } else {
+          totalInserted += 1;
+          crisisIdsTouched.add(item.task.crisisId);
         }
-      } else {
-        totalInserted += 1;
-        crisisIdsTouched.add(item.task.crisisId);
       }
     }
 
