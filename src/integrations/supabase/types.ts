@@ -464,6 +464,7 @@ export type Database = {
           is_active: boolean
           label: string | null
           notes: string | null
+          platform: string
           priority: number
           rule_text: string
           rule_type: string
@@ -477,6 +478,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           notes?: string | null
+          platform?: string
           priority?: number
           rule_text: string
           rule_type: string
@@ -490,6 +492,7 @@ export type Database = {
           is_active?: boolean
           label?: string | null
           notes?: string | null
+          platform?: string
           priority?: number
           rule_text?: string
           rule_type?: string
