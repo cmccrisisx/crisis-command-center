@@ -41,6 +41,7 @@ type CronJob = {
   jobname: string;
   schedule: string;
   active: boolean;
+  command?: string | null;
   last_start: string | null;
   last_status: string | null;
   last_duration_ms: number | null;
@@ -147,7 +148,7 @@ export function LiveMonitoringPanel({
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_cron_jobs_status" as never);
       if (error) throw error;
-      return ((data ?? []) as CronJob[]).filter((job) => parseFunctionName((job as CronJob & { command?: string }).command) === "ingest-signals");
+      return ((data ?? []) as CronJob[]).filter((job) => parseFunctionName(job.command) === "ingest-signals");
     },
   });
 
