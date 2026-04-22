@@ -304,6 +304,62 @@ function buildSignalContent(result: FirecrawlSearchResult) {
   return normalizeWhitespace(result.markdown?.slice(0, 600) || result.title || result.description || "");
 }
 
+function normalizeForMatch(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+async function backfillSignalAttribution(supabase: any, crisisIds: string[]) {
+  for (const crisisId of crisisIds) {
+    const { data: rules, error: rulesError } = await supabase
+      .from("tracking_rules")
+      .select("id, rule_text")
+      .eq("crisis_id", crisisId)
+      .eq("rule_type", "keyword")
+      .eq("is_active", true);
+
+    if (rulesError) {
+      console.error(`Backfill rule fetch error for ${crisisId}:`, rulesError.message);
+      continue;
+    }
+
+    const normalizedRules = ((rules ?? []) as Array<{ id: string; rule_text: string }>).map((rule) => ({
+      id: rule.id,
+      ruleText: rule.rule_text,
+      normalized: normalizeForMatch(rule.rule_text),
+    }));
+
+    if (normalizedRules.length === 0) continue;
+
+    const { data: signals, error: signalsError } = await supabase
+      .from("signals")
+      .select("id, content, source_url, matched_keyword, tracking_rule_id")
+      .eq("crisis_id", crisisId)
+      .is("matched_keyword", null)
+      .order("ingested_at", { ascending: false })
+      .limit(250);
+
+    if (signalsError) {
+      console.error(`Backfill signal fetch error for ${crisisId}:`, signalsError.message);
+      continue;
+    }
+
+    for (const signal of (signals ?? []) as Array<{ id: string; content: string; source_url: string | null; matched_keyword: string | null; tracking_rule_id: string | null }>) {
+      const haystack = normalizeForMatch(`${signal.content} ${signal.source_url ?? ""}`);
+      const matchedRule = normalizedRules.find((rule) => haystack.includes(rule.normalized));
+      if (!matchedRule) continue;
+
+      const { error: updateError } = await supabase
+        .from("signals")
+        .update({ matched_keyword: matchedRule.ruleText, tracking_rule_id: matchedRule.id })
+        .eq("id", signal.id);
+
+      if (updateError) {
+        console.error(`Backfill update error for signal ${signal.id}:`, updateError.message);
+      }
+    }
+  }
+}
+
 async function upsertSnapshotsAndCounts(supabase: any, crisisIds: string[]) {
   for (const crisisId of crisisIds) {
     const { data } = await supabase
@@ -601,6 +657,7 @@ Deno.serve(async (req) => {
     }
 
     const touchedIds = crisisIdsTouched.size > 0 ? [...crisisIdsTouched] : [...new Set(tasks.map((task) => task.crisisId))];
+    await backfillSignalAttribution(supabase, touchedIds);
     await upsertSnapshotsAndCounts(supabase, touchedIds);
     await regenerateNarratives(supabase, tasks, LOVABLE_API_KEY);
 
