@@ -513,7 +513,6 @@ export function TrackingRuleManager({
   const activeComparableCaseId = compareRules[0]?.crisis_id ?? compareCaseId;
   const hasInlineCaseError = !formState.crisis_id;
   const isKeywordCreateMode = formState.rule_type === "keyword" && !editingRule;
-  const showBrandKeywordError = isKeywordCreateMode && submitAttempted && pendingBrandEntries.length === 0;
   const keywordHelperText = hasInlineCaseError ? "Select a case first, then add keywords." : "Press Enter, comma, or paste a newline list.";
   const pendingBrandEntries = dedupeKeywords([
     ...brandKeywordEntries,
@@ -523,6 +522,7 @@ export function TrackingRuleManager({
     ...competitorKeywordEntries,
     ...(competitorKeywordDraft.trim() ? parseKeywordBatch(competitorKeywordDraft) : []),
   ]).filter((keyword) => !pendingBrandEntries.some((brandKeyword) => normalizeRuleText(brandKeyword) === normalizeRuleText(keyword)));
+  const showBrandKeywordError = isKeywordCreateMode && submitAttempted && pendingBrandEntries.length === 0;
   const currentRuleText = isKeywordCreateMode ? pendingBrandEntries[0] ?? "" : formState.rule_text;
   const hasPrimaryValue = isKeywordCreateMode ? pendingBrandEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
   const totalPendingKeywordCount = pendingBrandEntries.length + pendingCompetitorEntries.length;
