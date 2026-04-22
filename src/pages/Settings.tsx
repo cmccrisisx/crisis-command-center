@@ -54,6 +54,7 @@ type AppRole = (typeof ALL_ROLES)[number];
 type RuleType = "keyword" | "query";
 type RuleStatusFilter = "all" | "active" | "paused";
 type RuleTypeFilter = "all" | RuleType;
+type TrackingPlatform = "all" | "twitter" | "news" | "blog" | "linkedin";
 
 interface SettingsState {
   spikeMultiplier: string;
@@ -84,6 +85,7 @@ interface CrisisOption {
 interface TrackingRuleRow {
   id: string;
   crisis_id: string;
+  platform: TrackingPlatform;
   rule_type: RuleType;
   rule_text: string;
   label: string | null;
@@ -98,6 +100,7 @@ interface TrackingRuleRow {
 
 interface TrackingRuleFormState {
   crisis_id: string;
+  platform: TrackingPlatform;
   rule_type: RuleType;
   rule_text: string;
   label: string;
@@ -115,6 +118,7 @@ const DEFAULT_SETTINGS: SettingsState = {
 
 const DEFAULT_TRACKING_RULE_FORM: TrackingRuleFormState = {
   crisis_id: "",
+  platform: "all",
   rule_type: "query",
   rule_text: "",
   label: "",
@@ -137,14 +141,29 @@ const ROLE_COLORS: Record<AppRole, string> = {
   social_manager: "text-crisis-green border-crisis-green/30 bg-crisis-green/5",
 };
 
+const PLATFORM_OPTIONS: Array<{ value: TrackingPlatform; label: string }> = [
+  { value: "all", label: "All platforms" },
+  { value: "twitter", label: "Twitter / X" },
+  { value: "news", label: "News" },
+  { value: "blog", label: "Blogs" },
+  { value: "linkedin", label: "LinkedIn" },
+];
+
+const normalizeRuleText = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
+
 const trackingRuleSchema = z.object({
   crisis_id: z.string().uuid({ message: "Select a case" }),
+  platform: z.enum(["all", "twitter", "news", "blog", "linkedin"], { message: "Select a platform" }),
   rule_type: z.enum(["keyword", "query"]),
   rule_text: z.string().trim().min(2, "Rule text is too short").max(500, "Rule text must be 500 characters or less"),
   label: z.string().trim().max(120, "Label must be 120 characters or less").optional(),
   notes: z.string().trim().max(500, "Notes must be 500 characters or less").optional(),
   is_active: z.boolean(),
   priority: z.coerce.number().int().min(0, "Priority must be 0 or greater").max(9999, "Priority must be 9999 or less"),
+}).superRefine((data, ctx) => {
+  if (!normalizeRuleText(data.rule_text)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["rule_text"], message: "Rule text cannot be empty" });
+  }
 });
 
 const MANAGE_ROLES_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-roles`;
