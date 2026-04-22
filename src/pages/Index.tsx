@@ -286,9 +286,9 @@ export default function Dashboard() {
                 <CardTitle className="text-sm font-mono uppercase tracking-wider">Tracking Manager</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">Add monitored names and queries without digging through Settings.</p>
+                <p className="text-xs text-muted-foreground">Jump straight into adding the next keyword or query for live monitoring.</p>
                 <Button asChild variant="outline" size="sm" className="font-mono text-xs uppercase tracking-wider">
-                  <Link to="/tracking-manager">Open Tracking Manager</Link>
+                  <Link to="/tracking-manager?create=keyword">Add Tracking Rule</Link>
                 </Button>
               </CardContent>
             </Card>

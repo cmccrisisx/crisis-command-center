@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -76,6 +76,14 @@ interface TrackingRuleFormState {
   priority: string;
 }
 
+interface TrackingRuleManagerProps {
+  initialOpen?: boolean;
+  initialRuleType?: RuleType;
+  openSignal?: number;
+  onInitialOpenHandled?: () => void;
+  showHeroActions?: boolean;
+}
+
 const TRACKING_RULES_TABLE = "tracking_rules" as const;
 
 const PLATFORM_OPTIONS: Array<{ value: TrackingPlatform; label: string }> = [
@@ -89,7 +97,7 @@ const PLATFORM_OPTIONS: Array<{ value: TrackingPlatform; label: string }> = [
 const DEFAULT_TRACKING_RULE_FORM: TrackingRuleFormState = {
   crisis_id: "",
   platform: "all",
-  rule_type: "query",
+  rule_type: "keyword",
   rule_text: "",
   label: "",
   notes: "",
@@ -126,7 +134,29 @@ function StatPill({ label, value, helper }: { label: string; value: string; help
   );
 }
 
-export function TrackingRuleManager() {
+function getRuleTypeCopy(ruleType: RuleType) {
+  return {
+    title: ruleType === "keyword" ? "Add Keyword" : "Add Search Query",
+    description:
+      ruleType === "keyword"
+        ? "Add a person, brand, issue, or phrase that should always be tracked for this case."
+        : "Add a broader search expression to capture evolving conversations for this case.",
+    placeholder:
+      ruleType === "keyword"
+        ? "Enter a tracked keyword or phrase…"
+        : 'Use OR, quotes, hashtags, names, events…',
+    submitLabel: ruleType === "keyword" ? "Create Keyword" : "Create Query",
+    emptyLabel: ruleType === "keyword" ? "Add your first keyword" : "Add your first query",
+  };
+}
+
+export function TrackingRuleManager({
+  initialOpen = false,
+  initialRuleType = "keyword",
+  openSignal = 0,
+  onInitialOpenHandled,
+  showHeroActions = true,
+}: TrackingRuleManagerProps) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [caseFilter, setCaseFilter] = useState<string>("all");
@@ -136,6 +166,8 @@ export function TrackingRuleManager() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TrackingRuleRow | null>(null);
   const [formState, setFormState] = useState<TrackingRuleFormState>(DEFAULT_TRACKING_RULE_FORM);
+  const autoOpenedEmptyRef = useRef(false);
+  const lastHandledOpenSignalRef = useRef<number | null>(null);
 
   const { data: crises = [], isLoading: crisesLoading } = useQuery({
     queryKey: ["tracking-rule-cases"],
@@ -209,12 +241,13 @@ export function TrackingRuleManager() {
     [rules]
   );
 
-  const resetForm = () => {
+  const resetForm = (preferredRuleType: RuleType = initialRuleType) => {
     setEditingRule(null);
     setFormState({
       ...DEFAULT_TRACKING_RULE_FORM,
       crisis_id: caseFilter !== "all" ? caseFilter : crises[0]?.id ?? "",
       platform: platformFilter,
+      rule_type: preferredRuleType,
     });
   };
 
@@ -223,8 +256,8 @@ export function TrackingRuleManager() {
     queryClient.invalidateQueries({ queryKey: ["tracking-rule-cases"] });
   };
 
-  const openCreateSheet = () => {
-    resetForm();
+  const openCreateSheet = (ruleType: RuleType = "keyword") => {
+    resetForm(ruleType);
     setSheetOpen(true);
   };
 
@@ -257,6 +290,20 @@ export function TrackingRuleManager() {
     });
     setSheetOpen(true);
   };
+
+  useEffect(() => {
+    if (!initialOpen) return;
+    if (lastHandledOpenSignalRef.current === openSignal) return;
+    lastHandledOpenSignalRef.current = openSignal;
+    openCreateSheet(initialRuleType);
+    onInitialOpenHandled?.();
+  }, [initialOpen, initialRuleType, onInitialOpenHandled, openSignal, crises, caseFilter, platformFilter]);
+
+  useEffect(() => {
+    if (crisesLoading || rulesLoading || autoOpenedEmptyRef.current || rules.length > 0) return;
+    autoOpenedEmptyRef.current = true;
+    openCreateSheet(initialRuleType);
+  }, [crisesLoading, rulesLoading, rules.length, initialRuleType, crises, caseFilter, platformFilter]);
 
   const saveRuleMutation = useMutation({
     mutationFn: async (payload: TrackingRuleFormState) => {
@@ -346,6 +393,9 @@ export function TrackingRuleManager() {
     },
   });
 
+  const formCopy = getRuleTypeCopy(formState.rule_type);
+  const hasRules = rules.length > 0;
+
   if (crisesLoading || rulesLoading) {
     return (
       <div className="space-y-3">
@@ -361,6 +411,27 @@ export function TrackingRuleManager() {
 
   return (
     <div className="space-y-4">
+      {showHeroActions ? (
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Add names, brands, executives, and search phrases first.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Create rules before filtering or reviewing the table so monitoring starts immediately.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" onClick={() => openCreateSheet("keyword")} className="font-mono text-xs uppercase tracking-wider">
+                <Plus className="h-3.5 w-3.5" />
+                Add Keyword
+              </Button>
+              <Button type="button" variant="outline" onClick={() => openCreateSheet("query")} className="font-mono text-xs uppercase tracking-wider">
+                <Search className="h-3.5 w-3.5" />
+                Add Search Query
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatPill label="Total rules" value={String(rules.length)} helper="All monitoring entries" />
         <StatPill label="Active now" value={String(activeRuleCount)} helper="Currently used by ingestion" />
@@ -368,158 +439,190 @@ export function TrackingRuleManager() {
         <StatPill label="Updated today" value={String(recentUpdatesCount)} helper="Rules changed in the last 24h" />
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <CardTitle className="text-sm font-mono uppercase tracking-wider">Active rule coverage</CardTitle>
-              <p className="mt-1 text-xs text-muted-foreground">Use case chips, filters, or the add action to manage live monitoring rules fast.</p>
+      {!hasRules ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-4 px-6 py-14 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-sm border border-border bg-surface-elevated">
+              <Target className="h-5 w-5 text-primary" />
             </div>
-            <Button type="button" onClick={openCreateSheet} className="font-mono text-xs uppercase tracking-wider lg:self-start">
-              <Plus className="h-3.5 w-3.5" />
-              Add Tracking Rule
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant={caseFilter === "all" ? "default" : "outline"} size="sm" className="font-mono text-xs" onClick={() => setCaseFilter("all")}>
-              All cases
-            </Button>
-            {crises.map((crisis) => (
-              <Button
-                key={crisis.id}
-                type="button"
-                variant={caseFilter === crisis.id ? "default" : "outline"}
-                size="sm"
-                className="font-mono text-xs"
-                onClick={() => setCaseFilter(crisis.id)}
-              >
-                {crisis.title}
-                <span className="tabular-nums text-[10px] opacity-80">{countsByCase[crisis.id] ?? 0}</span>
+            <div className="space-y-2">
+              <h2 className="text-lg font-mono font-semibold tracking-tight text-foreground">No tracking rules yet</h2>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                Add the names, brands, executives, or search queries this case should monitor so live ingestion has the right targets.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" onClick={() => openCreateSheet("keyword")} className="font-mono text-xs uppercase tracking-wider">
+                <Plus className="h-3.5 w-3.5" />
+                Add your first keyword
               </Button>
-            ))}
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_180px_180px_180px]">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search rules, labels, notes..." className="pl-9 font-mono text-sm bg-card" />
+              <Button type="button" variant="outline" onClick={() => openCreateSheet("query")} className="font-mono text-xs uppercase tracking-wider">
+                <Search className="h-3.5 w-3.5" />
+                Add search query
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <CardTitle className="text-sm font-mono uppercase tracking-wider">Active rule coverage</CardTitle>
+                <p className="mt-1 text-xs text-muted-foreground">Filter by case, platform, or rule type after you add the monitoring targets you need.</p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row lg:self-start">
+                <Button type="button" onClick={() => openCreateSheet("keyword")} className="font-mono text-xs uppercase tracking-wider">
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Keyword
+                </Button>
+                <Button type="button" variant="outline" onClick={() => openCreateSheet("query")} className="font-mono text-xs uppercase tracking-wider">
+                  <Search className="h-3.5 w-3.5" />
+                  Add Query
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant={caseFilter === "all" ? "default" : "outline"} size="sm" className="font-mono text-xs" onClick={() => setCaseFilter("all")}>
+                All cases
+              </Button>
+              {crises.map((crisis) => (
+                <Button
+                  key={crisis.id}
+                  type="button"
+                  variant={caseFilter === crisis.id ? "default" : "outline"}
+                  size="sm"
+                  className="font-mono text-xs"
+                  onClick={() => setCaseFilter(crisis.id)}
+                >
+                  {crisis.title}
+                  <span className="tabular-nums text-[10px] opacity-80">{countsByCase[crisis.id] ?? 0}</span>
+                </Button>
+              ))}
             </div>
 
-            <Select value={platformFilter} onValueChange={(value: TrackingPlatform) => setPlatformFilter(value)}>
-              <SelectTrigger className="font-mono text-xs bg-card">
-                <Target className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue placeholder="Platform" />
-              </SelectTrigger>
-              <SelectContent>
-                {PLATFORM_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="font-mono text-xs">
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_180px_180px_180px]">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search rules, labels, notes..." className="pl-9 font-mono text-sm bg-card" />
+              </div>
 
-            <Select value={typeFilter} onValueChange={(value: RuleTypeFilter) => setTypeFilter(value)}>
-              <SelectTrigger className="font-mono text-xs bg-card">
-                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue placeholder="Rule type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="font-mono text-xs">All rule types</SelectItem>
-                <SelectItem value="keyword" className="font-mono text-xs">Keywords</SelectItem>
-                <SelectItem value="query" className="font-mono text-xs">Queries</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={platformFilter} onValueChange={(value: TrackingPlatform) => setPlatformFilter(value)}>
+                <SelectTrigger className="font-mono text-xs bg-card">
+                  <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="Platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="font-mono text-xs">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Select value={statusFilter} onValueChange={(value: RuleStatusFilter) => setStatusFilter(value)}>
-              <SelectTrigger className="font-mono text-xs bg-card">
-                <Target className="h-3.5 w-3.5 text-muted-foreground" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="font-mono text-xs">All statuses</SelectItem>
-                <SelectItem value="active" className="font-mono text-xs">Active</SelectItem>
-                <SelectItem value="paused" className="font-mono text-xs">Paused</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <Select value={typeFilter} onValueChange={(value: RuleTypeFilter) => setTypeFilter(value)}>
+                <SelectTrigger className="font-mono text-xs bg-card">
+                  <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="Rule type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="font-mono text-xs">All rule types</SelectItem>
+                  <SelectItem value="keyword" className="font-mono text-xs">Keywords</SelectItem>
+                  <SelectItem value="query" className="font-mono text-xs">Queries</SelectItem>
+                </SelectContent>
+              </Select>
 
-          <div className="rounded-sm border border-border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[22%]">Case</TableHead>
-                  <TableHead className="w-[10%]">Type</TableHead>
-                  <TableHead className="w-[12%]">Platform</TableHead>
-                  <TableHead>Rule</TableHead>
-                  <TableHead className="w-[10%] text-right">Priority</TableHead>
-                  <TableHead className="w-[12%]">Status</TableHead>
-                  <TableHead className="w-[12%]">Updated</TableHead>
-                  <TableHead className="w-[18%] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRules.length > 0 ? (
-                  filteredRules.map((rule) => (
-                    <TableRow key={rule.id}>
-                      <TableCell className="align-top">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{rule.crisis?.title ?? "Unknown case"}</p>
-                          {rule.label && <p className="text-xs font-mono text-muted-foreground">{rule.label}</p>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">{rule.rule_type}</Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
-                          {PLATFORM_OPTIONS.find((option) => option.value === rule.platform)?.label ?? rule.platform}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="space-y-1">
-                          <p className="text-sm text-foreground break-words">{rule.rule_text}</p>
-                          {rule.notes && <p className="text-xs text-muted-foreground line-clamp-2">{rule.notes}</p>}
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top text-right font-mono tabular-nums">{rule.priority}</TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex items-center gap-2">
-                          <Switch checked={rule.is_active} onCheckedChange={(checked) => toggleRuleMutation.mutate({ id: rule.id, isActive: checked })} disabled={toggleRuleMutation.isPending} />
-                          <span className="text-xs font-mono text-muted-foreground">{rule.is_active ? "Active" : "Paused"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top text-xs font-mono text-muted-foreground">{new Date(rule.updated_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="align-top">
-                        <div className="flex justify-end gap-1">
-                          <Button type="button" variant="ghost" size="icon" onClick={() => openEditSheet(rule)}>
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit rule</span>
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon" onClick={() => openDuplicateSheet(rule)}>
-                            <Copy className="h-4 w-4" />
-                            <span className="sr-only">Duplicate rule</span>
-                          </Button>
-                          <Button type="button" variant="ghost" size="icon" onClick={() => deleteRuleMutation.mutate(rule.id)}>
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Delete rule</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+              <Select value={statusFilter} onValueChange={(value: RuleStatusFilter) => setStatusFilter(value)}>
+                <SelectTrigger className="font-mono text-xs bg-card">
+                  <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="font-mono text-xs">All statuses</SelectItem>
+                  <SelectItem value="active" className="font-mono text-xs">Active</SelectItem>
+                  <SelectItem value="paused" className="font-mono text-xs">Paused</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-sm border border-border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
+                    <TableHead className="w-[22%]">Case</TableHead>
+                    <TableHead className="w-[10%]">Type</TableHead>
+                    <TableHead className="w-[12%]">Platform</TableHead>
+                    <TableHead>Rule</TableHead>
+                    <TableHead className="w-[10%] text-right">Priority</TableHead>
+                    <TableHead className="w-[12%]">Status</TableHead>
+                    <TableHead className="w-[12%]">Updated</TableHead>
+                    <TableHead className="w-[18%] text-right">Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredRules.length > 0 ? (
+                    filteredRules.map((rule) => (
+                      <TableRow key={rule.id}>
+                        <TableCell className="align-top">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">{rule.crisis?.title ?? "Unknown case"}</p>
+                            {rule.label && <p className="text-xs font-mono text-muted-foreground">{rule.label}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">{rule.rule_type}</Badge>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
+                            {PLATFORM_OPTIONS.find((option) => option.value === rule.platform)?.label ?? rule.platform}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="align-top">
+                          <div className="space-y-1">
+                            <p className="text-sm text-foreground break-words">{rule.rule_text}</p>
+                            {rule.notes && <p className="text-xs text-muted-foreground line-clamp-2">{rule.notes}</p>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top text-right font-mono tabular-nums">{rule.priority}</TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex items-center gap-2">
+                            <Switch checked={rule.is_active} onCheckedChange={(checked) => toggleRuleMutation.mutate({ id: rule.id, isActive: checked })} disabled={toggleRuleMutation.isPending} />
+                            <span className="text-xs font-mono text-muted-foreground">{rule.is_active ? "Active" : "Paused"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="align-top text-xs font-mono text-muted-foreground">{new Date(rule.updated_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="align-top">
+                          <div className="flex justify-end gap-1">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => openEditSheet(rule)}>
+                              <Pencil className="h-4 w-4" />
+                              <span className="sr-only">Edit rule</span>
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => openDuplicateSheet(rule)}>
+                              <Copy className="h-4 w-4" />
+                              <span className="sr-only">Duplicate rule</span>
+                            </Button>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteRuleMutation.mutate(rule.id)}>
+                              <Trash2 className="h-4 w-4" />
+                              <span className="sr-only">Delete rule</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Sheet
         open={sheetOpen}
@@ -530,8 +633,14 @@ export function TrackingRuleManager() {
       >
         <SheetContent side="right" className="w-full sm:max-w-xl">
           <SheetHeader>
-            <SheetTitle className="font-mono text-base uppercase tracking-wider">{editingRule ? "Edit Tracking Rule" : "Add Tracking Rule"}</SheetTitle>
-            <SheetDescription>Map keywords and search queries to a case so monitoring stays editable from one admin page.</SheetDescription>
+            <SheetTitle className="font-mono text-base uppercase tracking-wider">
+              {editingRule ? `Edit ${formState.rule_type === "keyword" ? "Keyword" : "Search Query"}` : formCopy.title}
+            </SheetTitle>
+            <SheetDescription>
+              {editingRule
+                ? "Update the monitoring target for this case and keep live ingestion aligned."
+                : formCopy.description}
+            </SheetDescription>
           </SheetHeader>
 
           <div className="mt-6 space-y-4">
@@ -549,6 +658,25 @@ export function TrackingRuleManager() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-xs font-mono uppercase tracking-wider">Platform</Label>
+              <Select value={formState.platform} onValueChange={(value: TrackingPlatform) => setFormState((prev) => ({ ...prev, platform: value }))}>
+                <SelectTrigger className="font-mono text-sm bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="font-mono text-xs">{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-mono uppercase tracking-wider">Rule Text</Label>
+              <Textarea rows={5} value={formState.rule_text} onChange={(e) => setFormState((prev) => ({ ...prev, rule_text: e.target.value }))} placeholder={formCopy.placeholder} className="font-mono text-sm bg-card" />
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-xs font-mono uppercase tracking-wider">Rule Type</Label>
@@ -557,36 +685,15 @@ export function TrackingRuleManager() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="query" className="font-mono text-xs">Search query</SelectItem>
                     <SelectItem value="keyword" className="font-mono text-xs">Keyword</SelectItem>
+                    <SelectItem value="query" className="font-mono text-xs">Search query</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-mono uppercase tracking-wider">Platform</Label>
-                <Select value={formState.platform} onValueChange={(value: TrackingPlatform) => setFormState((prev) => ({ ...prev, platform: value }))}>
-                  <SelectTrigger className="font-mono text-sm bg-card">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLATFORM_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value} className="font-mono text-xs">{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label className="text-xs font-mono uppercase tracking-wider">Priority</Label>
                 <Input type="number" inputMode="numeric" min={0} max={9999} value={formState.priority} onChange={(e) => setFormState((prev) => ({ ...prev, priority: e.target.value }))} className="font-mono text-sm bg-card" />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-mono uppercase tracking-wider">Rule Text</Label>
-              <Textarea rows={5} value={formState.rule_text} onChange={(e) => setFormState((prev) => ({ ...prev, rule_text: e.target.value }))} placeholder={formState.rule_type === "query" ? 'Use OR, quotes, hashtags, names, events…' : 'Enter a tracked keyword or phrase…'} className="font-mono text-sm bg-card" />
             </div>
 
             <div className="space-y-2">
@@ -615,7 +722,7 @@ export function TrackingRuleManager() {
             <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="font-mono text-xs uppercase tracking-wider">Cancel</Button>
             <Button type="button" onClick={() => saveRuleMutation.mutate(formState)} disabled={saveRuleMutation.isPending} className="font-mono text-xs uppercase tracking-wider">
               {saveRuleMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              {editingRule ? "Save Rule" : "Create Rule"}
+              {editingRule ? "Save Rule" : formCopy.submitLabel}
             </Button>
           </SheetFooter>
         </SheetContent>

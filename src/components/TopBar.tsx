@@ -86,7 +86,7 @@ export function TopBar() {
       <div className="flex items-center gap-2">
           {roles.includes("admin") && (
             <Button asChild variant="outline" size="sm" className="hidden lg:inline-flex font-mono text-xs uppercase tracking-wider">
-              <Link to="/tracking-manager">Manage Tracking</Link>
+              <Link to="/tracking-manager?create=keyword">Add Keyword</Link>
             </Button>
           )}
 
