@@ -7,6 +7,7 @@ import {
   BarChart3,
   Copy,
   Filter,
+  Info,
   Loader2,
   Pencil,
   Plus,
@@ -394,6 +395,16 @@ export function TrackingRuleManager({
   const pendingKeywordEntries = dedupeKeywords([...keywordEntries, ...draftKeywords]);
   const currentRuleText = isKeywordCreateMode ? pendingKeywordEntries[0] ?? "" : formState.rule_text;
   const hasPrimaryValue = isKeywordCreateMode ? pendingKeywordEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
+  const compareSummaryText =
+    compareRules.length === 0
+      ? "Select 2–5 saved keywords to enable comparison."
+      : compareRules.length === 1
+        ? "Select 1 more keyword to enable comparison."
+        : `Ready to compare ${compareRules.length} keyword${compareRules.length === 1 ? "" : "s"}.`;
+  const compareScopeText =
+    compareRules.length > 0
+      ? `Comparison stays scoped to ${compareRules[0]?.crisis?.title ?? "the selected case"}.`
+      : "Comparison opens side-by-side analytics for the active case.";
 
   const saveRuleMutation = useMutation({
     mutationFn: async ({ payload, keywords }: { payload: TrackingRuleFormState; keywords: string[] }) => {
@@ -492,7 +503,15 @@ export function TrackingRuleManager({
     },
     onSuccess: (result) => {
       if (result.mode === "batch") {
-        const description = result.skippedCount > 0 ? `${result.skippedCount} skipped because they already exist.` : undefined;
+        const descriptionParts = [];
+        if (result.skippedCount > 0) {
+          descriptionParts.push(`${result.skippedCount} skipped because they already exist.`);
+        }
+        if (result.addedCount > 1) {
+          descriptionParts.push("Select 2–5 saved keyword rows in the table, then click Compare selected.");
+        }
+
+        const description = descriptionParts.length > 0 ? descriptionParts.join(" ") : undefined;
         toast.success(`${result.addedCount} keyword${result.addedCount === 1 ? "" : "s"} added`, { description });
       } else {
         toast.success(editingRule ? "Tracking rule updated" : "Tracking rule created");
@@ -634,6 +653,10 @@ export function TrackingRuleManager({
                   Add rule
                 </Button>
               </div>
+            </div>
+            <div className="flex flex-col gap-1 rounded-sm border border-border bg-surface-elevated px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-medium text-foreground">{compareSummaryText}</p>
+              <p className="text-[11px] text-muted-foreground">{compareScopeText}</p>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -899,9 +922,23 @@ export function TrackingRuleManager({
               </div>
             )}
 
-            <div className="rounded-sm border border-border bg-surface-elevated px-3 py-2.5">
-              <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Compare after save</p>
-              <p className="mt-1 text-xs text-muted-foreground">Select 2–5 saved keywords in the table to open side-by-side analytics.</p>
+            <div className="rounded-sm border border-border bg-card px-3 py-3 shadow-sm">
+              <div className="flex items-start gap-2">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm border border-border bg-surface-elevated text-primary">
+                  <Info className="h-3.5 w-3.5" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-xs font-mono uppercase tracking-wider text-foreground">Compare keywords in Analytics</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Save first, then use the table selection to launch side-by-side keyword analytics.</p>
+                  </div>
+                  <ol className="space-y-1 text-xs text-foreground">
+                    <li>1. Save your keywords.</li>
+                    <li>2. Select 2–5 saved keyword rows in the table.</li>
+                    <li>3. Click Compare selected.</li>
+                  </ol>
+                </div>
+              </div>
             </div>
 
             <Accordion type="single" collapsible value={advancedOpen ? "advanced" : undefined} onValueChange={(value) => setAdvancedOpen(value === "advanced")}>
