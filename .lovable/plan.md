@@ -1,39 +1,93 @@
 
-The user wants to wipe all existing demo/brand data and refocus the platform on a single brand: **Kaduna State (Government)**, with real-time signal ingestion.
+Recommendation: organize the tracking manager as a single admin control center with a case filter, not separate per-case tabs.
 
-Let me check the current ingestion setup and seeded data.
+Why this is the best fit
+- You already have multiple case studies now: Kaduna, NPRW 2026, APC, ADC, PDP, and LP. That list will likely grow.
+- Admins need to compare coverage across cases quickly and spot gaps, duplicates, or stale queries.
+- A single searchable table is faster to maintain than opening each case one by one.
+- It fits the existing app structure well because Settings is already admin-only, while case context already exists globally in the dashboard.
 
-Current state:
-- `ingest-signals/index.ts` hardcodes 6 brand queries (MTN, Dangote, Zenith, Flutterwave, Opay, Paystack) → 6 fixed crisis IDs
-- `crises` table has those 6 seeded crises
-- Signals, narratives, reputation_snapshots, response_log all reference those crisis_ids
+Recommended structure
+1. Admin page/section
+- Add a new admin-only section under Settings called “Keyword & Queries Manager”.
+- Keep it separate from the current personal “Keyword Tracking” card, since that card is just user preferences and should not control ingestion.
 
-## Plan: Refocus Platform on Kaduna State
+2. Top controls
+- Case filter dropdown: All cases / Kaduna / NPRW 2026 / APC / ADC / PDP / LP
+- Search box: find any keyword/query quickly
+- Type filter: Keywords, Queries, or both
+- Status filter: Active / Paused
+- “Add rule” button
 
-### 1. Database Cleanup (migration)
-- Delete all existing `signals`, `narratives`, `reputation_snapshots`, `response_log`, `war_room_messages`, `naya_chat_messages`
-- Delete all existing `crises`
-- Insert ONE new crisis: **Kaduna State Government** (single fixed UUID, type: `operational`, risk_level: `medium`)
+3. Main table
+Use one searchable table with rows like:
+```text
+Case           Type      Rule text                                      Status   Priority   Last updated
+Kaduna         Query     Kaduna State protest OR attack OR bandit...    Active   1          Apr 22
+NPRW 2026      Query     "Nigeria Public Relations Week" 2026...        Active   2          Apr 22
+APC            Keyword   Tinubu                                         Active   3          Apr 22
+```
 
-### 2. Edge Function Update — `supabase/functions/ingest-signals/index.ts`
-Replace the 6-brand config with a single Kaduna-focused query set:
-- `BRAND_QUERIES` → one entry covering Kaduna State governance, security, protests, infrastructure, education, IDP, Uba Sani administration, etc. (broken into 3-4 sub-queries for richer coverage)
-- `BRAND_CRISIS_MAP` → single key `kaduna` → new crisis UUID
-- All sub-queries write to the same Kaduna crisis_id
+Recommended columns
+- Case
+- Rule type: keyword or query
+- Rule text
+- Optional label/category
+- Active/paused toggle
+- Priority/order
+- Last updated
+- Actions: edit, duplicate, delete
 
-Suggested queries:
-1. `"Kaduna State governor Uba Sani policy OR security OR budget"`
-2. `"Kaduna State protest OR attack OR bandit OR insecurity"`
-3. `"Kaduna State infrastructure OR education OR healthcare OR IDP"`
-4. `"Kaduna government KADIPA investment OR economy"`
+4. Editing experience
+- Use a side drawer or modal for create/edit.
+- Fields should include:
+  - Case
+  - Rule type
+  - Rule text
+  - Optional notes
+  - Active toggle
+  - Priority
+- For full search queries, include helper text like “Use OR, quotes, hashtags, names, events”.
 
-### 3. Trigger Initial Ingestion
-After deploy, invoke `ingest-signals` once to populate fresh real-time data for Kaduna.
+5. Nice-to-have admin features
+- Duplicate rule to another case
+- Bulk pause/delete
+- “Test query” action later
+- Show total active rules per case
+- Warn on duplicates before save
 
-### 4. UI — No code changes needed
-Dashboard, Signals, War Room, Analytics already query whatever crisis exists. With only Kaduna present, all views auto-focus on it. The `AppLayout` query (`order created_at desc, limit 1`) will pick up Kaduna automatically.
+Backend shape to support this
+Create a dedicated table for tracking rules rather than storing them in profile preferences.
+Recommended model:
+- One table for rules mapped to a crisis/case
+- Each row belongs to one case
+- Each row has a type: keyword or query
+- Each row can be active/inactive
+- Each row has priority/order and timestamps
 
-### Notes
-- Existing cron schedule (if any) on `ingest-signals` continues working — now feeds only Kaduna.
-- Storage bucket `verified-documents` and user data (profiles, roles, notifications) are preserved.
-- This is destructive — all demo crisis data gets wiped.
+This is better than per-case tabs because
+- Tabs are fine for 2–3 cases, but become slower and more fragmented as cases grow.
+- They hide cross-case duplicates.
+- They make bulk operations harder.
+- They make it harder to answer “which cases have no active queries?” or “which political party has the most tracking rules?”
+
+Implementation direction
+- Add a new admin-only manager inside Settings.
+- Create a backend table for case-linked tracking rules with proper access control.
+- Migrate the hardcoded rules from the ingestion function into that table.
+- Update ingestion so it reads active rules from the database instead of hardcoded arrays.
+- Leave the existing personal keyword preferences as separate user settings, unless you want them removed entirely.
+
+Recommended final UX
+- Default view: single admin table filtered to “All cases”
+- Quick filter chips for each case
+- Add/edit in a drawer
+- Case-specific counts at the top
+- Later, optional “Test query” and “last matched signal” indicators
+
+If you want this built next, the best version is:
+- single admin table
+- grouped by case with filters
+- supports both keywords and full search queries
+- admin-only access
+- wired directly into the ingestion pipeline
