@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
+  BarChart3,
   Copy,
   Filter,
   Loader2,
@@ -11,13 +13,15 @@ import {
   Search,
   Target,
   Trash2,
+  X,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -39,6 +43,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 type RuleType = "keyword" | "query";
 type RuleStatusFilter = "all" | "active" | "paused";
@@ -107,6 +112,22 @@ const DEFAULT_TRACKING_RULE_FORM: TrackingRuleFormState = {
 
 const normalizeRuleText = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
 
+const parseKeywordBatch = (value: string) =>
+  value
+    .split(/[\n,]+/)
+    .map((entry) => entry.trim().replace(/\s+/g, " "))
+    .filter(Boolean);
+
+const dedupeKeywords = (values: string[]) => {
+  const seen = new Set<string>();
+  return values.filter((value) => {
+    const normalized = normalizeRuleText(value);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+};
+
 const trackingRuleSchema = z
   .object({
     crisis_id: z.string().uuid({ message: "Select a case" }),
@@ -139,14 +160,13 @@ function getRuleTypeCopy(ruleType: RuleType) {
     title: ruleType === "keyword" ? "Add Keyword" : "Add Search Query",
     description:
       ruleType === "keyword"
-        ? "Add a tracked name or phrase for this case."
-        : "Add a broader search expression for this case.",
+        ? "Enter the names or phrases this case should track."
+        : "Save one broader search expression for this case.",
     placeholder:
       ruleType === "keyword"
-        ? "Enter a tracked keyword or phrase…"
+        ? "Type a keyword and press Enter"
         : 'Use OR, quotes, hashtags, names, events…',
     submitLabel: ruleType === "keyword" ? "Add Keyword" : "Save Query",
-    emptyLabel: ruleType === "keyword" ? "Add your first keyword" : "Add your first query",
   };
 }
 
@@ -156,6 +176,7 @@ export function TrackingRuleManager({
   openSignal = 0,
   onInitialOpenHandled,
 }: TrackingRuleManagerProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [caseFilter, setCaseFilter] = useState<string>("all");
@@ -166,8 +187,14 @@ export function TrackingRuleManager({
   const [editingRule, setEditingRule] = useState<TrackingRuleRow | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [formState, setFormState] = useState<TrackingRuleFormState>(DEFAULT_TRACKING_RULE_FORM);
+  const [keywordDraft, setKeywordDraft] = useState("");
+  const [keywordEntries, setKeywordEntries] = useState<string[]>([]);
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
+  const [compareCaseId, setCompareCaseId] = useState<string | null>(null);
   const autoOpenedEmptyRef = useRef(false);
   const lastHandledOpenSignalRef = useRef<number | null>(null);
+  const keywordInputRef = useRef<HTMLInputElement | null>(null);
+  const queryTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const { data: crises = [], isLoading: crisesLoading } = useQuery({
     queryKey: ["tracking-rule-cases"],
@@ -244,6 +271,8 @@ export function TrackingRuleManager({
   const resetForm = (preferredRuleType: RuleType = initialRuleType) => {
     setEditingRule(null);
     setAdvancedOpen(false);
+    setKeywordDraft("");
+    setKeywordEntries([]);
     setFormState({
       ...DEFAULT_TRACKING_RULE_FORM,
       crisis_id: caseFilter !== "all" ? caseFilter : crises[0]?.id ?? "",
@@ -265,6 +294,8 @@ export function TrackingRuleManager({
   const openEditSheet = (rule: TrackingRuleRow) => {
     setEditingRule(rule);
     setAdvancedOpen(true);
+    setKeywordDraft("");
+    setKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
     setFormState({
       crisis_id: rule.crisis_id,
       platform: rule.platform,
@@ -281,6 +312,8 @@ export function TrackingRuleManager({
   const openDuplicateSheet = (rule: TrackingRuleRow) => {
     setEditingRule(null);
     setAdvancedOpen(true);
+    setKeywordDraft("");
+    setKeywordEntries(rule.rule_type === "keyword" ? [rule.rule_text] : []);
     setFormState({
       crisis_id: rule.crisis_id,
       platform: rule.platform,
@@ -308,8 +341,108 @@ export function TrackingRuleManager({
     openCreateSheet(initialRuleType);
   }, [crisesLoading, rulesLoading, rules.length, initialRuleType, crises, caseFilter, platformFilter]);
 
+  useEffect(() => {
+    if (!sheetOpen) return;
+    if (formState.rule_type === "keyword" && !editingRule) {
+      keywordInputRef.current?.focus();
+      return;
+    }
+    if (formState.rule_type === "query") {
+      queryTextareaRef.current?.focus();
+    }
+  }, [sheetOpen, formState.rule_type, editingRule]);
+
+  useEffect(() => {
+    const validIds = new Set(rules.map((rule) => rule.id));
+    setCompareSelection((current) => current.filter((id) => validIds.has(id)));
+  }, [rules]);
+
+  const addKeywords = (values: string[]) => {
+    const incoming = dedupeKeywords(values);
+    if (!incoming.length) return;
+
+    setKeywordEntries((current) => {
+      const merged = dedupeKeywords([...current, ...incoming]);
+      if (merged.length === current.length) {
+        toast.message("These keywords are already in the list");
+      }
+      return merged;
+    });
+  };
+
+  const commitKeywordDraft = () => {
+    if (!keywordDraft.trim()) return;
+    addKeywords(parseKeywordBatch(keywordDraft));
+    setKeywordDraft("");
+  };
+
+  const removeKeyword = (keyword: string) => {
+    setKeywordEntries((current) => current.filter((entry) => normalizeRuleText(entry) !== normalizeRuleText(keyword)));
+  };
+
+  const compareRules = useMemo(
+    () => rules.filter((rule) => compareSelection.includes(rule.id)).sort((a, b) => compareSelection.indexOf(a.id) - compareSelection.indexOf(b.id)),
+    [rules, compareSelection]
+  );
+
+  const canCompare = compareRules.length >= 2 && compareRules.length <= 5;
+  const activeComparableCaseId = compareRules[0]?.crisis_id ?? compareCaseId;
+  const hasInlineCaseError = !formState.crisis_id;
+  const isKeywordCreateMode = formState.rule_type === "keyword" && !editingRule;
+  const keywordHelperText = hasInlineCaseError ? "Select a case first, then add keywords." : "Press Enter, comma, or paste a newline list.";
+  const draftKeywords = keywordDraft.trim() ? parseKeywordBatch(keywordDraft) : [];
+  const pendingKeywordEntries = dedupeKeywords([...keywordEntries, ...draftKeywords]);
+  const currentRuleText = isKeywordCreateMode ? pendingKeywordEntries[0] ?? "" : formState.rule_text;
+  const hasPrimaryValue = isKeywordCreateMode ? pendingKeywordEntries.length > 0 : normalizeRuleText(currentRuleText).length > 0;
+
   const saveRuleMutation = useMutation({
-    mutationFn: async (payload: TrackingRuleFormState) => {
+    mutationFn: async ({ payload, keywords }: { payload: TrackingRuleFormState; keywords: string[] }) => {
+      if (payload.rule_type === "keyword" && !editingRule) {
+        const normalizedBatch = dedupeKeywords(keywords);
+        if (!normalizedBatch.length) {
+          throw new Error("Add at least one keyword");
+        }
+
+        const existingNormalized = new Set(
+          rules
+            .filter(
+              (rule) =>
+                rule.crisis_id === payload.crisis_id &&
+                rule.platform === payload.platform &&
+                rule.rule_type === "keyword"
+            )
+            .map((rule) => normalizeRuleText(rule.rule_text))
+        );
+
+        const uniqueKeywords = normalizedBatch.filter((keyword) => !existingNormalized.has(normalizeRuleText(keyword)));
+        const skippedCount = normalizedBatch.length - uniqueKeywords.length;
+
+        if (!uniqueKeywords.length) {
+          throw new Error("These keywords already exist for this case and platform");
+        }
+
+        const parsedPriority = trackingRuleSchema.shape.priority.safeParse(payload.priority);
+        if (!parsedPriority.success) {
+          throw new Error(parsedPriority.error.flatten().formErrors[0] ?? "Invalid priority");
+        }
+
+        const insertRows = uniqueKeywords.map((keyword) => ({
+          crisis_id: payload.crisis_id,
+          platform: payload.platform,
+          rule_type: "keyword" as const,
+          rule_text: keyword,
+          label: payload.label.trim() || null,
+          notes: payload.notes.trim() || null,
+          is_active: payload.is_active,
+          priority: parsedPriority.data,
+        }));
+
+        const { error } = await supabase.from(TRACKING_RULES_TABLE).insert(insertRows);
+        if (error) throw error;
+
+        return { mode: "batch" as const, addedCount: uniqueKeywords.length, skippedCount };
+      }
+
       const parsed = trackingRuleSchema.safeParse({
         ...payload,
         rule_text: payload.rule_text.trim(),
@@ -350,14 +483,20 @@ export function TrackingRuleManager({
       if (editingRule) {
         const { error } = await supabase.from(TRACKING_RULES_TABLE).update(dbPayload).eq("id", editingRule.id);
         if (error) throw error;
-        return;
+        return { mode: "single" as const, action: "updated" as const };
       }
 
       const { error } = await supabase.from(TRACKING_RULES_TABLE).insert(dbPayload);
       if (error) throw error;
+      return { mode: "single" as const, action: "created" as const };
     },
-    onSuccess: () => {
-      toast.success(editingRule ? "Tracking rule updated" : "Tracking rule created");
+    onSuccess: (result) => {
+      if (result.mode === "batch") {
+        const description = result.skippedCount > 0 ? `${result.skippedCount} skipped because they already exist.` : undefined;
+        toast.success(`${result.addedCount} keyword${result.addedCount === 1 ? "" : "s"} added`, { description });
+      } else {
+        toast.success(editingRule ? "Tracking rule updated" : "Tracking rule created");
+      }
       invalidateRules();
       setSheetOpen(false);
       resetForm();
@@ -399,6 +538,41 @@ export function TrackingRuleManager({
   const formCopy = getRuleTypeCopy(formState.rule_type);
   const hasRules = rules.length > 0;
 
+  const toggleCompareRule = (rule: TrackingRuleRow, checked: boolean) => {
+    if (rule.rule_type !== "keyword") return;
+
+    if (!checked) {
+      setCompareSelection((current) => current.filter((id) => id !== rule.id));
+      if (compareSelection.length === 1) setCompareCaseId(null);
+      return;
+    }
+
+    if (compareCaseId && compareCaseId !== rule.crisis_id && compareSelection.length > 0) {
+      toast.message("Comparison is limited to one case at a time", {
+        description: "Your selection was reset to keep analytics focused on a single case.",
+      });
+      setCompareSelection([rule.id]);
+      setCompareCaseId(rule.crisis_id);
+      return;
+    }
+
+    if (compareSelection.length >= 5) {
+      toast.error("Choose up to 5 keywords to compare");
+      return;
+    }
+
+    setCompareSelection((current) => [...current, rule.id]);
+    setCompareCaseId(rule.crisis_id);
+  };
+
+  const launchCompare = () => {
+    if (!canCompare || !activeComparableCaseId) return;
+    const params = new URLSearchParams();
+    params.set("case", activeComparableCaseId);
+    compareRules.forEach((rule) => params.append("compare", rule.rule_text));
+    navigate(`/analytics?${params.toString()}`);
+  };
+
   if (crisesLoading || rulesLoading) {
     return (
       <div className="space-y-3">
@@ -430,7 +604,7 @@ export function TrackingRuleManager({
             <div className="space-y-2">
               <h2 className="text-lg font-mono font-semibold tracking-tight text-foreground">No tracking rules yet</h2>
               <p className="max-w-2xl text-sm text-muted-foreground">
-                Use the buttons above to add the names or search phrases this case should monitor.
+                Start with the hero above, then compare saved keywords in Analytics once they are live.
               </p>
             </div>
           </CardContent>
@@ -441,9 +615,20 @@ export function TrackingRuleManager({
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <CardTitle className="text-sm font-mono uppercase tracking-wider">Active rule coverage</CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">Filter and manage the monitoring targets already in use.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Filter existing rules, then compare 2–5 keywords inside analytics.</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row lg:self-start">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={launchCompare}
+                  disabled={!canCompare}
+                  className="font-mono text-xs uppercase tracking-wider"
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  Compare selected {compareRules.length > 0 ? `(${compareRules.length})` : ""}
+                </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => openCreateSheet("keyword")} className="font-mono text-xs uppercase tracking-wider">
                   <Plus className="h-3.5 w-3.5" />
                   Add rule
@@ -474,11 +659,11 @@ export function TrackingRuleManager({
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_180px_180px_180px]">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search rules, labels, notes..." className="pl-9 font-mono text-sm bg-card" />
+                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search rules, labels, notes..." className="bg-card pl-9 font-mono text-sm" />
               </div>
 
               <Select value={platformFilter} onValueChange={(value: TrackingPlatform) => setPlatformFilter(value)}>
-                <SelectTrigger className="font-mono text-xs bg-card">
+                <SelectTrigger className="bg-card font-mono text-xs">
                   <Target className="h-3.5 w-3.5 text-muted-foreground" />
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
@@ -492,7 +677,7 @@ export function TrackingRuleManager({
               </Select>
 
               <Select value={typeFilter} onValueChange={(value: RuleTypeFilter) => setTypeFilter(value)}>
-                <SelectTrigger className="font-mono text-xs bg-card">
+                <SelectTrigger className="bg-card font-mono text-xs">
                   <Filter className="h-3.5 w-3.5 text-muted-foreground" />
                   <SelectValue placeholder="Rule type" />
                 </SelectTrigger>
@@ -504,7 +689,7 @@ export function TrackingRuleManager({
               </Select>
 
               <Select value={statusFilter} onValueChange={(value: RuleStatusFilter) => setStatusFilter(value)}>
-                <SelectTrigger className="font-mono text-xs bg-card">
+                <SelectTrigger className="bg-card font-mono text-xs">
                   <Target className="h-3.5 w-3.5 text-muted-foreground" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -520,69 +705,86 @@ export function TrackingRuleManager({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[22%]">Case</TableHead>
+                    <TableHead className="w-[7%]">Compare</TableHead>
+                    <TableHead className="w-[20%]">Case</TableHead>
                     <TableHead className="w-[10%]">Type</TableHead>
                     <TableHead className="w-[12%]">Platform</TableHead>
                     <TableHead>Rule</TableHead>
                     <TableHead className="w-[10%] text-right">Priority</TableHead>
                     <TableHead className="w-[12%]">Status</TableHead>
                     <TableHead className="w-[12%]">Updated</TableHead>
-                    <TableHead className="w-[18%] text-right">Actions</TableHead>
+                    <TableHead className="w-[16%] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRules.length > 0 ? (
-                    filteredRules.map((rule) => (
-                      <TableRow key={rule.id}>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">{rule.crisis?.title ?? "Unknown case"}</p>
-                            {rule.label && <p className="text-xs font-mono text-muted-foreground">{rule.label}</p>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">{rule.rule_type}</Badge>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
-                            {PLATFORM_OPTIONS.find((option) => option.value === rule.platform)?.label ?? rule.platform}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <div className="space-y-1">
-                            <p className="text-sm text-foreground break-words">{rule.rule_text}</p>
-                            {rule.notes && <p className="text-xs text-muted-foreground line-clamp-2">{rule.notes}</p>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top text-right font-mono tabular-nums">{rule.priority}</TableCell>
-                        <TableCell className="align-top">
-                          <div className="flex items-center gap-2">
-                            <Switch checked={rule.is_active} onCheckedChange={(checked) => toggleRuleMutation.mutate({ id: rule.id, isActive: checked })} disabled={toggleRuleMutation.isPending} />
-                            <span className="text-xs font-mono text-muted-foreground">{rule.is_active ? "Active" : "Paused"}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top text-xs font-mono text-muted-foreground">{new Date(rule.updated_at).toLocaleDateString()}</TableCell>
-                        <TableCell className="align-top">
-                          <div className="flex justify-end gap-1">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => openEditSheet(rule)}>
-                              <Pencil className="h-4 w-4" />
-                              <span className="sr-only">Edit rule</span>
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => openDuplicateSheet(rule)}>
-                              <Copy className="h-4 w-4" />
-                              <span className="sr-only">Duplicate rule</span>
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => deleteRuleMutation.mutate(rule.id)}>
-                              <Trash2 className="h-4 w-4" />
-                              <span className="sr-only">Delete rule</span>
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredRules.map((rule) => {
+                      const isSelected = compareSelection.includes(rule.id);
+                      const compareLocked = Boolean(compareCaseId && compareCaseId !== rule.crisis_id && compareSelection.length > 0);
+                      const compareDisabled = rule.rule_type !== "keyword" || (!isSelected && (compareSelection.length >= 5 || compareLocked));
+
+                      return (
+                        <TableRow key={rule.id}>
+                          <TableCell className="align-top">
+                            <div className="flex h-9 items-start justify-center pt-1">
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={compareDisabled}
+                                onCheckedChange={(checked) => toggleCompareRule(rule, checked === true)}
+                                aria-label={`Compare ${rule.rule_text}`}
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-foreground">{rule.crisis?.title ?? "Unknown case"}</p>
+                              {rule.label && <p className="text-xs font-mono text-muted-foreground">{rule.label}</p>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">{rule.rule_type}</Badge>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
+                              {PLATFORM_OPTIONS.find((option) => option.value === rule.platform)?.label ?? rule.platform}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <div className="space-y-1">
+                              <p className="break-words text-sm text-foreground">{rule.rule_text}</p>
+                              {rule.notes && <p className="line-clamp-2 text-xs text-muted-foreground">{rule.notes}</p>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top text-right font-mono tabular-nums">{rule.priority}</TableCell>
+                          <TableCell className="align-top">
+                            <div className="flex items-center gap-2">
+                              <Switch checked={rule.is_active} onCheckedChange={(checked) => toggleRuleMutation.mutate({ id: rule.id, isActive: checked })} disabled={toggleRuleMutation.isPending} />
+                              <span className="text-xs font-mono text-muted-foreground">{rule.is_active ? "Active" : "Paused"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top text-xs font-mono text-muted-foreground">{new Date(rule.updated_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="align-top">
+                            <div className="flex justify-end gap-1">
+                              <Button type="button" variant="ghost" size="icon" onClick={() => openEditSheet(rule)}>
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Edit rule</span>
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" onClick={() => openDuplicateSheet(rule)}>
+                                <Copy className="h-4 w-4" />
+                                <span className="sr-only">Duplicate rule</span>
+                              </Button>
+                              <Button type="button" variant="ghost" size="icon" onClick={() => deleteRuleMutation.mutate(rule.id)}>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Delete rule</span>
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
+                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -599,23 +801,24 @@ export function TrackingRuleManager({
           if (!open) resetForm();
         }}
       >
-        <SheetContent side="right" className="w-full overflow-y-auto p-4 sm:max-w-lg sm:p-5">
+        <SheetContent side="right" className="w-full overflow-y-auto p-4 sm:max-w-md sm:p-5">
           <SheetHeader className="space-y-1 pr-8">
             <SheetTitle className="font-mono text-base uppercase tracking-wider">
               {editingRule ? `Edit ${formState.rule_type === "keyword" ? "Keyword" : "Search Query"}` : formCopy.title}
             </SheetTitle>
             <SheetDescription>
-              {editingRule
-                ? "Update the target and save."
-                : `${formCopy.description} Expand advanced options only if needed.`}
+              {editingRule ? "Update the target and save." : `${formCopy.description} Keep advanced options collapsed unless you need them.`}
             </SheetDescription>
           </SheetHeader>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3.5">
             <div className="space-y-2">
-              <Label className="text-xs font-mono uppercase tracking-wider">Case</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-xs font-mono uppercase tracking-wider">Case</Label>
+                {hasInlineCaseError ? <span className="text-[11px] text-destructive">Select a case first</span> : null}
+              </div>
               <Select value={formState.crisis_id} onValueChange={(value) => setFormState((prev) => ({ ...prev, crisis_id: value }))}>
-                <SelectTrigger className="font-mono text-sm bg-card">
+                <SelectTrigger className={cn("bg-card font-mono text-sm", hasInlineCaseError && "border-destructive")}> 
                   <SelectValue placeholder="Select case" />
                 </SelectTrigger>
                 <SelectContent>
@@ -626,32 +829,79 @@ export function TrackingRuleManager({
               </Select>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_132px]">
-              <div className="space-y-2">
-                <Label className="text-xs font-mono uppercase tracking-wider">Platform</Label>
-                <Select value={formState.platform} onValueChange={(value: TrackingPlatform) => setFormState((prev) => ({ ...prev, platform: value }))}>
-                  <SelectTrigger className="font-mono text-sm bg-card">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLATFORM_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value} className="font-mono text-xs">{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-mono uppercase tracking-wider">Type</Label>
-                <div className="flex h-10 items-center rounded-md border border-input bg-surface-elevated px-3 text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                  {formState.rule_type === "keyword" ? "Keyword" : "Query"}
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-mono uppercase tracking-wider">Platform</Label>
+              <Select value={formState.platform} onValueChange={(value: TrackingPlatform) => setFormState((prev) => ({ ...prev, platform: value }))}>
+                <SelectTrigger className="bg-card font-mono text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="font-mono text-xs">{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-mono uppercase tracking-wider">Rule Text</Label>
-              <Textarea rows={formState.rule_type === "keyword" ? 3 : 5} value={formState.rule_text} onChange={(e) => setFormState((prev) => ({ ...prev, rule_text: e.target.value }))} placeholder={formCopy.placeholder} className="min-h-0 font-mono text-sm bg-card" />
+            {formState.rule_type === "keyword" && !editingRule ? (
+              <div className="space-y-2">
+                <Label className="text-xs font-mono uppercase tracking-wider">Keywords</Label>
+                <div className="rounded-md border border-border bg-card shadow-sm transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+                  <div className="flex min-h-24 flex-wrap gap-2 p-2">
+                    {keywordEntries.map((keyword) => (
+                      <Badge key={keyword} variant="secondary" className="gap-1 rounded-sm px-2 py-1 font-mono text-xs">
+                        <span>{keyword}</span>
+                        <button type="button" onClick={() => removeKeyword(keyword)} className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground">
+                          <X className="h-3 w-3" />
+                          <span className="sr-only">Remove {keyword}</span>
+                        </button>
+                      </Badge>
+                    ))}
+                    <input
+                      ref={keywordInputRef}
+                      value={keywordDraft}
+                      onChange={(e) => setKeywordDraft(e.target.value)}
+                      onBlur={commitKeywordDraft}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          commitKeywordDraft();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const pastedText = e.clipboardData.getData("text");
+                        if (!/[\n,]/.test(pastedText)) return;
+                        e.preventDefault();
+                        addKeywords(parseKeywordBatch(pastedText));
+                        setKeywordDraft("");
+                      }}
+                      placeholder={formCopy.placeholder}
+                      className="min-w-[220px] flex-1 bg-transparent px-1 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                    />
+                  </div>
+                </div>
+                <p className={cn("text-[11px]", hasInlineCaseError ? "text-destructive" : "text-muted-foreground")}>{keywordHelperText}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-xs font-mono uppercase tracking-wider">{formState.rule_type === "keyword" ? "Keyword" : "Search Query"}</Label>
+                <Textarea
+                  ref={queryTextareaRef}
+                  rows={formState.rule_type === "keyword" ? 3 : 5}
+                  value={formState.rule_text}
+                  onChange={(e) => setFormState((prev) => ({ ...prev, rule_text: e.target.value }))}
+                  placeholder={formCopy.placeholder}
+                  className="min-h-0 bg-card font-mono text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  {formState.rule_type === "keyword" ? "Editing updates one saved keyword at a time." : "Queries stay as one expression so analytics can compare them cleanly."}
+                </p>
+              </div>
+            )}
+
+            <div className="rounded-sm border border-border bg-surface-elevated px-3 py-2.5">
+              <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Compare after save</p>
+              <p className="mt-1 text-xs text-muted-foreground">Select 2–5 saved keywords in the table to open side-by-side analytics.</p>
             </div>
 
             <Accordion type="single" collapsible value={advancedOpen ? "advanced" : undefined} onValueChange={(value) => setAdvancedOpen(value === "advanced")}>
@@ -661,11 +911,11 @@ export function TrackingRuleManager({
                 </AccordionTrigger>
                 <AccordionContent className="pb-0">
                   <div className="space-y-3 pb-3">
-                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px]">
+                    <div className="grid gap-3 sm:grid-cols-[120px_minmax(0,1fr)]">
                       <div className="space-y-2">
-                        <Label className="text-xs font-mono uppercase tracking-wider">Rule Type</Label>
-                        <Select value={formState.rule_type} onValueChange={(value: RuleType) => setFormState((prev) => ({ ...prev, rule_type: value }))}>
-                          <SelectTrigger className="font-mono text-sm bg-card">
+                        <Label className="text-xs font-mono uppercase tracking-wider">Type</Label>
+                        <Select value={formState.rule_type} onValueChange={(value: RuleType) => setFormState((prev) => ({ ...prev, rule_type: value, rule_text: value === "query" ? prev.rule_text : "" }))}>
+                          <SelectTrigger className="bg-card font-mono text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -676,18 +926,18 @@ export function TrackingRuleManager({
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-mono uppercase tracking-wider">Priority</Label>
-                        <Input type="number" inputMode="numeric" min={0} max={9999} value={formState.priority} onChange={(e) => setFormState((prev) => ({ ...prev, priority: e.target.value }))} className="font-mono text-sm bg-card" />
+                        <Input type="number" inputMode="numeric" min={0} max={9999} value={formState.priority} onChange={(e) => setFormState((prev) => ({ ...prev, priority: e.target.value }))} className="bg-card font-mono text-sm" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-xs font-mono uppercase tracking-wider">Label</Label>
-                      <Input value={formState.label} onChange={(e) => setFormState((prev) => ({ ...prev, label: e.target.value }))} placeholder="Short category or label" className="font-mono text-sm bg-card" />
+                      <Input value={formState.label} onChange={(e) => setFormState((prev) => ({ ...prev, label: e.target.value }))} placeholder="Short category or label" className="bg-card font-mono text-sm" />
                     </div>
 
                     <div className="space-y-2">
                       <Label className="text-xs font-mono uppercase tracking-wider">Notes</Label>
-                      <Textarea rows={2} value={formState.notes} onChange={(e) => setFormState((prev) => ({ ...prev, notes: e.target.value }))} placeholder="Internal note" className="min-h-0 text-sm bg-card" />
+                      <Textarea rows={2} value={formState.notes} onChange={(e) => setFormState((prev) => ({ ...prev, notes: e.target.value }))} placeholder="Internal note" className="min-h-0 bg-card text-sm" />
                     </div>
 
                     <div className="flex items-center justify-between rounded-sm border border-border bg-surface-elevated px-3 py-2.5">
@@ -708,7 +958,24 @@ export function TrackingRuleManager({
 
           <SheetFooter className="mt-5">
             <Button type="button" variant="outline" onClick={() => setSheetOpen(false)} className="font-mono text-xs uppercase tracking-wider">Cancel</Button>
-            <Button type="button" onClick={() => saveRuleMutation.mutate(formState)} disabled={saveRuleMutation.isPending} className="font-mono text-xs uppercase tracking-wider">
+            <Button
+              type="button"
+              onClick={() => {
+                const keywords = isKeywordCreateMode ? pendingKeywordEntries : [];
+                const nextRuleText = !isKeywordCreateMode && formState.rule_type === "keyword" && keywordEntries[0]
+                  ? keywordEntries[0]
+                  : formState.rule_text;
+                saveRuleMutation.mutate({
+                  payload: {
+                    ...formState,
+                    rule_text: nextRuleText,
+                  },
+                  keywords,
+                });
+              }}
+              disabled={saveRuleMutation.isPending || !formState.crisis_id || !hasPrimaryValue}
+              className="font-mono text-xs uppercase tracking-wider"
+            >
               {saveRuleMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
               {editingRule ? "Save Rule" : formCopy.submitLabel}
             </Button>

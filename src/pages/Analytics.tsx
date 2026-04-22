@@ -1,4 +1,5 @@
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { KeywordComparisonPanel } from "@/components/analytics/KeywordComparisonPanel";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatNumber } from "@/lib/crisis-helpers";
@@ -101,6 +102,13 @@ export default function Analytics() {
             {activeCase ? `Case: ${activeCase.title}` : "Deep-dive into crisis data & trends"}
           </p>
         </div>
+
+        <KeywordComparisonPanel
+          activeCaseId={activeCaseId}
+          activeCaseTitle={activeCase?.title ?? null}
+          signals={signals}
+          isLoading={signalsLoading}
+        />
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
           {/* Sentiment Over Time */}
