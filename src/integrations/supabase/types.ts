@@ -455,6 +455,56 @@ export type Database = {
           },
         ]
       }
+      tracking_rules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          crisis_id: string
+          id: string
+          is_active: boolean
+          label: string | null
+          notes: string | null
+          priority: number
+          rule_text: string
+          rule_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          crisis_id: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          notes?: string | null
+          priority?: number
+          rule_text: string
+          rule_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          crisis_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string | null
+          notes?: string | null
+          priority?: number
+          rule_text?: string
+          rule_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_rules_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
