@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { AnalyticsKpis, AnalyticsSignal, AnalyticsSnapshot } from "@/components/analytics/types";
 import type { SentimentFilter, SignalSourceFilter } from "@/hooks/useAnalyticsFilters";
@@ -40,19 +40,30 @@ function buildSignalsQuery(activeCaseId: string | null, windowStart: string, sou
   return query;
 }
 
+function signalMatchesFilters(signal: AnalyticsSignal, windowStart: string, source: SignalSourceFilter, sentiment: SentimentFilter) {
+  if (new Date(signal.detected_at).getTime() < new Date(windowStart).getTime()) return false;
+  if (source !== "all" && signal.source !== source) return false;
+  if (sentiment !== "all" && signal.sentiment !== sentiment) return false;
+  return true;
+}
+
 export function useAnalyticsData({
   activeCaseId,
   windowStart,
   source,
   sentiment,
+  liveMode,
 }: {
   activeCaseId: string | null;
   windowStart: string;
   source: SignalSourceFilter;
   sentiment: SentimentFilter;
+  liveMode: boolean;
 }) {
+  const queryClient = useQueryClient();
+  const signalsQueryKey = ["analytics-signals-v2", activeCaseId ?? "all", windowStart, source, sentiment] as const;
   const signalsQuery = useQuery({
-    queryKey: ["analytics-signals-v2", activeCaseId ?? "all", windowStart, source, sentiment],
+    queryKey: signalsQueryKey,
     queryFn: async () => {
       const { data, error } = await buildSignalsQuery(activeCaseId, windowStart, source, sentiment);
       if (error) throw error;
@@ -97,6 +108,42 @@ export function useAnalyticsData({
       return ((data ?? []) as CronJob[]).filter((job) => parseFunctionName(job.command) === "ingest-signals");
     },
   });
+
+  useEffect(() => {
+    if (!liveMode) return;
+
+    const channelName = `analytics-live-${activeCaseId ?? "all"}-${source}-${sentiment}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "signals",
+          ...(activeCaseId ? { filter: `crisis_id=eq.${activeCaseId}` } : {}),
+        },
+        (payload) => {
+          const nextSignal = payload.new as AnalyticsSignal;
+          if (!signalMatchesFilters(nextSignal, windowStart, source, sentiment)) return;
+
+          queryClient.setQueryData<AnalyticsSignal[]>(signalsQueryKey, (current) => {
+            const existing = current ?? [];
+            if (existing.some((signal) => signal.id === nextSignal.id)) return existing;
+
+            const merged = [nextSignal, ...existing].sort(
+              (left, right) => new Date(right.detected_at).getTime() - new Date(left.detected_at).getTime()
+            );
+            return merged;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeCaseId, liveMode, queryClient, signalsQueryKey, source, sentiment, windowStart]);
 
   const liveSignals = signalsQuery.data ?? [];
   const snapshots = snapshotsQuery.data ?? [];
@@ -220,6 +267,7 @@ export function useAnalyticsData({
       medianLatencyMs,
       latestIngestAt,
       attributionCoverage,
+      liveMode,
     };
 
     return {
@@ -234,7 +282,7 @@ export function useAnalyticsData({
       influencers,
       recentSignals,
     };
-  }, [ingestJob, liveSignals, rules, snapshots]);
+  }, [ingestJob, liveMode, liveSignals, rules, snapshots]);
 
   return {
     signalsQuery,
