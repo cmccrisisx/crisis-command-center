@@ -1,118 +1,127 @@
 
 Goal
-- Stop surfacing stale 2025 stories as if they were current, and give users clear control over how far back monitoring should search and display results.
+- Confirm whether live mentions are flowing now, and fix the Analytics dashboard so unattributed mentions are reduced in the data and clearly handled in the UI.
 
-What is causing the issue now
-- The ingestion function currently calls Firecrawl search without any recency constraint, so old stories can be returned.
-- New signals are stamped with `detectedAt = now()` at ingest time, which makes older articles look freshly discovered.
-- There is no user-controlled monitoring window in tracking rules, case settings, or page-level filters for Signals.
-- Analytics filters only affect what is displayed, not what the crawler/search job asks external sources to return.
+What is confirmed already
+- Realtime plumbing exists in the app:
+  - `NotificationListener` subscribes to `signals` inserts for live alerts.
+  - `Signals` page subscribes to `signals` inserts/updates/deletes.
+  - `useAnalyticsData` subscribes to `signals` inserts when Live Mode is enabled.
+- Recent production data shows the pipeline is active:
+  - latest `ingested_at`: `2026-04-23 05:51:20+00`
+  - latest `detected_at`: `2026-04-23 05:51:19+00`
+  - `81` signals arrived in the last `60 minutes`
+  - `0` signals arrived in the last `15 minutes` at the moment checked
+- So: live mention capability is in place and working, but the feed was not actively receiving brand-new mentions in the last 15 minutes at the exact time of inspection.
+
+Current problem found
+- Analytics still has a large attribution gap:
+  - `234` signals in the current 7-day window
+  - `130` signals missing `matched_keyword` or `tracking_rule_id`
+  - `55.6%` unattributed
+- The dashboard currently groups these under `"Unattributed"` in keyword analytics, which makes the module look broken even when live ingestion itself is functioning.
+
+Why the unattributed issue is still happening
+- `useAnalyticsData` treats any missing `matched_keyword` as `"Unattributed"` and surfaces it in top keyword summaries.
+- The live analytics subscription only listens for `INSERT`, so if a fresh signal is inserted first and repaired moments later by attribution backfill, Analytics may keep showing the stale unattributed version until a refetch.
+- The backfill function only repairs rows it can confidently match from content/url/keywords; anything ambiguous remains null.
+- The recent QA sample shows ingestion runs completing, but many rows are still ending up without final attribution.
 
 Implementation plan
 
-1. Fix freshness at the ingestion source
-- Update `supabase/functions/ingest-signals/index.ts` so search requests include an explicit recency constraint.
-- Use a time-window parameter for each search task so the crawler asks for:
-  - last 24h
-  - last 7d
-  - last 30d
-  - optionally longer presets if needed
-- Prefer using source-published timestamps from search results when available instead of always treating ingestion time as discovery time.
-- Keep `ingested_at` for pipeline timing, but make `detected_at` reflect the story timestamp when that can be determined.
+1. Make live Analytics track attribution repairs, not just new inserts
+- Update `src/components/analytics/useAnalyticsData.ts` to subscribe to both:
+  - `INSERT` on `signals`
+  - `UPDATE` on `signals`
+- On update, patch the cached signal row so when `matched_keyword` / `tracking_rule_id` are filled in by the repair flow, KPIs and keyword panels update immediately.
+- Keep the existing Live Mode behavior, but make it truly realtime for attribution changes as well.
 
-2. Add monitoring-duration settings at all three levels you requested
-- Per keyword/query:
-  - extend `tracking_rules` with a monitoring/lookback preset column
-  - default existing rules to a safe value such as `7d`
-- Per case:
-  - add a case-level default monitoring window on `crises`
-  - use it when a rule does not have its own override
-- Global filter too:
-  - add a page-level “monitoring window” control in Signals and Analytics so users can quickly narrow or widen what they see without editing saved rules
+2. Separate “live mentions confirmed” from “attributed mentions”
+- Extend analytics-derived metrics with:
+  - live mention count in the active window
+  - unattributed mention count
+  - unattributed percentage
+  - attributed mention count
+- Use this to show operators that realtime ingestion is working even when attribution quality needs repair.
 
-3. Define a clear precedence model
-- Implement one consistent rule for how duration is chosen:
+3. Fix KPI and status messaging on the dashboard
+- Update `src/components/analytics/types.ts` and `AnalyticsKpiGrid.tsx` to include:
+  - Attributed mentions
+  - Unattributed mentions
+  - Attribution coverage / gap
+- Update `AnalyticsStatusStrip.tsx` so the attribution badge becomes more explicit, for example:
 ```text
-rule-specific duration
-  -> else case default duration
-  -> else system default duration
+Attribution complete
+Attribution partial
+Attribution critical
 ```
-- Keep the page-level global filter display-only for UI analysis unless the user manually triggers ingestion from that page, in which case the request can optionally pass a temporary override.
+- This makes the issue measurable instead of hiding it inside keyword charts.
 
-4. Upgrade the Tracking Manager UI
-- Extend `src/components/TrackingRuleManager.tsx` so admins can choose a monitoring duration when creating or editing:
-  - brand keywords
-  - competitor keywords
-  - search queries
-- Show the effective monitoring window in the rules table so admins can see which rules are using case defaults versus custom overrides.
-- Add a case-level default duration control in the same management flow or adjacent admin settings area.
+4. Stop “Unattributed” from polluting keyword ranking
+- Update the keyword aggregation in `useAnalyticsData.ts` so:
+  - matched keywords remain in “Top matched keywords”
+  - unattributed rows are counted separately instead of competing with real tracked keywords
+- Keep a dedicated unattributed metric/card so the data is still visible.
+- Result: keyword panels represent actual tracked rules, not a null bucket.
 
-5. Make manual refresh and live monitoring respect duration
-- Update `src/pages/Signals.tsx` manual ingestion trigger so it can optionally send the active global duration override when the user clicks refresh.
-- Keep scheduled ingestion using saved rule/case settings by default.
-- Ensure live alerts still use the same realtime pipeline, but only for newly discovered content inside the effective freshness window.
+5. Improve recent signal visibility
+- Update `AnalyticsDetailPanels.tsx` so recent rows with missing attribution are visually flagged, not silently mixed in.
+- Show a clear label such as:
+  - “Pending attribution”
+  - or “Needs repair”
+- This helps admins distinguish between ingestion success and rule-linking failure.
 
-6. Tighten freshness logic in Analytics
-- Extend `src/hooks/useAnalyticsFilters.ts` and `src/components/analytics/AnalyticsFiltersBar.tsx` so the current time window is clearly visible and aligned with monitoring duration concepts.
-- Differentiate:
-  - monitoring duration = what the system searches externally
-  - analytics range = what the UI displays from stored signals
-- If both are present on the Analytics page, label them clearly so users do not confuse crawl scope with dashboard filtering.
+6. Tighten the live cache behavior after repairs
+- In `useAnalyticsData.ts`, whenever an updated signal becomes attributed:
+  - remove it from the unattributed count
+  - recalculate keyword summaries
+  - refresh recent alerts ordering if needed
+- This ensures the dashboard reflects the same repaired state the database has, without waiting for a hard reload.
 
-7. Preserve and expose publication vs ingestion timing
-- Update analytics and signal detail views to use consistent timestamps:
-  - published/detected time for story freshness
-  - ingested time for pipeline latency
-- This prevents old stories from appearing “new” just because they were recently fetched.
-- Show freshness labels based on actual story recency where possible.
+7. Strengthen the automatic repair path
+- Review and refine `supabase/functions/backfill-signal-attribution/index.ts` so it catches more recent null rows by:
+  - preserving current rule-id and keyword matching logic
+  - broadening normalized content matching carefully
+  - ensuring both partially-null cases are repaired:
+```text
+matched_keyword is null
+tracking_rule_id is null
+either one missing
+```
+- Keep the logic conservative to avoid false attribution.
 
-8. Add safety filters to reduce stale content
-- Add a post-search validation layer in ingestion:
-  - discard results outside the allowed window when the result metadata reveals they are too old
-  - optionally down-rank or skip ambiguous results with no usable timestamp if stricter freshness mode is chosen
-- Keep logging for skipped stale results so admins can confirm the crawler is enforcing freshness.
+8. Add dashboard-safe filtering for keyword comparison
+- Update `KeywordComparisonPanel.tsx` so comparisons are driven by properly attributed signals first.
+- Do not let generic content matching inflate keyword comparisons when attribution fields are missing.
+- This keeps comparison metrics aligned with tracked rules and not accidental text matches.
 
-9. Database and backend changes
-- Create migrations for the new duration fields and any supporting indexes/defaults.
-- Backfill existing records so current rules and cases have valid defaults.
-- Keep RLS intact; this is mostly admin-managed configuration and backend ingestion behavior.
-- If needed, add a small typed helper or RPC/view only for reading effective duration settings in the UI.
-
-10. Production validation
-- Test with the IHS Nigeria case and confirm:
-  - searches no longer return obviously stale 2025 stories when a short window is selected
-  - per-rule overrides work
-  - case defaults apply when rule overrides are absent
-  - Signals global filter changes visible results correctly
-  - Analytics global filter still updates charts/KPIs correctly
-  - live alerts continue to appear for truly recent stories
+9. Validate against production data
+- Re-check production after implementation to confirm:
+  - new inserts appear in Live Mode without delay
+  - post-insert attribution updates are reflected immediately
+  - unattributed count drops after repair runs
+  - top keywords no longer show a dominant “Unattributed” bucket
+  - recent alerts distinguish attributed vs pending-attribution rows correctly
 
 Expected outcome
-- The crawler/search job will prioritize current stories and conversations instead of curating outdated material.
-- Users will be able to control monitoring duration:
-  - per keyword/query
-  - per case
-  - with a global page-level filter
-- Signals and Analytics will better reflect real-world freshness, with timestamps and labels users can trust.
+- The app will clearly demonstrate that live mentions are flowing.
+- Analytics will update not only on new mentions, but also when attribution is repaired moments later.
+- “Unattributed mentions” will become a visible quality metric instead of corrupting keyword dashboards.
+- Operators will be able to trust the keyword charts, KPI cards, and recent alerts again.
 
-Technical details
-- Files likely involved:
-  - `supabase/functions/ingest-signals/index.ts`
-  - `src/components/TrackingRuleManager.tsx`
-  - `src/pages/Signals.tsx`
-  - `src/hooks/useAnalyticsFilters.ts`
-  - `src/components/analytics/AnalyticsFiltersBar.tsx`
+Technical notes
+- Files to update:
   - `src/components/analytics/useAnalyticsData.ts`
-  - `src/pages/Analytics.tsx`
-  - one or more migrations for new duration columns/defaults
-- Data model direction:
+  - `src/components/analytics/types.ts`
+  - `src/components/analytics/AnalyticsKpiGrid.tsx`
+  - `src/components/analytics/AnalyticsStatusStrip.tsx`
+  - `src/components/analytics/AnalyticsDetailPanels.tsx`
+  - `src/components/analytics/KeywordComparisonPanel.tsx`
+  - possibly `supabase/functions/backfill-signal-attribution/index.ts`
+- Core fix:
 ```text
-tracking_rules.monitoring_window (optional override)
-crises.default_monitoring_window
-UI global filter = temporary display/runtime override
-```
-- Freshness rule:
-```text
-published/detected time = story recency
-ingested_at = pipeline timing
+signals INSERT -> show live mention immediately
+signals UPDATE -> patch attribution in cache immediately
+dashboard KPIs -> split attributed vs unattributed
+keyword views -> exclude null attribution from ranked keyword buckets
 ```
