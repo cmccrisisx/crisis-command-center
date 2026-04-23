@@ -822,6 +822,35 @@ export function TrackingRuleManager({
         <StatPill label="Updated today" value={String(recentUpdatesCount)} helper="Rules changed in the last 24h" />
       </div>
 
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">Case default monitoring window</p>
+            <p className="text-sm text-foreground">{selectedCaseForDefaults?.title ?? "Select a case"}</p>
+            <p className="text-xs text-muted-foreground">Rules set to inherit will crawl using this case-wide duration.</p>
+          </div>
+          <Select
+            value={selectedCaseForDefaults?.default_monitoring_window ?? "7d"}
+            onValueChange={(value: MonitoringWindow) => {
+              if (!selectedCaseForDefaults) return;
+              updateCaseWindowMutation.mutate({ crisisId: selectedCaseForDefaults.id, value });
+            }}
+            disabled={!selectedCaseForDefaults || updateCaseWindowMutation.isPending}
+          >
+            <SelectTrigger className="w-full bg-card font-mono text-xs lg:w-[220px]">
+              <SelectValue placeholder="Case window" />
+            </SelectTrigger>
+            <SelectContent>
+              {MONITORING_WINDOW_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="font-mono text-xs">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {!hasRules ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
