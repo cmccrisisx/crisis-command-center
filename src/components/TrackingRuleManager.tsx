@@ -745,8 +745,23 @@ export function TrackingRuleManager({
     },
   });
 
+  const updateCaseWindowMutation = useMutation({
+    mutationFn: async ({ crisisId, value }: { crisisId: string; value: MonitoringWindow }) => {
+      const { error } = await supabase.from("crises").update({ default_monitoring_window: value }).eq("id", crisisId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Case monitoring window updated");
+      invalidateRules();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update case window");
+    },
+  });
+
   const formCopy = getRuleTypeCopy(formState.rule_type);
   const hasRules = rules.length > 0;
+  const selectedCaseForDefaults = crises.find((crisis) => crisis.id === (caseFilter === "all" ? crises[0]?.id : caseFilter)) ?? null;
 
   const toggleCompareRule = (rule: TrackingRuleRow, checked: boolean) => {
     if (rule.rule_type !== "keyword") return;
