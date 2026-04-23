@@ -42,6 +42,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          default_monitoring_window: Database["public"]["Enums"]["monitoring_window"]
           description: string
           detected_at: string
           id: string
@@ -57,6 +58,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          default_monitoring_window?: Database["public"]["Enums"]["monitoring_window"]
           description?: string
           detected_at?: string
           id?: string
@@ -72,6 +74,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          default_monitoring_window?: Database["public"]["Enums"]["monitoring_window"]
           description?: string
           detected_at?: string
           id?: string
@@ -479,6 +482,9 @@ export type Database = {
           id: string
           is_active: boolean
           label: string | null
+          monitoring_window:
+            | Database["public"]["Enums"]["monitoring_window"]
+            | null
           notes: string | null
           platform: string
           priority: number
@@ -493,6 +499,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string | null
+          monitoring_window?:
+            | Database["public"]["Enums"]["monitoring_window"]
+            | null
           notes?: string | null
           platform?: string
           priority?: number
@@ -507,6 +516,9 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string | null
+          monitoring_window?:
+            | Database["public"]["Enums"]["monitoring_window"]
+            | null
           notes?: string | null
           platform?: string
           priority?: number
@@ -656,6 +668,10 @@ export type Database = {
           schedule: string
         }[]
       }
+      get_effective_monitoring_window: {
+        Args: { _crisis_id: string; _rule_id?: string }
+        Returns: Database["public"]["Enums"]["monitoring_window"]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -688,6 +704,7 @@ export type Database = {
         | "recovering"
         | "resolved"
       crisis_type: "pr" | "regulatory" | "operational"
+      monitoring_window: "24h" | "7d" | "30d" | "90d"
       response_template_type: "holding" | "apology" | "clarification"
       risk_level: "low" | "medium" | "high" | "critical"
       sentiment_type: "positive" | "neutral" | "negative"
@@ -836,6 +853,7 @@ export const Constants = {
         "resolved",
       ],
       crisis_type: ["pr", "regulatory", "operational"],
+      monitoring_window: ["24h", "7d", "30d", "90d"],
       response_template_type: ["holding", "apology", "clarification"],
       risk_level: ["low", "medium", "high", "critical"],
       sentiment_type: ["positive", "neutral", "negative"],

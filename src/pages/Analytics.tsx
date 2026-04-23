@@ -14,8 +14,8 @@ import { useActiveCase } from "@/hooks/useActiveCase";
 export default function Analytics() {
   usePageTitle("Analytics");
   const { activeCaseId, activeCase } = useActiveCase();
-  const { range, source, sentiment, liveMode, windowStart, setRange, setSource, setSentiment, setLiveMode } = useAnalyticsFilters();
-  const analytics = useAnalyticsData({ activeCaseId, windowStart, source, sentiment, liveMode });
+  const { range, source, sentiment, monitoringWindow, liveMode, windowStart, monitoringWindowStart, setRange, setSource, setSentiment, setMonitoringWindow, setLiveMode } = useAnalyticsFilters();
+  const analytics = useAnalyticsData({ activeCaseId, windowStart, monitoringWindowStart, source, sentiment, liveMode });
   const isLoading = analytics.signalsQuery.isLoading || analytics.snapshotsQuery.isLoading || analytics.trackingRulesQuery.isLoading;
 
   const caseTitle = activeCase?.title ?? "All cases";
@@ -37,10 +37,12 @@ export default function Analytics() {
           range={range}
           source={source}
           sentiment={sentiment}
+          monitoringWindow={monitoringWindow}
           liveMode={liveMode}
           onRangeChange={setRange}
           onSourceChange={setSource}
           onSentimentChange={setSentiment}
+          onMonitoringWindowChange={setMonitoringWindow}
           onLiveModeChange={setLiveMode}
         />
 
@@ -49,6 +51,7 @@ export default function Analytics() {
           lastRun={analytics.lastRun}
           freshnessStatus={analytics.freshnessStatus}
           attributionCoverage={analytics.kpis.attributionCoverage}
+          monitoringWindowLabel={monitoringWindow}
         />
 
         <AnalyticsKpiGrid kpis={analytics.kpis} isLoading={isLoading} />
@@ -80,6 +83,7 @@ export default function Analytics() {
           rangeLabel={rangeLabel}
           sourceLabel={sourceLabel}
           sentimentLabel={sentimentLabel}
+          monitoringWindowLabel={monitoringWindow}
           kpis={analytics.kpis}
           topKeywords={analytics.topKeywords}
         />

@@ -17,6 +17,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
 import { useActiveCase } from "@/hooks/useActiveCase";
 import { useAuth } from "@/hooks/useAuth";
+import { MONITORING_WINDOW_OPTIONS, formatMonitoringWindow, getMonitoringWindowStart, type MonitoringWindow } from "@/lib/monitoring-window";
 import { Link } from "react-router-dom";
 
 type Signal = Tables<"signals">;
@@ -45,6 +46,7 @@ export default function Signals() {
   const [realtimeCount, setRealtimeCount] = useState(0);
   const [isIngesting, setIsIngesting] = useState(false);
   const [readerSignal, setReaderSignal] = useState<Signal | null>(null);
+  const [monitoringWindow, setMonitoringWindow] = useState<MonitoringWindow>("7d");
 
   const handleRefreshSignals = async () => {
     setIsIngesting(true);
@@ -55,7 +57,7 @@ export default function Signals() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify(activeCaseId ? { crisisId: activeCaseId } : {}),
+        body: JSON.stringify({ ...(activeCaseId ? { crisisId: activeCaseId } : {}), monitoringWindow }),
       });
       const data = await resp.json();
       if (data.success) {
@@ -131,8 +133,10 @@ export default function Signals() {
     if (sentimentFilters.length > 0) {
       result = result.filter((s) => sentimentFilters.includes(s.sentiment));
     }
+    const minDetectedAt = new Date(getMonitoringWindowStart(monitoringWindow)).getTime();
+    result = result.filter((s) => new Date(s.detected_at).getTime() >= minDetectedAt);
     return result;
-  }, [signals, searchQuery, sourceFilters, sentimentFilters]);
+  }, [signals, searchQuery, sourceFilters, sentimentFilters, monitoringWindow]);
 
   const sourceCounts = SOURCE_OPTIONS.map((source) => ({
     source,
@@ -159,6 +163,9 @@ export default function Signals() {
             <h1 className="text-2xl font-mono font-bold tracking-tight">Signal Detection</h1>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>{activeCase ? `Case: ${activeCase.title}` : "Real-time monitoring across all channels"}</span>
+              <Badge variant="secondary" className="text-[10px] font-mono h-5 px-1.5">
+                Monitoring {formatMonitoringWindow(monitoringWindow)}
+              </Badge>
               <Badge variant="outline" className="text-[10px] font-mono h-5 px-1.5">
                 <Clock3 className="mr-1 h-3 w-3" />
                 {freshnessLabel(latestSignalAt)}
@@ -188,6 +195,30 @@ export default function Signals() {
               <RefreshCw className={`h-3 w-3 mr-1.5 ${isIngesting ? "animate-spin" : ""}`} />
               {isIngesting ? "Ingesting…" : "Refresh Signals"}
             </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs font-mono">
+                  <Clock3 className="h-3 w-3 mr-1.5" />
+                  {formatMonitoringWindow(monitoringWindow)}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-60 p-2" align="end">
+                <div className="space-y-1">
+                  {MONITORING_WINDOW_OPTIONS.map((option) => (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={monitoringWindow === option.value ? "secondary" : "ghost"}
+                      className="h-auto w-full justify-between px-2 py-2 text-left"
+                      onClick={() => setMonitoringWindow(option.value)}
+                    >
+                      <span className="font-mono text-xs uppercase tracking-wider">{option.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{option.helper}</span>
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input

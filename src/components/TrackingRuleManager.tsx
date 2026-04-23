@@ -45,6 +45,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { LiveMonitoringPanel } from "@/components/LiveMonitoringPanel";
+import { MONITORING_WINDOW_OPTIONS, formatMonitoringWindow, type MonitoringWindow } from "@/lib/monitoring-window";
 import { cn } from "@/lib/utils";
 
 type RuleType = "keyword" | "query";
@@ -56,6 +57,7 @@ type KeywordSegment = "brand" | "competitor";
 interface CrisisOption {
   id: string;
   title: string;
+  default_monitoring_window: MonitoringWindow;
 }
 
 interface TrackingRuleRow {
@@ -71,6 +73,7 @@ interface TrackingRuleRow {
   updated_at: string;
   created_at: string;
   created_by: string | null;
+  monitoring_window: MonitoringWindow | null;
   crisis: CrisisOption | null;
 }
 
@@ -83,6 +86,7 @@ interface TrackingRuleFormState {
   notes: string;
   is_active: boolean;
   priority: string;
+  monitoring_window: MonitoringWindow | "inherit";
 }
 
 interface TrackingRuleManagerProps {
@@ -111,6 +115,7 @@ const DEFAULT_TRACKING_RULE_FORM: TrackingRuleFormState = {
   notes: "",
   is_active: true,
   priority: "100",
+  monitoring_window: "inherit",
 };
 
 const normalizeRuleText = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
@@ -149,6 +154,7 @@ const trackingRuleSchema = z
     notes: z.string().trim().max(500, "Notes must be 500 characters or less").optional(),
     is_active: z.boolean(),
     priority: z.coerce.number().int().min(0, "Priority must be 0 or greater").max(9999, "Priority must be 9999 or less"),
+    monitoring_window: z.enum(["inherit", "24h", "7d", "30d", "90d"]),
   })
   .superRefine((data, ctx) => {
     if (!normalizeRuleText(data.rule_text)) {
@@ -339,7 +345,7 @@ export function TrackingRuleManager({
   const { data: crises = [], isLoading: crisesLoading } = useQuery({
     queryKey: ["tracking-rule-cases"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("crises").select("id, title").order("title");
+      const { data, error } = await supabase.from("crises").select("id, title, default_monitoring_window").order("title");
       if (error) throw error;
       return (data ?? []) as CrisisOption[];
     },
@@ -350,7 +356,7 @@ export function TrackingRuleManager({
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TRACKING_RULES_TABLE)
-        .select("id, crisis_id, platform, rule_type, rule_text, label, notes, is_active, priority, updated_at, created_at, created_by, crises(id, title)")
+        .select("id, crisis_id, platform, rule_type, rule_text, label, notes, is_active, priority, updated_at, created_at, created_by, monitoring_window, crises(id, title, default_monitoring_window)")
         .order("priority", { ascending: true })
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -374,6 +380,7 @@ export function TrackingRuleManager({
           updated_at: String(row.updated_at ?? ""),
           created_at: String(row.created_at ?? ""),
           created_by: (row.created_by as string | null) ?? null,
+          monitoring_window: (row.monitoring_window as MonitoringWindow | null) ?? null,
           crisis,
         } satisfies TrackingRuleRow;
       });
@@ -450,6 +457,7 @@ export function TrackingRuleManager({
       notes: rule.notes ?? "",
       is_active: rule.is_active,
       priority: String(rule.priority),
+      monitoring_window: rule.monitoring_window ?? "inherit",
     });
     setSheetOpen(true);
   };
@@ -470,6 +478,7 @@ export function TrackingRuleManager({
       notes: rule.notes ?? "",
       is_active: false,
       priority: String(rule.priority + 10),
+      monitoring_window: rule.monitoring_window ?? "inherit",
     });
     setSheetOpen(true);
   };
@@ -615,6 +624,7 @@ export function TrackingRuleManager({
           notes: payload.notes.trim() || null,
           is_active: payload.is_active,
           priority: parsedPriority.data,
+          monitoring_window: payload.monitoring_window === "inherit" ? null : payload.monitoring_window,
         }));
 
         const { error } = await supabase.from(TRACKING_RULES_TABLE).insert(insertRows);
@@ -664,6 +674,7 @@ export function TrackingRuleManager({
         notes: parsed.data.notes ?? null,
         is_active: parsed.data.is_active,
         priority: parsed.data.priority,
+        monitoring_window: parsed.data.monitoring_window === "inherit" ? null : parsed.data.monitoring_window,
       };
 
       if (editingRule) {
@@ -734,8 +745,23 @@ export function TrackingRuleManager({
     },
   });
 
+  const updateCaseWindowMutation = useMutation({
+    mutationFn: async ({ crisisId, value }: { crisisId: string; value: MonitoringWindow }) => {
+      const { error } = await supabase.from("crises").update({ default_monitoring_window: value }).eq("id", crisisId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Case monitoring window updated");
+      invalidateRules();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update case window");
+    },
+  });
+
   const formCopy = getRuleTypeCopy(formState.rule_type);
   const hasRules = rules.length > 0;
+  const selectedCaseForDefaults = crises.find((crisis) => crisis.id === (caseFilter === "all" ? crises[0]?.id : caseFilter)) ?? null;
 
   const toggleCompareRule = (rule: TrackingRuleRow, checked: boolean) => {
     if (rule.rule_type !== "keyword") return;
@@ -795,6 +821,35 @@ export function TrackingRuleManager({
         <StatPill label="Cases covered" value={String(casesCoveredCount)} helper="Cases with at least one rule" />
         <StatPill label="Updated today" value={String(recentUpdatesCount)} helper="Rules changed in the last 24h" />
       </div>
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">Case default monitoring window</p>
+            <p className="text-sm text-foreground">{selectedCaseForDefaults?.title ?? "Select a case"}</p>
+            <p className="text-xs text-muted-foreground">Rules set to inherit will crawl using this case-wide duration.</p>
+          </div>
+          <Select
+            value={selectedCaseForDefaults?.default_monitoring_window ?? "7d"}
+            onValueChange={(value: MonitoringWindow) => {
+              if (!selectedCaseForDefaults) return;
+              updateCaseWindowMutation.mutate({ crisisId: selectedCaseForDefaults.id, value });
+            }}
+            disabled={!selectedCaseForDefaults || updateCaseWindowMutation.isPending}
+          >
+            <SelectTrigger className="w-full bg-card font-mono text-xs lg:w-[220px]">
+              <SelectValue placeholder="Case window" />
+            </SelectTrigger>
+            <SelectContent>
+              {MONITORING_WINDOW_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="font-mono text-xs">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       {!hasRules ? (
         <Card>
@@ -914,6 +969,7 @@ export function TrackingRuleManager({
                     <TableHead className="w-[20%]">Case</TableHead>
                     <TableHead className="w-[10%]">Type</TableHead>
                     <TableHead className="w-[12%]">Platform</TableHead>
+                    <TableHead className="w-[12%]">Window</TableHead>
                     <TableHead>Rule</TableHead>
                     <TableHead className="w-[10%] text-right">Priority</TableHead>
                     <TableHead className="w-[12%]">Status</TableHead>
@@ -955,6 +1011,11 @@ export function TrackingRuleManager({
                             </Badge>
                           </TableCell>
                           <TableCell className="align-top">
+                            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
+                              {rule.monitoring_window ? formatMonitoringWindow(rule.monitoring_window) : `${formatMonitoringWindow(rule.crisis?.default_monitoring_window ?? "7d")} case`}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="align-top">
                             <div className="space-y-1">
                               <p className="break-words text-sm text-foreground">{rule.rule_text}</p>
                               {rule.notes && <p className="line-clamp-2 text-xs text-muted-foreground">{rule.notes}</p>}
@@ -989,7 +1050,7 @@ export function TrackingRuleManager({
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
+                      <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -1164,6 +1225,26 @@ export function TrackingRuleManager({
                         <Label className="text-xs font-mono uppercase tracking-wider">Priority</Label>
                         <Input type="number" inputMode="numeric" min={0} max={9999} value={formState.priority} onChange={(e) => setFormState((prev) => ({ ...prev, priority: e.target.value }))} className="bg-card font-mono text-sm" />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-mono uppercase tracking-wider">Monitoring window</Label>
+                      <Select value={formState.monitoring_window} onValueChange={(value: TrackingRuleFormState["monitoring_window"]) => setFormState((prev) => ({ ...prev, monitoring_window: value }))}>
+                        <SelectTrigger className="bg-card font-mono text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="inherit" className="font-mono text-xs">
+                            Inherit case default ({formatMonitoringWindow(crises.find((crisis) => crisis.id === formState.crisis_id)?.default_monitoring_window ?? "7d")})
+                          </SelectItem>
+                          {MONITORING_WINDOW_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="font-mono text-xs">
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">Rule override wins over the case default; leave inherited to keep one case-wide monitoring policy.</p>
                     </div>
 
                     <div className="space-y-2">

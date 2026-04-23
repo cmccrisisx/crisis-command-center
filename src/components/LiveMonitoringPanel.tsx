@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatMonitoringWindow, type MonitoringWindow } from "@/lib/monitoring-window";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type CrisisOption = {
   id: string;
   title: string;
+  default_monitoring_window: MonitoringWindow;
 };
 
 type RuleSummary = {
@@ -289,6 +291,11 @@ export function LiveMonitoringPanel({
           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
             {monitorCase?.title ?? "Select a case"}
           </Badge>
+          {monitorCase ? (
+            <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wide">
+              monitoring {formatMonitoringWindow(monitorCase.default_monitoring_window)}
+            </Badge>
+          ) : null}
           <Badge
             variant="outline"
             className={cn(

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { AnalyticsKpis, AnalyticsSignal, AnalyticsSnapshot } from "@/components/analytics/types";
 import type { SentimentFilter, SignalSourceFilter } from "@/hooks/useAnalyticsFilters";
+import { getMoreRecentWindowStart } from "@/lib/monitoring-window";
 
 type CronJob = {
   jobid: number;
@@ -26,11 +27,12 @@ function parseScheduleIntervalMinutes(schedule?: string | null) {
   return null;
 }
 
-function buildSignalsQuery(activeCaseId: string | null, windowStart: string, source: SignalSourceFilter, sentiment: SentimentFilter) {
+function buildSignalsQuery(activeCaseId: string | null, windowStart: string, monitoringWindowStart: string, source: SignalSourceFilter, sentiment: SentimentFilter) {
+  const effectiveStart = getMoreRecentWindowStart(windowStart, monitoringWindowStart);
   let query = supabase
     .from("signals")
     .select("id, crisis_id, source, author, author_followers, content, created_at, sentiment, reach, is_influencer, keywords, matched_keyword, tracking_rule_id, detected_at, ingested_at, source_url")
-    .gte("detected_at", windowStart)
+    .gte("detected_at", effectiveStart)
     .order("detected_at", { ascending: false });
 
   if (activeCaseId) query = query.eq("crisis_id", activeCaseId);
@@ -40,8 +42,8 @@ function buildSignalsQuery(activeCaseId: string | null, windowStart: string, sou
   return query;
 }
 
-function signalMatchesFilters(signal: AnalyticsSignal, windowStart: string, source: SignalSourceFilter, sentiment: SentimentFilter) {
-  if (new Date(signal.detected_at).getTime() < new Date(windowStart).getTime()) return false;
+function signalMatchesFilters(signal: AnalyticsSignal, windowStart: string, monitoringWindowStart: string, source: SignalSourceFilter, sentiment: SentimentFilter) {
+  if (new Date(signal.detected_at).getTime() < new Date(getMoreRecentWindowStart(windowStart, monitoringWindowStart)).getTime()) return false;
   if (source !== "all" && signal.source !== source) return false;
   if (sentiment !== "all" && signal.sentiment !== sentiment) return false;
   return true;
@@ -50,22 +52,24 @@ function signalMatchesFilters(signal: AnalyticsSignal, windowStart: string, sour
 export function useAnalyticsData({
   activeCaseId,
   windowStart,
+  monitoringWindowStart,
   source,
   sentiment,
   liveMode,
 }: {
   activeCaseId: string | null;
   windowStart: string;
+  monitoringWindowStart: string;
   source: SignalSourceFilter;
   sentiment: SentimentFilter;
   liveMode: boolean;
 }) {
   const queryClient = useQueryClient();
-  const signalsQueryKey = ["analytics-signals-v2", activeCaseId ?? "all", windowStart, source, sentiment] as const;
+  const signalsQueryKey = ["analytics-signals-v2", activeCaseId ?? "all", windowStart, monitoringWindowStart, source, sentiment] as const;
   const signalsQuery = useQuery({
     queryKey: signalsQueryKey,
     queryFn: async () => {
-      const { data, error } = await buildSignalsQuery(activeCaseId, windowStart, source, sentiment);
+      const { data, error } = await buildSignalsQuery(activeCaseId, windowStart, monitoringWindowStart, source, sentiment);
       if (error) throw error;
       return (data ?? []) as AnalyticsSignal[];
     },
@@ -125,7 +129,7 @@ export function useAnalyticsData({
         },
         (payload) => {
           const nextSignal = payload.new as AnalyticsSignal;
-          if (!signalMatchesFilters(nextSignal, windowStart, source, sentiment)) return;
+          if (!signalMatchesFilters(nextSignal, windowStart, monitoringWindowStart, source, sentiment)) return;
 
           queryClient.setQueryData<AnalyticsSignal[]>(signalsQueryKey, (current) => {
             const existing = current ?? [];
@@ -143,7 +147,7 @@ export function useAnalyticsData({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeCaseId, liveMode, queryClient, signalsQueryKey, source, sentiment, windowStart]);
+  }, [activeCaseId, liveMode, monitoringWindowStart, queryClient, signalsQueryKey, source, sentiment, windowStart]);
 
   const liveSignals = signalsQuery.data ?? [];
   const snapshots = snapshotsQuery.data ?? [];
