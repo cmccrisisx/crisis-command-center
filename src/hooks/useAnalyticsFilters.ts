@@ -46,7 +46,7 @@ export function useAnalyticsFilters() {
     [range, source, sentiment, liveMode]
   );
 
-  const updateFilter = (key: "range" | "source" | "sentiment", value: string) => {
+  const updateFilter = (key: "range" | "source" | "sentiment" | "live", value: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
