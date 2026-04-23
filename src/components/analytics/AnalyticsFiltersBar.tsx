@@ -2,7 +2,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { AnalyticsRangePreset, SentimentFilter, SignalSourceFilter } from "@/hooks/useAnalyticsFilters";
+import type { AnalyticsRangePreset, MonitoringWindow, SentimentFilter, SignalSourceFilter } from "@/hooks/useAnalyticsFilters";
+import { MONITORING_WINDOW_OPTIONS } from "@/lib/monitoring-window";
 
 const SOURCE_OPTIONS: Array<{ value: SignalSourceFilter; label: string }> = [
   { value: "all", label: "All sources" },
@@ -29,19 +30,23 @@ export function AnalyticsFiltersBar({
   range,
   source,
   sentiment,
+  monitoringWindow,
   liveMode,
   onRangeChange,
   onSourceChange,
   onSentimentChange,
+  onMonitoringWindowChange,
   onLiveModeChange,
 }: {
   range: AnalyticsRangePreset;
   source: SignalSourceFilter;
   sentiment: SentimentFilter;
+  monitoringWindow: MonitoringWindow;
   liveMode: boolean;
   onRangeChange: (value: AnalyticsRangePreset) => void;
   onSourceChange: (value: SignalSourceFilter) => void;
   onSentimentChange: (value: SentimentFilter) => void;
+  onMonitoringWindowChange: (value: MonitoringWindow) => void;
   onLiveModeChange: (value: boolean) => void;
 }) {
   return (
@@ -49,7 +54,7 @@ export function AnalyticsFiltersBar({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">Scoped analytics</Badge>
-          <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">Live data only</Badge>
+          <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">Monitoring window {monitoringWindow}</Badge>
           <div className="ml-1 inline-flex items-center gap-2 rounded-sm border border-border bg-surface-elevated px-2 py-1.5">
             <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Live mode</span>
             <Switch checked={liveMode} onCheckedChange={onLiveModeChange} aria-label="Toggle live analytics mode" />
@@ -63,6 +68,19 @@ export function AnalyticsFiltersBar({
             </SelectTrigger>
             <SelectContent>
               {RANGE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-xs font-mono">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={monitoringWindow} onValueChange={(value) => onMonitoringWindowChange(value as MonitoringWindow)}>
+            <SelectTrigger className="h-8 w-[170px] text-xs font-mono">
+              <SelectValue placeholder="Monitoring window" />
+            </SelectTrigger>
+            <SelectContent>
+              {MONITORING_WINDOW_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value} className="text-xs font-mono">
                   {option.label}
                 </SelectItem>
@@ -100,6 +118,7 @@ export function AnalyticsFiltersBar({
             onRangeChange("7d");
             onSourceChange("all");
             onSentimentChange("all");
+            onMonitoringWindowChange("7d");
             onLiveModeChange(false);
           }}>
             Reset
