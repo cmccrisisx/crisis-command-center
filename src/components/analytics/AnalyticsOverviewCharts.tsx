@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "@/lib/recharts";
 
@@ -14,11 +15,13 @@ const SOURCE_COLORS = ["hsl(var(--primary))", "hsl(var(--crisis-blue))", "hsl(va
 
 export function AnalyticsOverviewCharts({
   isLoading,
+  liveMode,
   sentimentTimeline,
   mentionTimeline,
   sourceMix,
 }: {
   isLoading: boolean;
+  liveMode: boolean;
   sentimentTimeline: Array<{ time: string; positive: number; neutral: number; negative: number }>;
   mentionTimeline: Array<{ time: string; volume: number }>;
   sourceMix: Array<{ source: string; volume: number }>;
@@ -110,7 +113,10 @@ export function AnalyticsOverviewCharts({
       {panels.map((panel) => (
         <Card key={panel.title}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-wider">{panel.title}</CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-sm font-mono uppercase tracking-wider">{panel.title}</CardTitle>
+              {liveMode ? <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">Live</Badge> : null}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="h-64">{panel.content}</div>
