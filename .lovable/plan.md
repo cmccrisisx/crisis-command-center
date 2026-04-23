@@ -1,142 +1,118 @@
 
 Goal
-- Turn Analytics into a production-ready module with trustworthy case-level metrics, keyword attribution, live freshness visibility, and validation checks so the numbers shown in the UI match what the monitoring pipeline is actually producing.
+- Stop surfacing stale 2025 stories as if they were current, and give users clear control over how far back monitoring should search and display results.
 
-What needs improvement today
-- The current Analytics page only shows four basic panels plus keyword comparison.
-- It pulls full table datasets client-side and computes metrics in the browser, which will not scale well.
-- Keyword comparison currently falls back to text matching in signal content instead of using reliable matched-keyword attribution.
-- Recent database rows show `matched_keyword` and `tracking_rule_id` are still null on live signals, so traceable keyword analytics is not yet dependable.
-- Snapshot fields such as `share_of_voice` are currently synthetic/hardcoded, which makes some analytics look complete without being production-accurate.
-- There is no date-range control, no export-ready analytics summary, and no production QA flow for validating ingestion-to-chart correctness.
+What is causing the issue now
+- The ingestion function currently calls Firecrawl search without any recency constraint, so old stories can be returned.
+- New signals are stamped with `detectedAt = now()` at ingest time, which makes older articles look freshly discovered.
+- There is no user-controlled monitoring window in tracking rules, case settings, or page-level filters for Signals.
+- Analytics filters only affect what is displayed, not what the crawler/search job asks external sources to return.
 
 Implementation plan
 
-1. Rework the Analytics page into a real module
-- Replace the current single-grid layout with a structured analytics dashboard:
-  - KPI header row
-  - trend charts
-  - keyword intelligence
-  - source / sentiment / influencer sections
-  - live freshness + data quality status
-- Add clear loading, empty, and error states for every section.
-- Keep the current visual system: dark terminal aesthetic, mono labels, sharp cards, compact data-heavy layout.
+1. Fix freshness at the ingestion source
+- Update `supabase/functions/ingest-signals/index.ts` so search requests include an explicit recency constraint.
+- Use a time-window parameter for each search task so the crawler asks for:
+  - last 24h
+  - last 7d
+  - last 30d
+  - optionally longer presets if needed
+- Prefer using source-published timestamps from search results when available instead of always treating ingestion time as discovery time.
+- Keep `ingested_at` for pipeline timing, but make `detected_at` reflect the story timestamp when that can be determined.
 
-2. Add production-grade filtering and scoping
-- Add analytics controls for:
-  - case selector support via existing active-case context
-  - date range presets (24h, 7d, 30d, custom-ready structure)
-  - source filter
-  - sentiment filter
-- Make all widgets respond to the same filter state so charts, KPIs, and tables stay consistent.
+2. Add monitoring-duration settings at all three levels you requested
+- Per keyword/query:
+  - extend `tracking_rules` with a monitoring/lookback preset column
+  - default existing rules to a safe value such as `7d`
+- Per case:
+  - add a case-level default monitoring window on `crises`
+  - use it when a rule does not have its own override
+- Global filter too:
+  - add a page-level “monitoring window” control in Signals and Analytics so users can quickly narrow or widen what they see without editing saved rules
 
-3. Replace client-heavy calculations with reliable aggregated queries
-- Move core metrics away from “fetch everything and reduce in React” toward targeted queries and grouped data retrieval.
-- Build analytics data loaders for:
-  - KPI totals
-  - sentiment-over-time series
-  - platform/source distribution
-  - keyword performance
-  - influencer leaderboard
-  - recent matched alerts / freshness
-- Keep React Query, but split large page queries into stable, reusable hooks so the page remains responsive.
-
-4. Fix keyword attribution before expanding keyword analytics
-- Update the ingestion pipeline so every new signal consistently stores:
-  - `matched_keyword`
-  - `tracking_rule_id`
-  - `ingested_at`
-- Verify the insertion path is actually writing those fields in production, since current live rows show they are null.
-- Add a backfill strategy for recent signals where attribution can be deterministically recovered from tracking rules and URLs/content.
-- Update Analytics to prioritize these fields instead of content substring matching.
-
-5. Expand the analytics feature set
-- Add KPI cards for:
-  - total mentions
-  - negative share
-  - positive share
-  - estimated reach
-  - active tracked keywords
-  - last ingest freshness
-  - median pipeline latency
-- Add richer charting:
-  - sentiment trend over time
-  - mention volume over time
-  - source mix
-  - top matched keywords
-  - keyword spike / momentum view
-  - influencer impact with sentiment and reach
-- Add a recent matched-signals table showing:
-  - matched keyword
-  - source
-  - sentiment
-  - author
-  - detected time
-  - ingest latency
-  - source link
-
-6. Make “analytics truthfulness” visible in the UI
-- Add a small data-quality/status strip showing:
-  - scheduler cadence
-  - last successful ingest
-  - freshness health
-  - whether keyword attribution is complete or partial
-- Reuse the existing live monitoring concepts already present in Tracking Manager, but adapt them for analytics operators.
-- If a metric is derived from placeholder logic, label it clearly until replaced with production-grade computation.
-
-7. Correct incomplete or placeholder metric logic
-- Replace hardcoded / pseudo values where possible, especially:
-  - `share_of_voice`
-  - overly heuristic reach-only summaries
-  - keyword comparison based on plain content matching
-- Tighten how influencer ranking, sentiment mix, and spike score are computed so they are case-aware and time-range-aware.
-- Ensure charts use consistent timestamps (`detected_at` vs `ingested_at`) depending on the metric purpose.
-
-8. Add analytics export/readout support
-- Add a compact “export analytics snapshot” or “send to reports” flow so a filtered analytics view can become a report section.
-- Reuse the existing report/PDF pattern, but feed it real analytics summaries instead of generic text.
-- Include selected filters in the exported output so results are auditable.
-
-9. Production testing and verification
-- Validate end-to-end for at least one live case, especially IHS Nigeria:
-  - tracking rules exist
-  - ingest job runs on cadence
-  - signals are inserted
-  - keyword attribution fields populate
-  - snapshots update
-  - analytics widgets reflect the same counts as the database
-- Test edge cases:
-  - no case selected
-  - no signals in range
-  - only one source
-  - no influencer rows
-  - delayed ingest / stale freshness
-- Perform UI QA across dashboard, analytics, signals, and tracking-manager handoff so filters and compare links stay aligned.
-
-Files likely involved
-- `src/pages/Analytics.tsx`
-- `src/components/analytics/KeywordComparisonPanel.tsx`
-- new analytics-specific components/hooks for KPI cards, filters, charts, tables
-- `src/components/LiveMonitoringPanel.tsx` for shared freshness/status patterns
-- `supabase/functions/ingest-signals/index.ts`
-- one or more migrations only if needed for backfill helpers, indexes, or analytics-oriented DB functions/views
-
-Technical notes
-- Existing ingestion logs confirm live searches are running for the new IHS Nigeria keywords.
-- Existing signals table schema already supports `matched_keyword`, `tracking_rule_id`, and `ingested_at`, but current live rows still show null values, so implementation must verify and repair the write path and/or historical data.
-- Current analytics accuracy is limited more by data quality and aggregation strategy than by chart components.
-- The safest production path is:
+3. Define a clear precedence model
+- Implement one consistent rule for how duration is chosen:
 ```text
-tracking_rules
-  -> ingest-signals
-  -> signals with keyword attribution
-  -> snapshots / aggregates
-  -> analytics queries
-  -> reports/export
+rule-specific duration
+  -> else case default duration
+  -> else system default duration
 ```
+- Keep the page-level global filter display-only for UI analysis unless the user manually triggers ingestion from that page, in which case the request can optionally pass a temporary override.
+
+4. Upgrade the Tracking Manager UI
+- Extend `src/components/TrackingRuleManager.tsx` so admins can choose a monitoring duration when creating or editing:
+  - brand keywords
+  - competitor keywords
+  - search queries
+- Show the effective monitoring window in the rules table so admins can see which rules are using case defaults versus custom overrides.
+- Add a case-level default duration control in the same management flow or adjacent admin settings area.
+
+5. Make manual refresh and live monitoring respect duration
+- Update `src/pages/Signals.tsx` manual ingestion trigger so it can optionally send the active global duration override when the user clicks refresh.
+- Keep scheduled ingestion using saved rule/case settings by default.
+- Ensure live alerts still use the same realtime pipeline, but only for newly discovered content inside the effective freshness window.
+
+6. Tighten freshness logic in Analytics
+- Extend `src/hooks/useAnalyticsFilters.ts` and `src/components/analytics/AnalyticsFiltersBar.tsx` so the current time window is clearly visible and aligned with monitoring duration concepts.
+- Differentiate:
+  - monitoring duration = what the system searches externally
+  - analytics range = what the UI displays from stored signals
+- If both are present on the Analytics page, label them clearly so users do not confuse crawl scope with dashboard filtering.
+
+7. Preserve and expose publication vs ingestion timing
+- Update analytics and signal detail views to use consistent timestamps:
+  - published/detected time for story freshness
+  - ingested time for pipeline latency
+- This prevents old stories from appearing “new” just because they were recently fetched.
+- Show freshness labels based on actual story recency where possible.
+
+8. Add safety filters to reduce stale content
+- Add a post-search validation layer in ingestion:
+  - discard results outside the allowed window when the result metadata reveals they are too old
+  - optionally down-rank or skip ambiguous results with no usable timestamp if stricter freshness mode is chosen
+- Keep logging for skipped stale results so admins can confirm the crawler is enforcing freshness.
+
+9. Database and backend changes
+- Create migrations for the new duration fields and any supporting indexes/defaults.
+- Backfill existing records so current rules and cases have valid defaults.
+- Keep RLS intact; this is mostly admin-managed configuration and backend ingestion behavior.
+- If needed, add a small typed helper or RPC/view only for reading effective duration settings in the UI.
+
+10. Production validation
+- Test with the IHS Nigeria case and confirm:
+  - searches no longer return obviously stale 2025 stories when a short window is selected
+  - per-rule overrides work
+  - case defaults apply when rule overrides are absent
+  - Signals global filter changes visible results correctly
+  - Analytics global filter still updates charts/KPIs correctly
+  - live alerts continue to appear for truly recent stories
 
 Expected outcome
-- Analytics becomes a trustworthy, operator-ready module rather than a basic chart page.
-- Keyword comparison becomes traceable to actual matched rules.
-- Freshness and latency are visible inside analytics.
-- The module is validated against real live data and ready for production use.
+- The crawler/search job will prioritize current stories and conversations instead of curating outdated material.
+- Users will be able to control monitoring duration:
+  - per keyword/query
+  - per case
+  - with a global page-level filter
+- Signals and Analytics will better reflect real-world freshness, with timestamps and labels users can trust.
+
+Technical details
+- Files likely involved:
+  - `supabase/functions/ingest-signals/index.ts`
+  - `src/components/TrackingRuleManager.tsx`
+  - `src/pages/Signals.tsx`
+  - `src/hooks/useAnalyticsFilters.ts`
+  - `src/components/analytics/AnalyticsFiltersBar.tsx`
+  - `src/components/analytics/useAnalyticsData.ts`
+  - `src/pages/Analytics.tsx`
+  - one or more migrations for new duration columns/defaults
+- Data model direction:
+```text
+tracking_rules.monitoring_window (optional override)
+crises.default_monitoring_window
+UI global filter = temporary display/runtime override
+```
+- Freshness rule:
+```text
+published/detected time = story recency
+ingested_at = pipeline timing
+```
