@@ -353,7 +353,11 @@ async function runSearch(task: SearchTask, apiKey: string): Promise<FirecrawlSea
   }
 
   const data = await resp.json();
-  return ((data.data ?? data.web ?? []) as FirecrawlSearchResult[]);
+  const candidates = data?.data ?? data?.web ?? [];
+  if (Array.isArray(candidates)) return candidates as FirecrawlSearchResult[];
+  if (Array.isArray(candidates?.data)) return candidates.data as FirecrawlSearchResult[];
+  if (Array.isArray(candidates?.web)) return candidates.web as FirecrawlSearchResult[];
+  return [];
 }
 
 function buildSignalContent(result: FirecrawlSearchResult) {
