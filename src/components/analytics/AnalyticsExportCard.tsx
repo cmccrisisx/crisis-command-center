@@ -11,6 +11,7 @@ export function AnalyticsExportCard({
   rangeLabel,
   sourceLabel,
   sentimentLabel,
+  monitoringWindowLabel,
   kpis,
   topKeywords,
 }: {
@@ -18,6 +19,7 @@ export function AnalyticsExportCard({
   rangeLabel: string;
   sourceLabel: string;
   sentimentLabel: string;
+  monitoringWindowLabel: string;
   kpis: AnalyticsKpis | null;
   topKeywords: Array<{ keyword: string; mentions: number; reach: number }>;
 }) {
@@ -28,7 +30,7 @@ export function AnalyticsExportCard({
       sections: [
         {
           title: "Filter scope",
-          content: `Case: ${caseTitle}\nRange: ${rangeLabel}\nSource: ${sourceLabel}\nSentiment: ${sentimentLabel}`,
+          content: `Case: ${caseTitle}\nRange: ${rangeLabel}\nMonitoring window: ${monitoringWindowLabel}\nSource: ${sourceLabel}\nSentiment: ${sentimentLabel}`,
         },
         {
           title: "KPI summary",
