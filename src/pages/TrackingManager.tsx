@@ -83,6 +83,12 @@ export default function TrackingManagerPage() {
                   System Settings
                 </Link>
               </Button>
+              <Button asChild variant="ghost" className="justify-start font-mono text-xs uppercase tracking-wider">
+                <Link to="/admin-qa">
+                  <Target className="h-3.5 w-3.5" />
+                  QA Checklist
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
