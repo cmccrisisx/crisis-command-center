@@ -86,7 +86,7 @@ const WINDOW_TO_TBS: Record<MonitoringWindow, string> = {
   "24h": "qdr:d",
   "7d": "qdr:w",
   "30d": "qdr:m",
-  "90d": "qdr:m3",
+  "90d": "qdr:m",
 };
 
 const WINDOW_HOURS: Record<MonitoringWindow, number> = {
