@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   LayoutDashboard,
   Radio,
   Swords,
@@ -43,6 +44,7 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, allowedRoles: "all" },
+  { title: "User Guide", url: "/user-guide", icon: BookOpen, allowedRoles: "all" },
   { title: "Signals", url: "/signals", icon: Radio, allowedRoles: ["admin", "pr_manager", "social_manager"] },
   { title: "War Room", url: "/war-room", icon: Swords, allowedRoles: ["admin", "pr_manager", "legal_reviewer"] },
   { title: "Speak", url: "/speak", icon: Megaphone, allowedRoles: ["admin", "pr_manager", "legal_reviewer", "social_manager"] },
