@@ -715,6 +715,7 @@ Deno.serve(async (req) => {
     let totalInserted = 0;
     const crisisIdsTouched = new Set<string>();
     const seenCandidateKeys = new Set<string>();
+    const qaStatsByRule = new Map<string, RuleQaStats>(tasks.map((task) => [task.ruleId, createRuleQaStats(task)]));
 
     for (let i = 0; i < tasks.length; i += 3) {
       const batch = tasks.slice(i, i + 3);
@@ -733,13 +734,21 @@ Deno.serve(async (req) => {
 
       const batchCandidates: CandidateSignal[] = [];
 
-      for (const { task, results } of searchResults) {
+       for (const { task, results } of searchResults) {
+         const qaStats = qaStatsByRule.get(task.ruleId);
         for (const result of results) {
           if (!result.url) continue;
+           qaStats && (qaStats.totalResultsConsidered += 1);
           const source = classifySource(result.url);
           if (!platformMatches(task.platform, source)) continue;
-          const detectedAt = parseCandidateTimestamp(result) ?? new Date().toISOString();
+           const parsedTimestamp = parseCandidateTimestamp(result);
+           const timestampSource = parsedTimestamp.source ?? "fallback";
+           const detectedAt = parsedTimestamp.detectedAt ?? new Date().toISOString();
+           if (qaStats) {
+             qaStats.timestampSourceCounts[timestampSource] += 1;
+           }
           if (!isFreshEnough(detectedAt, task.monitoringWindow)) {
+             if (qaStats) qaStats.staleResultsSkipped += 1;
             console.log(`Skipping stale result outside ${task.monitoringWindow}: ${result.url}`);
             continue;
           }
@@ -755,6 +764,7 @@ Deno.serve(async (req) => {
             title,
             content,
             detectedAt,
+             timestampSource,
           });
         }
       }
@@ -809,11 +819,14 @@ Deno.serve(async (req) => {
         } else {
           totalInserted += 1;
           crisisIdsTouched.add(item.task.crisisId);
+          const qaStats = qaStatsByRule.get(item.task.ruleId);
+          if (qaStats) qaStats.insertedResults += 1;
         }
       }
     }
 
     const touchedIds = crisisIdsTouched.size > 0 ? [...crisisIdsTouched] : [...new Set(tasks.map((task) => task.crisisId))];
+    await upsertRuleQaStats(supabase, qaStatsByRule.values());
     await backfillSignalAttribution(supabase, touchedIds);
     await triggerAttributionRepair(touchedIds);
     await upsertSnapshotsAndCounts(supabase, touchedIds);
