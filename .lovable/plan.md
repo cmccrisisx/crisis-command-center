@@ -1,127 +1,214 @@
 
 Goal
-- Confirm whether live mentions are flowing now, and fix the Analytics dashboard so unattributed mentions are reduced in the data and clearly handled in the UI.
+- Create a polished web-based user journey and user guide inside the app for both standard users and admins/operators, with structured steps, screenshots, and clear explanations from setup through live monitoring and reporting.
 
-What is confirmed already
-- Realtime plumbing exists in the app:
-  - `NotificationListener` subscribes to `signals` inserts for live alerts.
-  - `Signals` page subscribes to `signals` inserts/updates/deletes.
-  - `useAnalyticsData` subscribes to `signals` inserts when Live Mode is enabled.
-- Recent production data shows the pipeline is active:
-  - latest `ingested_at`: `2026-04-23 05:51:20+00`
-  - latest `detected_at`: `2026-04-23 05:51:19+00`
-  - `81` signals arrived in the last `60 minutes`
-  - `0` signals arrived in the last `15 minutes` at the moment checked
-- So: live mention capability is in place and working, but the feed was not actively receiving brand-new mentions in the last 15 minutes at the exact time of inspection.
+What to build
+1. New dedicated guide experience
+- Add a new route such as `/user-guide` or `/journey-guide`.
+- Build it as a long-form, responsive guide page inside the existing app design system.
+- Support two audience paths:
+  - New platform users
+  - Admins/operators
+- Include a simple audience toggle or segmented tabs so users can switch between “Core User Journey” and “Admin/Advanced Journey”.
 
-Current problem found
-- Analytics still has a large attribution gap:
-  - `234` signals in the current 7-day window
-  - `130` signals missing `matched_keyword` or `tracking_rule_id`
-  - `55.6%` unattributed
-- The dashboard currently groups these under `"Unattributed"` in keyword analytics, which makes the module look broken even when live ingestion itself is functioning.
-
-Why the unattributed issue is still happening
-- `useAnalyticsData` treats any missing `matched_keyword` as `"Unattributed"` and surfaces it in top keyword summaries.
-- The live analytics subscription only listens for `INSERT`, so if a fresh signal is inserted first and repaired moments later by attribution backfill, Analytics may keep showing the stale unattributed version until a refetch.
-- The backfill function only repairs rows it can confidently match from content/url/keywords; anything ambiguous remains null.
-- The recent QA sample shows ingestion runs completing, but many rows are still ending up without final attribution.
-
-Implementation plan
-
-1. Make live Analytics track attribution repairs, not just new inserts
-- Update `src/components/analytics/useAnalyticsData.ts` to subscribe to both:
-  - `INSERT` on `signals`
-  - `UPDATE` on `signals`
-- On update, patch the cached signal row so when `matched_keyword` / `tracking_rule_id` are filled in by the repair flow, KPIs and keyword panels update immediately.
-- Keep the existing Live Mode behavior, but make it truly realtime for attribution changes as well.
-
-2. Separate “live mentions confirmed” from “attributed mentions”
-- Extend analytics-derived metrics with:
-  - live mention count in the active window
-  - unattributed mention count
-  - unattributed percentage
-  - attributed mention count
-- Use this to show operators that realtime ingestion is working even when attribution quality needs repair.
-
-3. Fix KPI and status messaging on the dashboard
-- Update `src/components/analytics/types.ts` and `AnalyticsKpiGrid.tsx` to include:
-  - Attributed mentions
-  - Unattributed mentions
-  - Attribution coverage / gap
-- Update `AnalyticsStatusStrip.tsx` so the attribution badge becomes more explicit, for example:
+2. Guide structure
+- Organize the page into clear sections with a sticky in-page table of contents.
+- Recommended sequence:
 ```text
-Attribution complete
-Attribution partial
-Attribution critical
+1. Welcome / what the platform does
+2. Sign in and access
+3. Dashboard / Command Center overview
+4. Case selection and switching
+5. Setup: tracking rules and monitoring windows
+6. Signals: live mentions and filtering
+7. War Room: escalation and collaboration
+8. Analytics: live mode, KPIs, attribution, trends
+9. Reports: creating and exporting outputs
+10. QA Checklist: validating freshness and crawl quality
+11. Settings and roles
+12. Recommended daily workflow / best practices
 ```
-- This makes the issue measurable instead of hiding it inside keyword charts.
 
-4. Stop “Unattributed” from polluting keyword ranking
-- Update the keyword aggregation in `useAnalyticsData.ts` so:
-  - matched keywords remain in “Top matched keywords”
-  - unattributed rows are counted separately instead of competing with real tracked keywords
-- Keep a dedicated unattributed metric/card so the data is still visible.
-- Result: keyword panels represent actual tracked rules, not a null bucket.
+3. Screenshot-backed step cards
+- Each major step should include:
+  - step title
+  - purpose
+  - what users should do
+  - what they should expect to see
+  - screenshot with caption and callouts
+- Use screenshots from the actual product states rather than generic placeholders.
+- Include annotation treatment such as numbered callouts or labeled hotspots for key controls.
 
-5. Improve recent signal visibility
-- Update `AnalyticsDetailPanels.tsx` so recent rows with missing attribution are visually flagged, not silently mixed in.
-- Show a clear label such as:
-  - “Pending attribution”
-  - or “Needs repair”
-- This helps admins distinguish between ingestion success and rule-linking failure.
+4. Audience-aware content
+- New user sections should explain:
+  - how to sign in
+  - what the dashboard shows
+  - where to check live mentions
+  - how to move from Signals to War Room to Analytics to Reports
+- Admin/operator sections should explain:
+  - case setup and tracking rules
+  - monitoring windows
+  - QA checklist
+  - role-based navigation and operational checks
+- Reuse the same screenshots where possible, but tailor captions and step text per audience.
 
-6. Tighten the live cache behavior after repairs
-- In `useAnalyticsData.ts`, whenever an updated signal becomes attributed:
-  - remove it from the unattributed count
-  - recalculate keyword summaries
-  - refresh recent alerts ordering if needed
-- This ensures the dashboard reflects the same repaired state the database has, without waiting for a hard reload.
-
-7. Strengthen the automatic repair path
-- Review and refine `supabase/functions/backfill-signal-attribution/index.ts` so it catches more recent null rows by:
-  - preserving current rule-id and keyword matching logic
-  - broadening normalized content matching carefully
-  - ensuring both partially-null cases are repaired:
+5. “Step-by-step journey” summary blocks
+- Add short journey summaries at the top:
 ```text
-matched_keyword is null
-tracking_rule_id is null
-either one missing
+New User Journey:
+Sign in -> review dashboard -> watch signals -> escalate to war room -> review analytics -> export report
+
+Admin Journey:
+select case -> configure tracking -> verify monitoring window -> check signals freshness -> inspect analytics attribution -> validate QA checklist
 ```
-- Keep the logic conservative to avoid false attribution.
+- End the guide with a “daily operating rhythm” section that explains how teams use the platform during active monitoring.
 
-8. Add dashboard-safe filtering for keyword comparison
-- Update `KeywordComparisonPanel.tsx` so comparisons are driven by properly attributed signals first.
-- Do not let generic content matching inflate keyword comparisons when attribution fields are missing.
-- This keeps comparison metrics aligned with tracked rules and not accidental text matches.
+Implementation approach
 
-9. Validate against production data
-- Re-check production after implementation to confirm:
-  - new inserts appear in Live Mode without delay
-  - post-insert attribution updates are reflected immediately
-  - unattributed count drops after repair runs
-  - top keywords no longer show a dominant “Unattributed” bucket
-  - recent alerts distinguish attributed vs pending-attribution rows correctly
+1. Add a reusable guide page layout
+- Create a new page component, likely under `src/pages/`.
+- Use the existing app shell styling conventions:
+  - dark-mode-first
+  - monospace labels for system captions
+  - card-based sections
+- Add a sticky sidebar or top jump menu for navigation between sections.
+
+2. Add screenshot content support
+- Store guide screenshots in a dedicated project asset location such as `src/assets/guide/`.
+- Create a small reusable component for guide sections:
+  - `GuideSection`
+  - `GuideStepCard`
+  - `GuideScreenshot`
+  - `GuideAudienceToggle`
+- Support caption text and optional numbered callouts overlay.
+
+3. Capture product screenshots from real app states
+- Prepare screenshots for:
+  - Sign in page
+  - Dashboard
+  - Tracking Manager
+  - Signals
+  - War Room
+  - Analytics
+  - Reports
+  - Admin QA Checklist
+  - Settings
+- Use current UI states that best represent the intended journey.
+- Prefer screenshots that already align with the platform’s current real-time monitoring and analytics improvements.
+
+4. Fit the guide to the existing routing/navigation model
+- Add the route to `src/App.tsx`.
+- Decide whether the guide should be:
+  - public-facing from landing/about, or
+  - authenticated inside the app shell, or
+  - both
+- Most consistent approach:
+  - public intro/overview available from public nav
+  - full operational guide inside authenticated layout
+- If keeping it simple, start with one authenticated guide page linked from dashboard/top bar/settings.
+
+5. Reuse current product concepts already visible in code
+- Ground the guide in actual UI concepts already implemented:
+  - `PublicNav` and `Auth`
+  - Dashboard / Command Center
+  - `CaseSwitcher`
+  - Tracking Manager
+  - Signals monitoring window and refresh flow
+  - Analytics filters and live mode
+  - War Room approval flow
+  - Reports export
+  - Admin QA Checklist
+  - Settings / roles
+- This keeps the guide accurate and reduces maintenance drift.
+
+6. Make the guide maintainable
+- Keep guide content data-driven where possible:
+  - array of sections/steps
+  - screenshot path + caption + audience tags
+- This makes future updates easier when the UI changes.
+
+Files likely involved
+- `src/App.tsx`
+- `src/pages/UserGuide.tsx` or `src/pages/JourneyGuide.tsx`
+- possible new components such as:
+  - `src/components/guide/GuideSection.tsx`
+  - `src/components/guide/GuideStepCard.tsx`
+  - `src/components/guide/GuideScreenshot.tsx`
+  - `src/components/guide/GuideToc.tsx`
+- navigation entry points depending on placement:
+  - `src/components/PublicNav.tsx`
+  - `src/components/TopBar.tsx`
+  - or `src/pages/About.tsx`
+- screenshot assets under a new folder like:
+  - `src/assets/guide/*`
+
+Content outline to implement
+```text
+A. Platform introduction
+- What Crisis-X is
+- Who it is for
+- How the workflow is organized
+
+B. Getting started
+- Sign in
+- Roles and permissions
+- Landing in the dashboard
+
+C. Operating workflow
+- Read the dashboard
+- Switch or choose the correct case
+- Check live signals
+- Escalate to the War Room
+- Monitor analytics and attribution health
+- Generate or export reports
+
+D. Admin workflow
+- Add keywords and search queries
+- Set monitoring windows
+- Review freshness / timestamp QA
+- Check settings and role administration
+
+E. Best practices
+- Recommended daily checks
+- When to use each module
+- How to validate data freshness
+```
+
+Screenshot plan
+- Use screenshots that map one-to-one with guide sections:
+```text
+01-auth-signin
+02-dashboard-command-center
+03-case-switcher
+04-tracking-manager
+05-signals-monitoring
+06-war-room
+07-analytics-live-mode
+08-reports
+09-admin-qa
+10-settings
+```
+- Pair each screenshot with:
+  - a title
+  - 2-4 bullet explanations
+  - a “Why this matters” note
+
+Technical details
+- The guide should be responsive and readable on laptop/tablet widths.
+- Use existing UI primitives (`Card`, `Badge`, `Button`, layout spacing, mono labels) to stay on-brand.
+- Keep images optimized and not excessively large.
+- If screenshots need annotation, generate consistent overlays in React rather than baking all labels into the image files.
+- Prefer a data-driven content model so text, captions, and screenshot metadata are easy to revise.
+
+Validation checklist
+- Confirm every guide step maps to a real screen and current feature.
+- Confirm both audiences can follow the guide without assuming prior knowledge.
+- Confirm screenshots are clear, current, and match the actual route names and labels.
+- Confirm navigation links to the guide are discoverable.
+- Confirm the guide works well in the current dark theme and within the existing layout patterns.
 
 Expected outcome
-- The app will clearly demonstrate that live mentions are flowing.
-- Analytics will update not only on new mentions, but also when attribution is repaired moments later.
-- “Unattributed mentions” will become a visible quality metric instead of corrupting keyword dashboards.
-- Operators will be able to trust the keyword charts, KPI cards, and recent alerts again.
-
-Technical notes
-- Files to update:
-  - `src/components/analytics/useAnalyticsData.ts`
-  - `src/components/analytics/types.ts`
-  - `src/components/analytics/AnalyticsKpiGrid.tsx`
-  - `src/components/analytics/AnalyticsStatusStrip.tsx`
-  - `src/components/analytics/AnalyticsDetailPanels.tsx`
-  - `src/components/analytics/KeywordComparisonPanel.tsx`
-  - possibly `supabase/functions/backfill-signal-attribution/index.ts`
-- Core fix:
-```text
-signals INSERT -> show live mention immediately
-signals UPDATE -> patch attribution in cache immediately
-dashboard KPIs -> split attributed vs unattributed
-keyword views -> exclude null attribution from ranked keyword buckets
-```
+- Users get a professional, structured, screenshot-backed walkthrough of the platform.
+- New users understand the end-to-end flow quickly.
+- Admins get a practical operational guide for setup, monitoring quality, and daily use.
+- The guide becomes a reusable onboarding and enablement asset inside the product.
