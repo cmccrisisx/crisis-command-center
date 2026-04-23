@@ -51,9 +51,11 @@ export function AnalyticsKpiGrid({ kpis, isLoading }: { kpis: AnalyticsKpis | nu
       <KpiCard label="Positive share" value={formatPercent(kpis.positiveShare)} helper="Portion of positive signals" />
       <KpiCard label="Estimated reach" value={formatNumber(kpis.estimatedReach)} helper="Summed signal reach" />
       <KpiCard label="Tracked keywords" value={String(kpis.activeKeywords)} helper={`Rules active ${kpis.trackedRules}`} />
+      <KpiCard label="Attributed mentions" value={formatNumber(kpis.attributedMentions)} helper={`${formatPercent(kpis.attributionCoverage)} linked to tracked rules`} />
+      <KpiCard label="Pending attribution" value={formatNumber(kpis.unattributedMentions)} helper={`${formatPercent(kpis.unattributedShare)} still awaiting rule linkage`} />
       <KpiCard label="Last ingest" value={freshnessLabel(kpis.latestIngestAt)} helper={kpis.liveMode ? "Streaming with realtime inserts" : "Most recent pipeline insert"} />
       <KpiCard label="Median latency" value={formatLatency(kpis.medianLatencyMs)} helper="Detect-to-ingest pipeline time" />
-      <KpiCard label="Attribution" value={formatPercent(kpis.attributionCoverage)} helper="Signals linked to matched keyword" />
+      <KpiCard label="Attribution" value={formatPercent(kpis.attributionCoverage)} helper="Signals fully linked to keyword and rule" />
     </div>
   );
 }
