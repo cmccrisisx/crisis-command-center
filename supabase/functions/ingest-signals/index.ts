@@ -100,6 +100,36 @@ function normalizeWhitespace(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function getWindowStart(window: MonitoringWindow) {
+  return new Date(Date.now() - WINDOW_HOURS[window] * 60 * 60 * 1000);
+}
+
+function resolveMonitoringWindow(rule: TrackingRule, requestOverride?: MonitoringWindow | null): MonitoringWindow {
+  return requestOverride ?? rule.monitoring_window ?? rule.crisis?.default_monitoring_window ?? "7d";
+}
+
+function parseCandidateTimestamp(result: FirecrawlSearchResult): string | null {
+  const candidates = [
+    result.metadata?.publishedTime,
+    result.metadata?.ogPublishedTime,
+    result.metadata?.modifiedTime,
+  ].filter(Boolean) as string[];
+
+  for (const value of candidates) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  }
+
+  const inlineMatch = `${result.title ?? ""} ${result.description ?? ""} ${result.markdown ?? ""}`.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
+  if (!inlineMatch) return null;
+  const parsed = new Date(`${inlineMatch[1]}-${inlineMatch[2].padStart(2, "0")}-${inlineMatch[3].padStart(2, "0")}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function isFreshEnough(detectedAt: string, monitoringWindow: MonitoringWindow) {
+  return new Date(detectedAt).getTime() >= getWindowStart(monitoringWindow).getTime();
+}
+
 function classifySource(url: string): SignalSource {
   const lower = url.toLowerCase();
   for (const [key, val] of Object.entries(SOURCE_MAP)) {
@@ -242,7 +272,7 @@ async function batchEnrichWithAI(
 async function fetchTrackingRules(supabase: any, requestedCrisisId?: string | null) {
   let query = supabase
     .from("tracking_rules")
-    .select("id, crisis_id, platform, rule_type, rule_text, is_active, priority, crises(id, title, description, type, risk_level, status)")
+    .select("id, crisis_id, platform, rule_type, rule_text, is_active, priority, monitoring_window, crises(id, title, description, default_monitoring_window, type, risk_level, status)")
     .eq("is_active", true)
     .order("priority", { ascending: true })
     .order("updated_at", { ascending: false });
@@ -268,6 +298,7 @@ async function fetchTrackingRules(supabase: any, requestedCrisisId?: string | nu
       rule_text: String(row.rule_text ?? ""),
       is_active: Boolean(row.is_active),
       priority: Number(row.priority ?? 100),
+      monitoring_window: (row.monitoring_window as MonitoringWindow | null) ?? null,
       crisis,
     } satisfies TrackingRule;
   });
@@ -291,6 +322,7 @@ function buildSearchTasks(rules: TrackingRule[]) {
       crisisId: rule.crisis_id,
       crisisTitle: rule.crisis.title,
       crisisDescription: rule.crisis.description ?? "",
+      monitoringWindow: resolveMonitoringWindow(rule),
       crisisType: rule.crisis.type,
       riskLevel: rule.crisis.risk_level,
       status: rule.crisis.status,
@@ -301,7 +333,7 @@ function buildSearchTasks(rules: TrackingRule[]) {
 }
 
 async function runSearch(task: SearchTask, apiKey: string): Promise<FirecrawlSearchResult[]> {
-  const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+  const resp = await fetch("https://api.firecrawl.dev/v2/search", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -311,6 +343,7 @@ async function runSearch(task: SearchTask, apiKey: string): Promise<FirecrawlSea
       query: task.query,
       limit: task.platform === "all" ? 5 : 4,
       lang: "en",
+      tbs: WINDOW_TO_TBS[task.monitoringWindow],
       scrapeOptions: { formats: ["markdown"] },
     }),
   });
@@ -320,7 +353,7 @@ async function runSearch(task: SearchTask, apiKey: string): Promise<FirecrawlSea
   }
 
   const data = await resp.json();
-  return (data.data ?? []) as FirecrawlSearchResult[];
+  return ((data.data ?? data.web ?? []) as FirecrawlSearchResult[]);
 }
 
 function buildSignalContent(result: FirecrawlSearchResult) {
