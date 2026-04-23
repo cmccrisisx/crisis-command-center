@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 type RulePlatform = "all" | "twitter" | "news" | "blog" | "linkedin";
 type RuleType = "keyword" | "query";
 type SignalSource = "twitter" | "news" | "blog" | "linkedin";
+type MonitoringWindow = "24h" | "7d" | "30d" | "90d";
 
 interface TrackingRule {
   id: string;
@@ -12,10 +13,12 @@ interface TrackingRule {
   rule_text: string;
   is_active: boolean;
   priority: number;
+  monitoring_window: MonitoringWindow | null;
   crisis?: {
     id: string;
     title: string;
     description: string | null;
+    default_monitoring_window: MonitoringWindow;
     type: string;
     risk_level: string;
     status: string;
@@ -31,6 +34,7 @@ interface SearchTask {
   crisisId: string;
   crisisTitle: string;
   crisisDescription: string;
+  monitoringWindow: MonitoringWindow;
   crisisType: string;
   riskLevel: string;
   status: string;
@@ -41,6 +45,11 @@ interface FirecrawlSearchResult {
   title?: string;
   description?: string;
   markdown?: string;
+  metadata?: {
+    publishedTime?: string;
+    ogPublishedTime?: string;
+    modifiedTime?: string;
+  };
 }
 
 interface CandidateSignal {
@@ -71,6 +80,20 @@ const SOURCE_MAP: Record<string, SignalSource> = {
   blog: "blog",
   medium: "blog",
   substack: "blog",
+};
+
+const WINDOW_TO_TBS: Record<MonitoringWindow, string> = {
+  "24h": "qdr:d",
+  "7d": "qdr:w",
+  "30d": "qdr:m",
+  "90d": "qdr:m3",
+};
+
+const WINDOW_HOURS: Record<MonitoringWindow, number> = {
+  "24h": 24,
+  "7d": 24 * 7,
+  "30d": 24 * 30,
+  "90d": 24 * 90,
 };
 
 function normalizeWhitespace(value: string) {
