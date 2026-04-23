@@ -360,6 +360,25 @@ async function backfillSignalAttribution(supabase: any, crisisIds: string[]) {
   }
 }
 
+async function triggerAttributionRepair(crisisIds: string[]) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey || crisisIds.length === 0) return;
+
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/backfill-signal-attribution`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${anonKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ crisisIds, lookbackHours: 24 * 7, maxSignals: 400 }),
+    });
+  } catch (error) {
+    console.error("Failed to trigger scheduled attribution repair:", error);
+  }
+}
+
 async function upsertSnapshotsAndCounts(supabase: any, crisisIds: string[]) {
   for (const crisisId of crisisIds) {
     const { data } = await supabase
@@ -658,6 +677,7 @@ Deno.serve(async (req) => {
 
     const touchedIds = crisisIdsTouched.size > 0 ? [...crisisIdsTouched] : [...new Set(tasks.map((task) => task.crisisId))];
     await backfillSignalAttribution(supabase, touchedIds);
+    await triggerAttributionRepair(touchedIds);
     await upsertSnapshotsAndCounts(supabase, touchedIds);
     await regenerateNarratives(supabase, tasks, LOVABLE_API_KEY);
 
