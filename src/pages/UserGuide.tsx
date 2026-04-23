@@ -1,9 +1,11 @@
+import { useMemo, useState } from "react";
 import {
   Activity,
   BarChart3,
   BookOpen,
   ClipboardList,
   FileText,
+  Search,
   Radio,
   Settings,
   ShieldCheck,
@@ -15,7 +17,9 @@ import { AppLayout } from "@/components/AppLayout";
 import { GuideStepCard } from "@/components/guide/GuideStepCard";
 import { GuideToc } from "@/components/guide/GuideToc";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -57,6 +61,7 @@ const adminJourney = [
 
 const workflowSteps = [
   {
+    id: "signin-access",
     step: "01 · Access",
     title: "Sign in and reach the workspace",
     purpose: "Authenticate users and route them into the operational workspace with the right permissions.",
@@ -74,6 +79,7 @@ const workflowSteps = [
     },
   },
   {
+    id: "dashboard-command-center",
     step: "02 · Orient",
     title: "Use the command center as the operational home base",
     purpose: "Give users a fast read on signal volume, active crises, freshness, and the next recommended action.",
@@ -92,6 +98,7 @@ const workflowSteps = [
     },
   },
   {
+    id: "signals-monitoring",
     step: "03 · Monitor",
     title: "Track live mentions in Signals",
     purpose: "Let operators inspect raw mentions, filter by source or sentiment, and validate that live monitoring is current.",
@@ -110,6 +117,7 @@ const workflowSteps = [
     },
   },
   {
+    id: "war-room-escalation",
     step: "04 · Coordinate",
     title: "Escalate into the War Room",
     purpose: "Coordinate cross-functional response work, keep a decision trail, and move through the approval chain.",
@@ -128,6 +136,7 @@ const workflowSteps = [
     },
   },
   {
+    id: "analytics-insights",
     step: "05 · Analyze",
     title: "Review live analytics and attribution health",
     purpose: "Help teams understand volume, sentiment, coverage, and whether tracking rules are attributing mentions cleanly.",
@@ -146,6 +155,7 @@ const workflowSteps = [
     },
   },
   {
+    id: "reports-export",
     step: "06 · Report",
     title: "Export stakeholder-ready reports",
     purpose: "Package the current crisis state into shareable outputs for leadership, legal, or recurring reporting.",
@@ -167,6 +177,7 @@ const workflowSteps = [
 
 const operatorSteps = [
   {
+    id: "tracking-manager-setup",
     step: "A1 · Configure",
     title: "Set up tracked keywords and search queries",
     purpose: "Admins define what the platform should look for so live monitoring stays aligned to brands, executives, and topics.",
@@ -185,6 +196,7 @@ const operatorSteps = [
     },
   },
   {
+    id: "qa-checklist-validation",
     step: "A2 · Validate",
     title: "Audit crawl quality and freshness enforcement",
     purpose: "Show admins which crawl window was used, where timestamps came from, and how many stale results were rejected.",
@@ -203,6 +215,7 @@ const operatorSteps = [
     },
   },
   {
+    id: "settings-governance",
     step: "A3 · Govern",
     title: "Manage roles and workspace controls",
     purpose: "Admins maintain team access, notification behavior, and workspace-level configuration from one place.",
@@ -245,6 +258,15 @@ const dailyRhythm = [
   },
 ];
 
+const quickJumpTopics = [
+  { label: "Signals", href: "#signals-monitoring" },
+  { label: "War Room", href: "#war-room-escalation" },
+  { label: "Analytics", href: "#analytics-insights" },
+  { label: "Reports", href: "#reports-export" },
+  { label: "Tracking", href: "#tracking-manager-setup" },
+  { label: "QA", href: "#qa-checklist-validation" },
+];
+
 function JourneyList({ items }: { items: string[] }) {
   return (
     <ol className="space-y-3">
@@ -263,6 +285,33 @@ function JourneyList({ items }: { items: string[] }) {
 export default function UserGuide() {
   usePageTitle("User Guide");
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const matchesQuery = (value: string) => value.toLowerCase().includes(normalizedQuery);
+
+  const filteredWorkflowSteps = useMemo(
+    () =>
+      !normalizedQuery
+        ? workflowSteps
+        : workflowSteps.filter((step) =>
+            [step.step, step.title, step.purpose, step.action, step.expectation, step.whyItMatters, step.screenshot.caption].some(matchesQuery)
+          ),
+    [normalizedQuery]
+  );
+
+  const filteredOperatorSteps = useMemo(
+    () =>
+      !normalizedQuery
+        ? operatorSteps
+        : operatorSteps.filter((step) =>
+            [step.step, step.title, step.purpose, step.action, step.expectation, step.whyItMatters, step.screenshot.caption].some(matchesQuery)
+          ),
+    [normalizedQuery]
+  );
+
+  const searchResultCount = filteredWorkflowSteps.length + filteredOperatorSteps.length;
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -280,19 +329,59 @@ export default function UserGuide() {
                 </p>
               </div>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {[
-                { icon: BookOpen, label: "Guide type", value: "Step by step" },
-                { icon: Users, label: "Audience", value: "Users + admins" },
-                { icon: Target, label: "Coverage", value: "End to end" },
-                { icon: FileText, label: "Format", value: "Live in product" },
-              ].map((item) => (
-                <div key={item.label} className="rounded-sm border border-border bg-surface-elevated p-4">
-                  <item.icon className="h-4 w-4 text-primary" />
-                  <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground">{item.label}</p>
-                  <p className="mt-1 text-sm font-medium text-foreground">{item.value}</p>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { icon: BookOpen, label: "Guide type", value: "Step by step" },
+                  { icon: Users, label: "Audience", value: "Users + admins" },
+                  { icon: Target, label: "Coverage", value: "End to end" },
+                  { icon: FileText, label: "Format", value: "Live in product" },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-sm border border-border bg-surface-elevated p-4">
+                    <item.icon className="h-4 w-4 text-primary" />
+                    <p className="mt-3 text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 text-sm font-medium text-foreground">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-end">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-primary">Search the guide</p>
+                  <div className="relative max-w-xl">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search topics like Signals, War Room, Analytics, Reports..."
+                      className="pl-9 font-mono text-sm"
+                      aria-label="Search user guide topics"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {normalizedQuery
+                      ? `${searchResultCount} matching step${searchResultCount === 1 ? "" : "s"} across the guide.`
+                      : "Search by module, workflow, or admin topic to narrow the guide instantly."}
+                  </p>
                 </div>
-              ))}
+
+                {normalizedQuery && (
+                  <Button variant="outline" onClick={() => setSearchQuery("")} className="font-mono text-xs uppercase tracking-wider">
+                    Clear search
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[10px] font-mono uppercase tracking-[0.22em] text-primary">Quick jumps</p>
+                <div className="flex flex-wrap gap-2">
+                  {quickJumpTopics.map((topic) => (
+                    <Button key={topic.href} asChild variant="outline" size="sm" className="font-mono text-xs uppercase tracking-wider">
+                      <a href={topic.href}>{topic.label}</a>
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </CardContent>
           </Card>
           <GuideToc sections={tocSections} />
@@ -333,9 +422,18 @@ export default function UserGuide() {
             <h2 className="mt-2 text-2xl font-mono font-bold tracking-tight">From access to reporting</h2>
           </div>
           <div className="space-y-4">
-            {workflowSteps.map((step) => (
-              <GuideStepCard key={step.step} {...step} />
+            {filteredWorkflowSteps.map((step) => (
+              <div key={step.id} id={step.id} className="scroll-mt-6">
+                <GuideStepCard {...step} />
+              </div>
             ))}
+            {normalizedQuery && filteredWorkflowSteps.length === 0 && (
+              <Card className="border-border bg-card/70">
+                <CardContent className="p-6 text-sm text-muted-foreground">
+                  No end-to-end workflow steps match <span className="font-mono text-foreground">{searchQuery}</span>.
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
 
@@ -345,9 +443,18 @@ export default function UserGuide() {
             <h2 className="mt-2 text-2xl font-mono font-bold tracking-tight">Setup, QA, and governance</h2>
           </div>
           <div className="space-y-4">
-            {operatorSteps.map((step) => (
-              <GuideStepCard key={step.step} {...step} />
+            {filteredOperatorSteps.map((step) => (
+              <div key={step.id} id={step.id} className="scroll-mt-6">
+                <GuideStepCard {...step} />
+              </div>
             ))}
+            {normalizedQuery && filteredOperatorSteps.length === 0 && (
+              <Card className="border-border bg-card/70">
+                <CardContent className="p-6 text-sm text-muted-foreground">
+                  No admin operations steps match <span className="font-mono text-foreground">{searchQuery}</span>.
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
 

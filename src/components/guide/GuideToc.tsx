@@ -20,7 +20,8 @@ export function GuideToc({ sections }: GuideTocProps) {
               "block rounded-sm px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             )}
           >
-            {section.title}
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Jump</span>
+            <span className="mt-1 block">{section.title}</span>
           </a>
         ))}
       </CardContent>
