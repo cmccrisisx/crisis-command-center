@@ -49,6 +49,17 @@ function signalMatchesFilters(signal: AnalyticsSignal, windowStart: string, moni
   return true;
 }
 
+function isFullyAttributed(signal: Pick<AnalyticsSignal, "matched_keyword" | "tracking_rule_id">) {
+  return Boolean(signal.matched_keyword) && Boolean(signal.tracking_rule_id);
+}
+
+function mergeSignalIntoList(signals: AnalyticsSignal[], nextSignal: AnalyticsSignal) {
+  const withoutExisting = signals.filter((signal) => signal.id !== nextSignal.id);
+  return [nextSignal, ...withoutExisting].sort(
+    (left, right) => new Date(right.detected_at).getTime() - new Date(left.detected_at).getTime()
+  );
+}
+
 export function useAnalyticsData({
   activeCaseId,
   windowStart,
@@ -122,23 +133,29 @@ export function useAnalyticsData({
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "signals",
           ...(activeCaseId ? { filter: `crisis_id=eq.${activeCaseId}` } : {}),
         },
         (payload) => {
           const nextSignal = payload.new as AnalyticsSignal;
-          if (!signalMatchesFilters(nextSignal, windowStart, monitoringWindowStart, source, sentiment)) return;
+          if (!nextSignal?.id) return;
 
           queryClient.setQueryData<AnalyticsSignal[]>(signalsQueryKey, (current) => {
             const existing = current ?? [];
-            if (existing.some((signal) => signal.id === nextSignal.id)) return existing;
+            const wasPresent = existing.some((signal) => signal.id === nextSignal.id);
+            const matchesFilters = signalMatchesFilters(nextSignal, windowStart, monitoringWindowStart, source, sentiment);
 
-            const merged = [nextSignal, ...existing].sort(
-              (left, right) => new Date(right.detected_at).getTime() - new Date(left.detected_at).getTime()
-            );
-            return merged;
+            if (!matchesFilters) {
+              return wasPresent ? existing.filter((signal) => signal.id !== nextSignal.id) : existing;
+            }
+
+            if (payload.eventType === "INSERT" && wasPresent) {
+              return existing;
+            }
+
+            return mergeSignalIntoList(existing, nextSignal);
           });
         }
       )
@@ -160,8 +177,10 @@ export function useAnalyticsData({
     const positiveCount = liveSignals.filter((signal) => signal.sentiment === "positive").length;
     const estimatedReach = liveSignals.reduce((sum, signal) => sum + (signal.reach ?? 0), 0);
     const activeKeywordRules = rules.filter((rule) => rule.is_active);
-    const attributionCount = liveSignals.filter((signal) => Boolean(signal.matched_keyword) && Boolean(signal.tracking_rule_id)).length;
+    const attributionCount = liveSignals.filter(isFullyAttributed).length;
+    const unattributedMentions = totalMentions - attributionCount;
     const attributionCoverage = totalMentions > 0 ? (attributionCount / totalMentions) * 100 : 0;
+    const unattributedShare = totalMentions > 0 ? (unattributedMentions / totalMentions) * 100 : 0;
 
     const latencies = liveSignals
       .map((signal) => new Date(signal.ingested_at).getTime() - new Date(signal.detected_at).getTime())
@@ -217,7 +236,8 @@ export function useAnalyticsData({
     const sourceMix = Object.entries(sourceMap).map(([sourceLabel, volume]) => ({ source: sourceLabel, volume }));
 
     const keywordMap = liveSignals.reduce<Record<string, { mentions: number; reach: number; negative: number }>>((acc, signal) => {
-      const key = signal.matched_keyword ?? "Unattributed";
+      if (!isFullyAttributed(signal) || !signal.matched_keyword) return acc;
+      const key = signal.matched_keyword;
       if (!acc[key]) acc[key] = { mentions: 0, reach: 0, negative: 0 };
       acc[key].mentions += 1;
       acc[key].reach += signal.reach ?? 0;
@@ -253,6 +273,7 @@ export function useAnalyticsData({
     const recentSignals = liveSignals.slice(0, 12).map((signal) => ({
       id: signal.id,
       matchedKeyword: signal.matched_keyword,
+      isAttributed: isFullyAttributed(signal),
       source: signal.source,
       sentiment: signal.sentiment,
       author: signal.author,
@@ -263,6 +284,8 @@ export function useAnalyticsData({
 
     const kpis: AnalyticsKpis = {
       totalMentions,
+      attributedMentions: attributionCount,
+      unattributedMentions,
       negativeShare: totalMentions > 0 ? (negativeCount / totalMentions) * 100 : 0,
       positiveShare: totalMentions > 0 ? (positiveCount / totalMentions) * 100 : 0,
       estimatedReach,
@@ -271,6 +294,7 @@ export function useAnalyticsData({
       medianLatencyMs,
       latestIngestAt,
       attributionCoverage,
+      unattributedShare,
       liveMode,
     };
 

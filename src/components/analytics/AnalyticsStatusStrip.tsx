@@ -18,12 +18,14 @@ export function AnalyticsStatusStrip({
   lastRun,
   freshnessStatus,
   attributionCoverage,
+  unattributedMentions,
   monitoringWindowLabel,
 }: {
   cadenceMinutes: number | null;
   lastRun: string | null;
   freshnessStatus: "healthy" | "delayed" | "stale" | "unknown";
   attributionCoverage: number;
+  unattributedMentions: number;
   monitoringWindowLabel: string;
 }) {
   const freshnessText =
@@ -35,7 +37,7 @@ export function AnalyticsStatusStrip({
           ? "Freshness stale"
           : "Freshness unknown";
 
-  const attributionText = attributionCoverage >= 95 ? "Attribution complete" : attributionCoverage >= 60 ? "Attribution partial" : "Attribution low";
+  const attributionText = attributionCoverage >= 95 ? "Attribution complete" : attributionCoverage >= 60 ? "Attribution partial" : "Attribution critical";
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -43,6 +45,7 @@ export function AnalyticsStatusStrip({
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">{formatLastRun(lastRun)}</Badge>
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">{freshnessText}</Badge>
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">{attributionText}</Badge>
+      <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">Pending {unattributedMentions}</Badge>
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">Monitoring {monitoringWindowLabel}</Badge>
       <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">Production data only</Badge>
     </div>

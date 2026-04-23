@@ -35,7 +35,7 @@ export function AnalyticsExportCard({
         {
           title: "KPI summary",
           content: kpis
-            ? `Total mentions: ${formatNumber(kpis.totalMentions)}\nNegative share: ${kpis.negativeShare.toFixed(1)}%\nPositive share: ${kpis.positiveShare.toFixed(1)}%\nEstimated reach: ${formatNumber(kpis.estimatedReach)}\nTracked keywords: ${kpis.activeKeywords}\nMedian latency: ${kpis.medianLatencyMs == null ? "—" : `${Math.round(kpis.medianLatencyMs / 1000)}s`}\nAttribution coverage: ${kpis.attributionCoverage.toFixed(1)}%`
+            ? `Total mentions: ${formatNumber(kpis.totalMentions)}\nAttributed mentions: ${formatNumber(kpis.attributedMentions)}\nPending attribution: ${formatNumber(kpis.unattributedMentions)}\nNegative share: ${kpis.negativeShare.toFixed(1)}%\nPositive share: ${kpis.positiveShare.toFixed(1)}%\nEstimated reach: ${formatNumber(kpis.estimatedReach)}\nTracked keywords: ${kpis.activeKeywords}\nMedian latency: ${kpis.medianLatencyMs == null ? "—" : `${Math.round(kpis.medianLatencyMs / 1000)}s`}\nAttribution coverage: ${kpis.attributionCoverage.toFixed(1)}%`
             : "No KPI data available.",
         },
         {

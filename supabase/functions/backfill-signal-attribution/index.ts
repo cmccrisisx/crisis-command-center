@@ -49,6 +49,28 @@ function chunk<T>(items: T[], size: number) {
   return chunks;
 }
 
+function resolveRuleMatch(signal: SignalRow, crisisRules: Array<RuleRow & { normalized: string }>) {
+  const normalizedMatchedKeyword = signal.matched_keyword ? normalizeForMatch(signal.matched_keyword) : null;
+  const byRuleId = signal.tracking_rule_id
+    ? crisisRules.find((rule) => rule.id === signal.tracking_rule_id)
+    : null;
+  const byKeyword = normalizedMatchedKeyword
+    ? crisisRules.find((rule) => rule.normalized === normalizedMatchedKeyword)
+    : null;
+
+  const haystack = normalizeForMatch([signal.content, signal.source_url ?? "", ...(signal.keywords ?? [])].join(" "));
+  const contentMatches = crisisRules.filter((rule) => haystack.includes(rule.normalized));
+  const exactKeywordMatches = signal.keywords
+    ? crisisRules.filter((rule) => signal.keywords?.some((keyword) => normalizeForMatch(keyword) === rule.normalized))
+    : [];
+
+  if (byRuleId) return byRuleId;
+  if (byKeyword) return byKeyword;
+  if (exactKeywordMatches.length === 1) return exactKeywordMatches[0];
+  if (contentMatches.length === 1) return contentMatches[0];
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -134,19 +156,7 @@ serve(async (req) => {
       const crisisRules = rulesByCrisis.get(signal.crisis_id) ?? [];
       if (crisisRules.length === 0) continue;
 
-      const normalizedMatchedKeyword = signal.matched_keyword ? normalizeForMatch(signal.matched_keyword) : null;
-      const byRuleId = signal.tracking_rule_id
-        ? crisisRules.find((rule) => rule.id === signal.tracking_rule_id)
-        : null;
-      const byKeyword = normalizedMatchedKeyword
-        ? crisisRules.find((rule) => rule.normalized === normalizedMatchedKeyword)
-        : null;
-
-      const haystack = normalizeForMatch(
-        [signal.content, signal.source_url ?? "", ...(signal.keywords ?? [])].join(" ")
-      );
-      const byContent = crisisRules.find((rule) => haystack.includes(rule.normalized));
-      const matchedRule = byRuleId ?? byKeyword ?? byContent;
+      const matchedRule = resolveRuleMatch(signal, crisisRules);
 
       if (!matchedRule) continue;
 
