@@ -17,6 +17,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { SignalReaderDrawer } from "@/components/SignalReaderDrawer";
 import { useActiveCase } from "@/hooks/useActiveCase";
 import { useAuth } from "@/hooks/useAuth";
+import { MONITORING_WINDOW_OPTIONS, formatMonitoringWindow, getMonitoringWindowStart, type MonitoringWindow } from "@/lib/monitoring-window";
 import { Link } from "react-router-dom";
 
 type Signal = Tables<"signals">;
@@ -45,6 +46,7 @@ export default function Signals() {
   const [realtimeCount, setRealtimeCount] = useState(0);
   const [isIngesting, setIsIngesting] = useState(false);
   const [readerSignal, setReaderSignal] = useState<Signal | null>(null);
+  const [monitoringWindow, setMonitoringWindow] = useState<MonitoringWindow>("7d");
 
   const handleRefreshSignals = async () => {
     setIsIngesting(true);
@@ -55,7 +57,7 @@ export default function Signals() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify(activeCaseId ? { crisisId: activeCaseId } : {}),
+        body: JSON.stringify({ ...(activeCaseId ? { crisisId: activeCaseId } : {}), monitoringWindow }),
       });
       const data = await resp.json();
       if (data.success) {
@@ -131,8 +133,10 @@ export default function Signals() {
     if (sentimentFilters.length > 0) {
       result = result.filter((s) => sentimentFilters.includes(s.sentiment));
     }
+    const minDetectedAt = new Date(getMonitoringWindowStart(monitoringWindow)).getTime();
+    result = result.filter((s) => new Date(s.detected_at).getTime() >= minDetectedAt);
     return result;
-  }, [signals, searchQuery, sourceFilters, sentimentFilters]);
+  }, [signals, searchQuery, sourceFilters, sentimentFilters, monitoringWindow]);
 
   const sourceCounts = SOURCE_OPTIONS.map((source) => ({
     source,
