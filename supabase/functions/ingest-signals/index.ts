@@ -618,15 +618,25 @@ Deno.serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     let requestedCrisisId: string | null = null;
+    let requestedMonitoringWindow: MonitoringWindow | null = null;
     try {
       const body = await req.json();
       requestedCrisisId = typeof body?.crisisId === "string" ? body.crisisId : null;
+      requestedMonitoringWindow = body?.monitoringWindow === "24h" || body?.monitoringWindow === "7d" || body?.monitoringWindow === "30d" || body?.monitoringWindow === "90d"
+        ? body.monitoringWindow
+        : null;
     } catch {
       requestedCrisisId = null;
+      requestedMonitoringWindow = null;
     }
 
     const rules = await fetchTrackingRules(supabase, requestedCrisisId);
-    const tasks = buildSearchTasks(rules);
+    const tasks = buildSearchTasks(
+      rules.map((rule) => ({
+        ...rule,
+        monitoring_window: requestedMonitoringWindow ?? rule.monitoring_window,
+      }))
+    );
 
     if (tasks.length === 0) {
       return new Response(JSON.stringify({ success: true, inserted: 0, errors: [], message: "No active tracking rules" }), {
@@ -661,6 +671,11 @@ Deno.serve(async (req) => {
           if (!result.url) continue;
           const source = classifySource(result.url);
           if (!platformMatches(task.platform, source)) continue;
+          const detectedAt = parseCandidateTimestamp(result) ?? new Date().toISOString();
+          if (!isFreshEnough(detectedAt, task.monitoringWindow)) {
+            console.log(`Skipping stale result outside ${task.monitoringWindow}: ${result.url}`);
+            continue;
+          }
           const content = buildSignalContent(result);
           if (content.length < 20) continue;
           const title = normalizeWhitespace(result.title || result.description || content.slice(0, 160));
@@ -672,7 +687,7 @@ Deno.serve(async (req) => {
             url: result.url,
             title,
             content,
-            detectedAt: new Date().toISOString(),
+            detectedAt,
           });
         }
       }
