@@ -62,6 +62,7 @@ export default function Analytics() {
 
         <AnalyticsOverviewCharts
           isLoading={isLoading}
+          liveMode={liveMode}
           sentimentTimeline={analytics.sentimentTimeline}
           mentionTimeline={analytics.mentionTimeline}
           sourceMix={analytics.sourceMix}
