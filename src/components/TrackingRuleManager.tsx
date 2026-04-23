@@ -624,6 +624,7 @@ export function TrackingRuleManager({
           notes: payload.notes.trim() || null,
           is_active: payload.is_active,
           priority: parsedPriority.data,
+          monitoring_window: payload.monitoring_window === "inherit" ? null : payload.monitoring_window,
         }));
 
         const { error } = await supabase.from(TRACKING_RULES_TABLE).insert(insertRows);
@@ -673,6 +674,7 @@ export function TrackingRuleManager({
         notes: parsed.data.notes ?? null,
         is_active: parsed.data.is_active,
         priority: parsed.data.priority,
+        monitoring_window: parsed.data.monitoring_window === "inherit" ? null : parsed.data.monitoring_window,
       };
 
       if (editingRule) {
