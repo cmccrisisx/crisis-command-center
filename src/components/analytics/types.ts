@@ -37,4 +37,5 @@ export type AnalyticsKpis = {
   medianLatencyMs: number | null;
   latestIngestAt: string | null;
   attributionCoverage: number;
+  liveMode: boolean;
 };
