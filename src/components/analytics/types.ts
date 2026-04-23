@@ -29,6 +29,8 @@ export type AnalyticsSnapshot = {
 
 export type AnalyticsKpis = {
   totalMentions: number;
+  attributedMentions: number;
+  unattributedMentions: number;
   negativeShare: number;
   positiveShare: number;
   estimatedReach: number;
@@ -37,5 +39,6 @@ export type AnalyticsKpis = {
   medianLatencyMs: number | null;
   latestIngestAt: string | null;
   attributionCoverage: number;
+  unattributedShare: number;
   liveMode: boolean;
 };
