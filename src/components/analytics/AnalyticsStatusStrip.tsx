@@ -18,11 +18,13 @@ export function AnalyticsStatusStrip({
   lastRun,
   freshnessStatus,
   attributionCoverage,
+  monitoringWindowLabel,
 }: {
   cadenceMinutes: number | null;
   lastRun: string | null;
   freshnessStatus: "healthy" | "delayed" | "stale" | "unknown";
   attributionCoverage: number;
+  monitoringWindowLabel: string;
 }) {
   const freshnessText =
     freshnessStatus === "healthy"
@@ -41,6 +43,7 @@ export function AnalyticsStatusStrip({
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">{formatLastRun(lastRun)}</Badge>
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">{freshnessText}</Badge>
       <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">{attributionText}</Badge>
+      <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">Monitoring {monitoringWindowLabel}</Badge>
       <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">Production data only</Badge>
     </div>
   );
