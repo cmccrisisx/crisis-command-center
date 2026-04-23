@@ -116,6 +116,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ingestion_rule_qa: {
+        Row: {
+          crisis_id: string
+          id: string
+          inserted_results: number
+          last_crawl_window: Database["public"]["Enums"]["monitoring_window"]
+          last_run_at: string
+          rule_id: string
+          stale_results_skipped: number
+          timestamp_source_counts: Json
+          total_results_considered: number
+        }
+        Insert: {
+          crisis_id: string
+          id?: string
+          inserted_results?: number
+          last_crawl_window: Database["public"]["Enums"]["monitoring_window"]
+          last_run_at?: string
+          rule_id: string
+          stale_results_skipped?: number
+          timestamp_source_counts?: Json
+          total_results_considered?: number
+        }
+        Update: {
+          crisis_id?: string
+          id?: string
+          inserted_results?: number
+          last_crawl_window?: Database["public"]["Enums"]["monitoring_window"]
+          last_run_at?: string
+          rule_id?: string
+          stale_results_skipped?: number
+          timestamp_source_counts?: Json
+          total_results_considered?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_rule_qa_crisis_id_fkey"
+            columns: ["crisis_id"]
+            isOneToOne: false
+            referencedRelation: "crises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_rule_qa_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: true
+            referencedRelation: "tracking_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       narratives: {
         Row: {
           ai_generated: boolean | null
