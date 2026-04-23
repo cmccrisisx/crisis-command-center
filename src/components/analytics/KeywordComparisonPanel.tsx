@@ -97,10 +97,7 @@ const getTopPlatforms = (signals: Signal[]) => {
 const signalMatchesKeyword = (signal: Signal, keyword: string) => {
   const normalized = normalizeKeyword(keyword);
   const matchedKeyword = signal.matched_keyword ? normalizeKeyword(signal.matched_keyword) : null;
-  if (matchedKeyword === normalized) return true;
-  const keywordMatch = signal.keywords?.some((entry) => normalizeKeyword(entry) === normalized) ?? false;
-  if (keywordMatch) return true;
-  return signal.content.toLowerCase().includes(normalized);
+  return matchedKeyword === normalized && Boolean(signal.tracking_rule_id);
 };
 
 export function KeywordComparisonPanel({ activeCaseId, activeCaseTitle, signals, isLoading }: KeywordComparisonPanelProps) {

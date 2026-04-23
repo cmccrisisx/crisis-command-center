@@ -51,6 +51,7 @@ export default function Analytics() {
           lastRun={analytics.lastRun}
           freshnessStatus={analytics.freshnessStatus}
           attributionCoverage={analytics.kpis.attributionCoverage}
+          unattributedMentions={analytics.kpis.unattributedMentions}
           monitoringWindowLabel={monitoringWindow}
         />
 

@@ -22,7 +22,7 @@ export function AnalyticsDetailPanels({
   isLoading: boolean;
   topKeywords: Array<{ keyword: string; mentions: number; reach: number; negativeShare: number }>;
   influencers: Array<{ name: string; mentions: number; reach: number; sentiment: number }>;
-  recentSignals: Array<{ id: string; matchedKeyword: string | null; source: string; sentiment: string; author: string; detectedAt: string; latencyMs: number | null; sourceUrl: string | null }>;
+  recentSignals: Array<{ id: string; matchedKeyword: string | null; isAttributed: boolean; source: string; sentiment: string; author: string; detectedAt: string; latencyMs: number | null; sourceUrl: string | null }>;
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
@@ -58,7 +58,7 @@ export function AnalyticsDetailPanels({
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-mono uppercase tracking-wider">Recent matched alerts</CardTitle>
+            <CardTitle className="text-sm font-mono uppercase tracking-wider">Recent live alerts</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -81,7 +81,16 @@ export function AnalyticsDetailPanels({
                 <TableBody>
                   {recentSignals.map((signal) => (
                     <TableRow key={signal.id}>
-                      <TableCell className="font-medium">{signal.matchedKeyword ?? "Unattributed"}</TableCell>
+                     <TableCell className="font-medium">
+                       <div className="flex flex-wrap items-center gap-2">
+                         <span>{signal.matchedKeyword ?? "Pending attribution"}</span>
+                         {!signal.isAttributed ? (
+                           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
+                             Needs repair
+                           </Badge>
+                         ) : null}
+                       </div>
+                     </TableCell>
                       <TableCell className="font-mono text-xs uppercase">{signal.source}</TableCell>
                       <TableCell className="capitalize">{signal.sentiment}</TableCell>
                       <TableCell>{signal.author}</TableCell>
@@ -104,7 +113,7 @@ export function AnalyticsDetailPanels({
                 </TableBody>
               </Table>
             ) : (
-              <div className="py-4 text-center text-xs font-mono text-muted-foreground">No recent alerts matched the current filters.</div>
+               <div className="py-4 text-center text-xs font-mono text-muted-foreground">No recent live alerts matched the current filters.</div>
             )}
           </CardContent>
         </Card>
