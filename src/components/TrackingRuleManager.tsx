@@ -345,7 +345,7 @@ export function TrackingRuleManager({
   const { data: crises = [], isLoading: crisesLoading } = useQuery({
     queryKey: ["tracking-rule-cases"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("crises").select("id, title").order("title");
+      const { data, error } = await supabase.from("crises").select("id, title, default_monitoring_window").order("title");
       if (error) throw error;
       return (data ?? []) as CrisisOption[];
     },
@@ -356,7 +356,7 @@ export function TrackingRuleManager({
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TRACKING_RULES_TABLE)
-        .select("id, crisis_id, platform, rule_type, rule_text, label, notes, is_active, priority, updated_at, created_at, created_by, crises(id, title)")
+        .select("id, crisis_id, platform, rule_type, rule_text, label, notes, is_active, priority, updated_at, created_at, created_by, monitoring_window, crises(id, title, default_monitoring_window)")
         .order("priority", { ascending: true })
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -380,6 +380,7 @@ export function TrackingRuleManager({
           updated_at: String(row.updated_at ?? ""),
           created_at: String(row.created_at ?? ""),
           created_by: (row.created_by as string | null) ?? null,
+          monitoring_window: (row.monitoring_window as MonitoringWindow | null) ?? null,
           crisis,
         } satisfies TrackingRuleRow;
       });
@@ -456,6 +457,7 @@ export function TrackingRuleManager({
       notes: rule.notes ?? "",
       is_active: rule.is_active,
       priority: String(rule.priority),
+      monitoring_window: rule.monitoring_window ?? "inherit",
     });
     setSheetOpen(true);
   };
@@ -476,6 +478,7 @@ export function TrackingRuleManager({
       notes: rule.notes ?? "",
       is_active: false,
       priority: String(rule.priority + 10),
+      monitoring_window: rule.monitoring_window ?? "inherit",
     });
     setSheetOpen(true);
   };
