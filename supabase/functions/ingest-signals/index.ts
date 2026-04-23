@@ -58,6 +58,25 @@ interface CandidateSignal {
   title: string;
   content: string;
   detectedAt: string;
+  timestampSource: TimestampSource;
+}
+
+type TimestampSource = "published" | "modified" | "inline" | "fallback";
+
+interface TimestampParseResult {
+  detectedAt: string | null;
+  source: Exclude<TimestampSource, "fallback"> | null;
+}
+
+interface RuleQaStats {
+  ruleId: string;
+  crisisId: string;
+  lastRunAt: string;
+  lastCrawlWindow: MonitoringWindow;
+  staleResultsSkipped: number;
+  totalResultsConsidered: number;
+  insertedResults: number;
+  timestampSourceCounts: Record<TimestampSource, number>;
 }
 
 const corsHeaders = {
@@ -108,22 +127,66 @@ function resolveMonitoringWindow(rule: TrackingRule, requestOverride?: Monitorin
   return requestOverride ?? rule.monitoring_window ?? rule.crisis?.default_monitoring_window ?? "7d";
 }
 
-function parseCandidateTimestamp(result: FirecrawlSearchResult): string | null {
-  const candidates = [
-    result.metadata?.publishedTime,
-    result.metadata?.ogPublishedTime,
-    result.metadata?.modifiedTime,
-  ].filter(Boolean) as string[];
+function parseCandidateTimestamp(result: FirecrawlSearchResult): TimestampParseResult {
+  const metadataCandidates: Array<{ value: string | undefined; source: Exclude<TimestampSource, "inline" | "fallback"> }> = [
+    { value: result.metadata?.publishedTime, source: "published" },
+    { value: result.metadata?.ogPublishedTime, source: "published" },
+    { value: result.metadata?.modifiedTime, source: "modified" },
+  ];
 
-  for (const value of candidates) {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) return date.toISOString();
+  for (const candidate of metadataCandidates) {
+    if (!candidate.value) continue;
+    const date = new Date(candidate.value);
+    if (!Number.isNaN(date.getTime())) {
+      return { detectedAt: date.toISOString(), source: candidate.source };
+    }
   }
 
   const inlineMatch = `${result.title ?? ""} ${result.description ?? ""} ${result.markdown ?? ""}`.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
-  if (!inlineMatch) return null;
+  if (!inlineMatch) return { detectedAt: null, source: null };
   const parsed = new Date(`${inlineMatch[1]}-${inlineMatch[2].padStart(2, "0")}-${inlineMatch[3].padStart(2, "0")}T00:00:00.000Z`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  return Number.isNaN(parsed.getTime()) ? { detectedAt: null, source: null } : { detectedAt: parsed.toISOString(), source: "inline" };
+}
+
+function createRuleQaStats(task: SearchTask): RuleQaStats {
+  return {
+    ruleId: task.ruleId,
+    crisisId: task.crisisId,
+    lastRunAt: new Date().toISOString(),
+    lastCrawlWindow: task.monitoringWindow,
+    staleResultsSkipped: 0,
+    totalResultsConsidered: 0,
+    insertedResults: 0,
+    timestampSourceCounts: {
+      published: 0,
+      modified: 0,
+      inline: 0,
+      fallback: 0,
+    },
+  };
+}
+
+async function upsertRuleQaStats(supabase: any, stats: Iterable<RuleQaStats>) {
+  const rows = [...stats].map((entry) => ({
+    rule_id: entry.ruleId,
+    crisis_id: entry.crisisId,
+    last_run_at: entry.lastRunAt,
+    last_crawl_window: entry.lastCrawlWindow,
+    stale_results_skipped: entry.staleResultsSkipped,
+    total_results_considered: entry.totalResultsConsidered,
+    inserted_results: entry.insertedResults,
+    timestamp_source_counts: entry.timestampSourceCounts,
+  }));
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase
+    .from("ingestion_rule_qa")
+    .upsert(rows, { onConflict: "rule_id" });
+
+  if (error) {
+    console.error("Failed to upsert ingestion QA stats:", error.message);
+  }
 }
 
 function isFreshEnough(detectedAt: string, monitoringWindow: MonitoringWindow) {
@@ -652,6 +715,7 @@ Deno.serve(async (req) => {
     let totalInserted = 0;
     const crisisIdsTouched = new Set<string>();
     const seenCandidateKeys = new Set<string>();
+    const qaStatsByRule = new Map<string, RuleQaStats>(tasks.map((task) => [task.ruleId, createRuleQaStats(task)]));
 
     for (let i = 0; i < tasks.length; i += 3) {
       const batch = tasks.slice(i, i + 3);
@@ -670,13 +734,21 @@ Deno.serve(async (req) => {
 
       const batchCandidates: CandidateSignal[] = [];
 
-      for (const { task, results } of searchResults) {
+       for (const { task, results } of searchResults) {
+         const qaStats = qaStatsByRule.get(task.ruleId);
         for (const result of results) {
           if (!result.url) continue;
+           qaStats && (qaStats.totalResultsConsidered += 1);
           const source = classifySource(result.url);
           if (!platformMatches(task.platform, source)) continue;
-          const detectedAt = parseCandidateTimestamp(result) ?? new Date().toISOString();
+           const parsedTimestamp = parseCandidateTimestamp(result);
+           const timestampSource = parsedTimestamp.source ?? "fallback";
+           const detectedAt = parsedTimestamp.detectedAt ?? new Date().toISOString();
+           if (qaStats) {
+             qaStats.timestampSourceCounts[timestampSource] += 1;
+           }
           if (!isFreshEnough(detectedAt, task.monitoringWindow)) {
+             if (qaStats) qaStats.staleResultsSkipped += 1;
             console.log(`Skipping stale result outside ${task.monitoringWindow}: ${result.url}`);
             continue;
           }
@@ -692,6 +764,7 @@ Deno.serve(async (req) => {
             title,
             content,
             detectedAt,
+             timestampSource,
           });
         }
       }
@@ -746,11 +819,14 @@ Deno.serve(async (req) => {
         } else {
           totalInserted += 1;
           crisisIdsTouched.add(item.task.crisisId);
+          const qaStats = qaStatsByRule.get(item.task.ruleId);
+          if (qaStats) qaStats.insertedResults += 1;
         }
       }
     }
 
     const touchedIds = crisisIdsTouched.size > 0 ? [...crisisIdsTouched] : [...new Set(tasks.map((task) => task.crisisId))];
+    await upsertRuleQaStats(supabase, qaStatsByRule.values());
     await backfillSignalAttribution(supabase, touchedIds);
     await triggerAttributionRepair(touchedIds);
     await upsertSnapshotsAndCounts(supabase, touchedIds);

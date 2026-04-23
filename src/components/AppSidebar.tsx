@@ -10,6 +10,7 @@ import {
   Shield,
   FlaskConical,
   Target,
+  ClipboardList,
 } from "lucide-react";
 import crisisLogo from "@/assets/crisis-x-logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -51,6 +52,7 @@ const mainNav: NavItem[] = [
   { title: "Scenarios", url: "/scenarios", icon: FlaskConical, allowedRoles: ["admin", "pr_manager"] },
   { title: "Trust Ledger", url: "/trust-ledger", icon: ShieldCheck, allowedRoles: ["admin", "pr_manager"] },
   { title: "Tracking Manager", url: "/tracking-manager", icon: Target, allowedRoles: ["admin"] },
+  { title: "QA Checklist", url: "/admin-qa", icon: ClipboardList, allowedRoles: ["admin"] },
 ];
 
 const settingsNav: NavItem[] = [

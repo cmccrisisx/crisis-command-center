@@ -24,6 +24,7 @@ import Launch from "./pages/Launch.tsx";
 import TrustLedger from "./pages/TrustLedger.tsx";
 import Verify from "./pages/Verify.tsx";
 import TrackingManagerPage from "./pages/TrackingManager.tsx";
+import AdminQaChecklist from "./pages/AdminQaChecklist.tsx";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/scenarios" element={<ProtectedRoute><Scenarios /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/tracking-manager" element={<ProtectedRoute><TrackingManagerPage /></ProtectedRoute>} />
+              <Route path="/admin-qa" element={<ProtectedRoute><AdminQaChecklist /></ProtectedRoute>} />
               <Route path="/trust-ledger" element={<ProtectedRoute><TrustLedger /></ProtectedRoute>} />
               <Route path="/verify" element={<Verify />} />
               <Route path="*" element={<NotFound />} />
