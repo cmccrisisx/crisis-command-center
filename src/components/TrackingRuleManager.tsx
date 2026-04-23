@@ -45,6 +45,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { LiveMonitoringPanel } from "@/components/LiveMonitoringPanel";
+import { MONITORING_WINDOW_OPTIONS, formatMonitoringWindow, type MonitoringWindow } from "@/lib/monitoring-window";
 import { cn } from "@/lib/utils";
 
 type RuleType = "keyword" | "query";
@@ -56,6 +57,7 @@ type KeywordSegment = "brand" | "competitor";
 interface CrisisOption {
   id: string;
   title: string;
+  default_monitoring_window: MonitoringWindow;
 }
 
 interface TrackingRuleRow {
@@ -71,6 +73,7 @@ interface TrackingRuleRow {
   updated_at: string;
   created_at: string;
   created_by: string | null;
+  monitoring_window: MonitoringWindow | null;
   crisis: CrisisOption | null;
 }
 
@@ -83,6 +86,7 @@ interface TrackingRuleFormState {
   notes: string;
   is_active: boolean;
   priority: string;
+  monitoring_window: MonitoringWindow | "inherit";
 }
 
 interface TrackingRuleManagerProps {
@@ -111,6 +115,7 @@ const DEFAULT_TRACKING_RULE_FORM: TrackingRuleFormState = {
   notes: "",
   is_active: true,
   priority: "100",
+  monitoring_window: "inherit",
 };
 
 const normalizeRuleText = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
@@ -149,6 +154,7 @@ const trackingRuleSchema = z
     notes: z.string().trim().max(500, "Notes must be 500 characters or less").optional(),
     is_active: z.boolean(),
     priority: z.coerce.number().int().min(0, "Priority must be 0 or greater").max(9999, "Priority must be 9999 or less"),
+    monitoring_window: z.enum(["inherit", "24h", "7d", "30d", "90d"]),
   })
   .superRefine((data, ctx) => {
     if (!normalizeRuleText(data.rule_text)) {
