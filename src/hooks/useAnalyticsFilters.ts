@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { getMonitoringWindowStart, isMonitoringWindow, type MonitoringWindow } from "@/lib/monitoring-window";
 
 type AnalyticsRangePreset = "24h" | "7d" | "30d";
 type SignalSourceFilter = "all" | "twitter" | "news" | "blog" | "linkedin";
@@ -33,6 +34,9 @@ export function useAnalyticsFilters() {
   const range = isRangePreset(searchParams.get("range")) ? (searchParams.get("range") as AnalyticsRangePreset) : "7d";
   const source = isSourceFilter(searchParams.get("source")) ? (searchParams.get("source") as SignalSourceFilter) : "all";
   const sentiment = isSentimentFilter(searchParams.get("sentiment")) ? (searchParams.get("sentiment") as SentimentFilter) : "all";
+  const monitoringWindow = isMonitoringWindow(searchParams.get("monitoringWindow"))
+    ? (searchParams.get("monitoringWindow") as MonitoringWindow)
+    : "7d";
   const liveMode = searchParams.get("live") === "1";
 
   const filters = useMemo(
@@ -40,13 +44,15 @@ export function useAnalyticsFilters() {
       range,
       source,
       sentiment,
+      monitoringWindow,
       liveMode,
       windowStart: getAnalyticsWindowStart(range),
+      monitoringWindowStart: getMonitoringWindowStart(monitoringWindow),
     }),
-    [range, source, sentiment, liveMode]
+    [range, source, sentiment, monitoringWindow, liveMode]
   );
 
-  const updateFilter = (key: "range" | "source" | "sentiment" | "live", value: string) => {
+  const updateFilter = (key: "range" | "source" | "sentiment" | "live" | "monitoringWindow", value: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -62,8 +68,9 @@ export function useAnalyticsFilters() {
     setRange: (value: AnalyticsRangePreset) => updateFilter("range", value),
     setSource: (value: SignalSourceFilter) => updateFilter("source", value),
     setSentiment: (value: SentimentFilter) => updateFilter("sentiment", value),
+    setMonitoringWindow: (value: MonitoringWindow) => updateFilter("monitoringWindow", value),
     setLiveMode: (value: boolean) => updateFilter("live", value ? "1" : "0"),
   };
 }
 
-export type { AnalyticsRangePreset, SignalSourceFilter, SentimentFilter };
+export type { AnalyticsRangePreset, SignalSourceFilter, SentimentFilter, MonitoringWindow };
