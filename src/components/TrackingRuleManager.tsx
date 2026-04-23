@@ -923,6 +923,7 @@ export function TrackingRuleManager({
                     <TableHead className="w-[20%]">Case</TableHead>
                     <TableHead className="w-[10%]">Type</TableHead>
                     <TableHead className="w-[12%]">Platform</TableHead>
+                    <TableHead className="w-[12%]">Window</TableHead>
                     <TableHead>Rule</TableHead>
                     <TableHead className="w-[10%] text-right">Priority</TableHead>
                     <TableHead className="w-[12%]">Status</TableHead>
@@ -964,6 +965,11 @@ export function TrackingRuleManager({
                             </Badge>
                           </TableCell>
                           <TableCell className="align-top">
+                            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
+                              {rule.monitoring_window ? formatMonitoringWindow(rule.monitoring_window) : `${formatMonitoringWindow(rule.crisis?.default_monitoring_window ?? "7d")} case`}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="align-top">
                             <div className="space-y-1">
                               <p className="break-words text-sm text-foreground">{rule.rule_text}</p>
                               {rule.notes && <p className="line-clamp-2 text-xs text-muted-foreground">{rule.notes}</p>}
@@ -998,7 +1004,7 @@ export function TrackingRuleManager({
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
+                      <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">No tracking rules match these filters.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -1173,6 +1179,26 @@ export function TrackingRuleManager({
                         <Label className="text-xs font-mono uppercase tracking-wider">Priority</Label>
                         <Input type="number" inputMode="numeric" min={0} max={9999} value={formState.priority} onChange={(e) => setFormState((prev) => ({ ...prev, priority: e.target.value }))} className="bg-card font-mono text-sm" />
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-mono uppercase tracking-wider">Monitoring window</Label>
+                      <Select value={formState.monitoring_window} onValueChange={(value: TrackingRuleFormState["monitoring_window"]) => setFormState((prev) => ({ ...prev, monitoring_window: value }))}>
+                        <SelectTrigger className="bg-card font-mono text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="inherit" className="font-mono text-xs">
+                            Inherit case default ({formatMonitoringWindow(crises.find((crisis) => crisis.id === formState.crisis_id)?.default_monitoring_window ?? "7d")})
+                          </SelectItem>
+                          {MONITORING_WINDOW_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="font-mono text-xs">
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">Rule override wins over the case default; leave inherited to keep one case-wide monitoring policy.</p>
                     </div>
 
                     <div className="space-y-2">
