@@ -51,7 +51,7 @@ export function AnalyticsKpiGrid({ kpis, isLoading }: { kpis: AnalyticsKpis | nu
       <KpiCard label="Positive share" value={formatPercent(kpis.positiveShare)} helper="Portion of positive signals" />
       <KpiCard label="Estimated reach" value={formatNumber(kpis.estimatedReach)} helper="Summed signal reach" />
       <KpiCard label="Tracked keywords" value={String(kpis.activeKeywords)} helper={`Rules active ${kpis.trackedRules}`} />
-      <KpiCard label="Last ingest" value={freshnessLabel(kpis.latestIngestAt)} helper="Most recent pipeline insert" />
+      <KpiCard label="Last ingest" value={freshnessLabel(kpis.latestIngestAt)} helper={kpis.liveMode ? "Streaming with realtime inserts" : "Most recent pipeline insert"} />
       <KpiCard label="Median latency" value={formatLatency(kpis.medianLatencyMs)} helper="Detect-to-ingest pipeline time" />
       <KpiCard label="Attribution" value={formatPercent(kpis.attributionCoverage)} helper="Signals linked to matched keyword" />
     </div>

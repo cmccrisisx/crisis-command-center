@@ -33,18 +33,20 @@ export function useAnalyticsFilters() {
   const range = isRangePreset(searchParams.get("range")) ? (searchParams.get("range") as AnalyticsRangePreset) : "7d";
   const source = isSourceFilter(searchParams.get("source")) ? (searchParams.get("source") as SignalSourceFilter) : "all";
   const sentiment = isSentimentFilter(searchParams.get("sentiment")) ? (searchParams.get("sentiment") as SentimentFilter) : "all";
+  const liveMode = searchParams.get("live") === "1";
 
   const filters = useMemo(
     () => ({
       range,
       source,
       sentiment,
+      liveMode,
       windowStart: getAnalyticsWindowStart(range),
     }),
-    [range, source, sentiment]
+    [range, source, sentiment, liveMode]
   );
 
-  const updateFilter = (key: "range" | "source" | "sentiment", value: string) => {
+  const updateFilter = (key: "range" | "source" | "sentiment" | "live", value: string) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -60,6 +62,7 @@ export function useAnalyticsFilters() {
     setRange: (value: AnalyticsRangePreset) => updateFilter("range", value),
     setSource: (value: SignalSourceFilter) => updateFilter("source", value),
     setSentiment: (value: SentimentFilter) => updateFilter("sentiment", value),
+    setLiveMode: (value: boolean) => updateFilter("live", value ? "1" : "0"),
   };
 }
 

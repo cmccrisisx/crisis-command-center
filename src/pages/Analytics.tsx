@@ -14,8 +14,8 @@ import { useActiveCase } from "@/hooks/useActiveCase";
 export default function Analytics() {
   usePageTitle("Analytics");
   const { activeCaseId, activeCase } = useActiveCase();
-  const { range, source, sentiment, windowStart, setRange, setSource, setSentiment } = useAnalyticsFilters();
-  const analytics = useAnalyticsData({ activeCaseId, windowStart, source, sentiment });
+  const { range, source, sentiment, liveMode, windowStart, setRange, setSource, setSentiment, setLiveMode } = useAnalyticsFilters();
+  const analytics = useAnalyticsData({ activeCaseId, windowStart, source, sentiment, liveMode });
   const isLoading = analytics.signalsQuery.isLoading || analytics.snapshotsQuery.isLoading || analytics.trackingRulesQuery.isLoading;
 
   const caseTitle = activeCase?.title ?? "All cases";
@@ -37,9 +37,11 @@ export default function Analytics() {
           range={range}
           source={source}
           sentiment={sentiment}
+          liveMode={liveMode}
           onRangeChange={setRange}
           onSourceChange={setSource}
           onSentimentChange={setSentiment}
+          onLiveModeChange={setLiveMode}
         />
 
         <AnalyticsStatusStrip
@@ -60,6 +62,7 @@ export default function Analytics() {
 
         <AnalyticsOverviewCharts
           isLoading={isLoading}
+          liveMode={liveMode}
           sentimentTimeline={analytics.sentimentTimeline}
           mentionTimeline={analytics.mentionTimeline}
           sourceMix={analytics.sourceMix}

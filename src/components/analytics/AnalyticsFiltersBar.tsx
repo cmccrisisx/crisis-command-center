@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import type { AnalyticsRangePreset, SentimentFilter, SignalSourceFilter } from "@/hooks/useAnalyticsFilters";
 
 const SOURCE_OPTIONS: Array<{ value: SignalSourceFilter; label: string }> = [
@@ -28,16 +29,20 @@ export function AnalyticsFiltersBar({
   range,
   source,
   sentiment,
+  liveMode,
   onRangeChange,
   onSourceChange,
   onSentimentChange,
+  onLiveModeChange,
 }: {
   range: AnalyticsRangePreset;
   source: SignalSourceFilter;
   sentiment: SentimentFilter;
+  liveMode: boolean;
   onRangeChange: (value: AnalyticsRangePreset) => void;
   onSourceChange: (value: SignalSourceFilter) => void;
   onSentimentChange: (value: SentimentFilter) => void;
+  onLiveModeChange: (value: boolean) => void;
 }) {
   return (
     <div className="rounded-sm border border-border bg-card px-3 py-3">
@@ -45,6 +50,10 @@ export function AnalyticsFiltersBar({
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wider">Scoped analytics</Badge>
           <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">Live data only</Badge>
+          <div className="ml-1 inline-flex items-center gap-2 rounded-sm border border-border bg-surface-elevated px-2 py-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Live mode</span>
+            <Switch checked={liveMode} onCheckedChange={onLiveModeChange} aria-label="Toggle live analytics mode" />
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -91,6 +100,7 @@ export function AnalyticsFiltersBar({
             onRangeChange("7d");
             onSourceChange("all");
             onSentimentChange("all");
+            onLiveModeChange(false);
           }}>
             Reset
           </Button>
